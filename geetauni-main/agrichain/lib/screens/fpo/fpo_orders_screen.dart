@@ -30,7 +30,7 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -80,7 +80,7 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
                           indicatorWeight: 3,
                           labelStyle: GoogleFonts.outfit(
                             fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                            fontSize: 12.5,
                           ),
                           tabs: [
                             Tab(
@@ -89,7 +89,11 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
                             ),
                             Tab(
                               icon: const Icon(Icons.store_outlined, size: 18),
-                              text: 'Single FPO Direct (${directOrders.length})',
+                              text: 'Direct (${directOrders.length})',
+                            ),
+                            const Tab(
+                              icon: Icon(Icons.campaign_outlined, size: 18),
+                              text: 'Buyer Demands (मांगें)',
                             ),
                           ],
                         ),
@@ -104,6 +108,7 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
               children: [
                 _buildMultiFpoOrdersTab(multiOrders),
                 _buildSingleFpoOrdersTab(directOrders),
+                _buildBuyerDemandsTab(fpoId),
               ],
             ),
           ),
@@ -1172,4 +1177,338 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
       ),
     );
   }
+
+  Widget _buildBuyerDemandsTab(String fpoId) {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _dbService.streamBulkRfqs(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen));
+        }
+
+        final rfqs = snapshot.data ?? [];
+
+        if (rfqs.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.campaign_outlined,
+                    size: 64,
+                    color: AppTheme.textSecondary.withValues(alpha: 0.35),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No Open Buyer Demands Right Now',
+                    style: GoogleFonts.outfit(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'When institutional bulk buyers post procurement tenders or RFQs, they will appear here in real time for your FPO to fulfill.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+          itemCount: rfqs.length,
+          itemBuilder: (context, index) {
+            final rfq = rfqs[index];
+            return _buildBuyerDemandCard(rfq, fpoId);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildBuyerDemandCard(Map<String, dynamic> rfq, String fpoId) {
+    final buyer = rfq['buyerName'] ?? rfq['companyName'] ?? 'AgroFoods Milling India';
+    final crop = rfq['commodity'] ?? 'Wheat';
+    final variety = rfq['variety'] ?? 'Standard Milling';
+    final grade = rfq['qualityGrade'] ?? 'Grade A';
+    final qtyQtl = (rfq['quantityQtl'] as num?)?.toDouble() ??
+        ((rfq['requiredQuantityQtl'] as num?)?.toDouble() ?? 50.0);
+    final targetPriceQtl = (rfq['targetPricePerQtl'] as num?)?.toDouble() ??
+        ((rfq['maxPricePerQtl'] as num?)?.toDouble() ?? 3200.0);
+    final location = rfq['deliveryLocation'] ?? 'Karnal Central Hub';
+    final rfqId = rfq['id'] ?? 'RFQ-${DateTime.now().millisecondsSinceEpoch}';
+    final status = rfq['status'] ?? 'open';
+    final totalAmount = qtyQtl * targetPriceQtl;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Card Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.verified, size: 16, color: Color(0xFF2563EB)),
+                    const SizedBox(width: 6),
+                    Text(
+                      buyer,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: status == 'MATCHED_ESCROW_LOCKED'
+                        ? const Color(0xFFDCFCE7)
+                        : const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    status == 'MATCHED_ESCROW_LOCKED' ? 'ESCROW LOCKED' : 'OPEN DEMAND',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: status == 'MATCHED_ESCROW_LOCKED'
+                          ? const Color(0xFF15803D)
+                          : const Color(0xFF2563EB),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$crop ($variety)',
+                          style: GoogleFonts.outfit(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.darkGreen,
+                          ),
+                        ),
+                        Text(
+                          'Target: ${qtyQtl.toStringAsFixed(0)} Qtl • $grade',
+                          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '₹${totalAmount.toStringAsFixed(0)}',
+                          style: GoogleFonts.inter(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF2E7D32),
+                          ),
+                        ),
+                        Text(
+                          '₹${targetPriceQtl.toStringAsFixed(0)} / Qtl',
+                          style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on_outlined, size: 14, color: AppTheme.textSecondary),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'Delivery: $location',
+                        style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Action Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _acceptBuyerDemand(rfqId, fpoId, buyer, crop, qtyQtl, targetPriceQtl),
+                        icon: const Icon(Icons.check_circle_outline, size: 16),
+                        label: const Text('Accept Order (स्वीकारें)'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryGreen,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          textStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showCounterQuoteDialog(rfqId, fpoId, buyer, crop, targetPriceQtl),
+                        icon: const Icon(Icons.edit_note, size: 16),
+                        label: const Text('Quote Rate (कोट करें)'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.darkGreen,
+                          side: const BorderSide(color: AppTheme.primaryGreen),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          textStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _acceptBuyerDemand(String rfqId, String fpoId, String buyer, String crop, double qtyQtl, double priceQtl) async {
+    try {
+      await _dbService.submitRfqQuote(rfqId, {
+        'fpoId': fpoId,
+        'fpoName': 'Karnal Farmers Cooperative Society',
+        'status': 'ACCEPTED',
+        'quotedPricePerQtl': priceQtl,
+        'offeredQuantityQtl': qtyQtl,
+        'acceptedAt': DateTime.now().toIso8601String(),
+      });
+    } catch (_) {}
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF1B5E20),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Buyer order for $crop ($qtyQtl Qtl) accepted! Contract generated.',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCounterQuoteDialog(String rfqId, String fpoId, String buyer, String crop, double defaultPrice) {
+    final priceCtrl = TextEditingController(text: defaultPrice.toStringAsFixed(0));
+    final qtyCtrl = TextEditingController(text: '50');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Submit FPO Quote for $crop', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Buyer: $buyer', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 14),
+            TextField(
+              controller: priceCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Your Quoted Price (₹ / Qtl)',
+                border: OutlineInputBorder(),
+                prefixText: '₹ ',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: qtyCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Available Quantity to Supply (Qtl)',
+                border: OutlineInputBorder(),
+                suffixText: 'Qtl',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryGreen),
+            onPressed: () async {
+              final p = double.tryParse(priceCtrl.text) ?? defaultPrice;
+              final q = double.tryParse(qtyCtrl.text) ?? 50.0;
+              Navigator.pop(ctx);
+              await _dbService.submitRfqQuote(rfqId, {
+                'fpoId': fpoId,
+                'fpoName': 'Karnal Farmers Cooperative',
+                'quotedPricePerQtl': p,
+                'offeredQuantityQtl': q,
+                'status': 'QUOTED',
+              });
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Quote submitted to buyer successfully!'),
+                    backgroundColor: Color(0xFF1B5E20),
+                  ),
+                );
+              }
+            },
+            child: const Text('Send Quote (भेजें)', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 }
+

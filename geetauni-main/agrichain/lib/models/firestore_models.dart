@@ -23,7 +23,7 @@ enum CertificationType { organic, fssai, agmark, iso, gmp, haccp }
 
 enum QualityGrade { premium, grade1, grade2, standard }
 
-enum UserType { farmer, buyer, lender, admin, fpo, retailBuyer }
+enum UserType { farmer, buyer, lender, admin, fpo, retailBuyer, fpoMemberFarmer }
 
 enum RatingType { quality, delivery, communication, overall, buyer, seller }
 
@@ -101,6 +101,11 @@ class FirestoreUser {
           final str = (data['userType'] ?? '').toString().toLowerCase();
           if (e == UserType.retailBuyer && (str == 'retailbuyer' || str == 'retail_buyer')) return true;
           if (e == UserType.buyer && (str == 'buyer' || str == 'bulk_buyer' || str == 'bulkbuyer')) return true;
+          if (e == UserType.fpoMemberFarmer &&
+              (str == 'fpomemberfarmer' ||
+                  str == 'fpo_member_farmer' ||
+                  str == 'fpomember' ||
+                  str == 'fpo_member')) return true;
           return e.name.toLowerCase() == str;
         },
         orElse: () => UserType.farmer,

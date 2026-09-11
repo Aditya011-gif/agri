@@ -40,6 +40,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _agreeToTerms = false;
   bool _agreeToPrivacy = false;
   int _currentStep = 0;
+  AutovalidateMode _autoValidateMode = AutovalidateMode.disabled;
 
   // KYC State
   bool _isKycVerified = false;
@@ -287,7 +288,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final res = await SignaturePadDialog.show(
       context,
       signerName: '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'.trim(),
-      isFarmer: _selectedUserType == UserType.farmer,
+      isFarmer: _selectedUserType == UserType.farmer || _selectedUserType == UserType.fpoMemberFarmer,
     );
 
     if (res != null && res['signatureUrl'] != null) {
@@ -380,6 +381,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                   child: Form(
                     key: _formKey,
+                    autovalidateMode: _autoValidateMode,
                     child: PageView(
                       controller: _pageController,
                       physics: const NeverScrollableScrollPhysics(),
@@ -491,18 +493,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   Expanded(
                     child: _buildUserTypeCard(
                       userType: UserType.farmer,
-                      title: 'Farmer',
-                      subtitle: 'Sell crops',
+                      title: 'Solo Farmer',
+                      subtitle: 'Sell direct to market',
                       icon: Icons.agriculture,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: _buildUserTypeCard(
-                      userType: UserType.fpo,
-                      title: 'FPO / Co-op',
-                      subtitle: 'Procure & aggregate',
-                      icon: Icons.corporate_fare,
+                      userType: UserType.fpoMemberFarmer,
+                      title: 'FPO Member',
+                      subtitle: 'Consign produce & DBT',
+                      icon: Icons.assignment_turned_in_outlined,
                     ),
                   ),
                 ],
@@ -512,18 +514,31 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 children: [
                   Expanded(
                     child: _buildUserTypeCard(
+                      userType: UserType.fpo,
+                      title: 'FPO / Co-op',
+                      subtitle: 'Procure & aggregate',
+                      icon: Icons.corporate_fare,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildUserTypeCard(
                       userType: UserType.buyer,
                       title: 'Bulk Buyer',
                       subtitle: 'RFQs & clusters',
                       icon: Icons.business,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
                   Expanded(
                     child: _buildUserTypeCard(
                       userType: UserType.retailBuyer,
                       title: 'Retail Buyer',
-                      subtitle: 'Buy produce',
+                      subtitle: 'Buy produce in small batches',
                       icon: Icons.shopping_cart,
                     ),
                   ),
@@ -542,7 +557,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   decoration: _buildInputDecoration('First Name', Icons.person),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'First name is required';
+                      return 'First name cannot be left empty (पहला नाम अनिवार्य है)';
                     }
                     return null;
                   },
@@ -558,7 +573,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Last name is required';
+                      return 'Last name cannot be left empty (अंतिम नाम अनिवार्य है)';
                     }
                     return null;
                   },
@@ -575,12 +590,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
             decoration: _buildInputDecoration('Email Address', Icons.email),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Email is required';
+                return 'Email address cannot be left empty (ईमेल अनिवार्य है)';
               }
               if (!RegExp(
                 r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-              ).hasMatch(value)) {
-                return 'Please enter a valid email';
+              ).hasMatch(value.trim())) {
+                return 'Please enter a valid email address';
               }
               return null;
             },
@@ -598,9 +613,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ],
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Phone number is required';
+                return 'Phone number cannot be left empty (फोन नंबर अनिवार्य है)';
               }
-              if (value.length != 10) {
+              if (value.trim().length != 10) {
                 return 'Please enter a valid 10-digit phone number';
               }
               return null;
@@ -613,9 +628,35 @@ class _SignUpScreenState extends State<SignUpScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                if (_validateBasicInfo()) {
-                  _nextStep();
+                setState(() {
+                  _autoValidateMode = AutovalidateMode.onUserInteraction;
+                });
+                final isFormValid = _formKey.currentState?.validate() ?? false;
+                final isBasicValid = _validateBasicInfo();
+                if (!isFormValid || !isBasicValid) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Row(
+                        children: [
+                          Icon(Icons.error_outline, color: Colors.white, size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Please fill all required fields marked in red (कृपया लाल रंग से चिह्नित सभी फ़ील्ड्स भरें)',
+                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: Colors.red.shade700,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                  return;
                 }
+                _nextStep();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryGreen,
@@ -1244,6 +1285,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: Colors.grey[300]!),
       ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.red.shade700, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.red.shade900, width: 2.0),
+      ),
+      errorStyle: TextStyle(
+        color: Colors.red.shade700,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 
@@ -1272,8 +1326,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   String _getKycStatusText() {
     if (_isKycVerified) return 'Documents Validated';
-    if (_kycStatus == 'Failed' || _kycStatus == 'Invalid Format')
+    if (_kycStatus == 'Failed' || _kycStatus == 'Invalid Format') {
       return 'Invalid Documents';
+    }
     return 'KYC Pending';
   }
 }

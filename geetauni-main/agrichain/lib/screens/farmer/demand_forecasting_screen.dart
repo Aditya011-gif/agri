@@ -25,18 +25,58 @@ class _DemandForecastingScreenState extends State<DemandForecastingScreen> {
   late String _selectedDistrict;
   late DateTime _targetDate;
   int _selectedDaysAhead = 7;
-  double _farmerLotSizeKg = 4000;
+  final double _farmerLotSizeKg = 4000;
 
   bool _isLoading = false;
   DemandForecastResponse? _forecastData;
 
-  final List<String> _supportedCrops = [
+  static const List<Map<String, String>> _allCropsCatalog = [
+    // 🥦 Vegetables
+    {'name': 'Tomato', 'hindi': 'टमाटर', 'icon': '🍅', 'category': 'Vegetables'},
+    {'name': 'Potato', 'hindi': 'आलू', 'icon': '🥔', 'category': 'Vegetables'},
+    {'name': 'Onion', 'hindi': 'प्याज', 'icon': '🧅', 'category': 'Vegetables'},
+    {'name': 'Cauliflower', 'hindi': 'फूलगोभी', 'icon': '🥦', 'category': 'Vegetables'},
+    {'name': 'Cabbage', 'hindi': 'पत्तागोभी', 'icon': '🥬', 'category': 'Vegetables'},
+    {'name': 'Green Peas', 'hindi': 'हरी मटर', 'icon': '🫛', 'category': 'Vegetables'},
+    {'name': 'Green Chilli', 'hindi': 'हरी मिर्च', 'icon': '🌶️', 'category': 'Vegetables'},
+    {'name': 'Garlic', 'hindi': 'लहसुन', 'icon': '🧄', 'category': 'Vegetables'},
+    {'name': 'Ginger', 'hindi': 'अदरक', 'icon': '🫚', 'category': 'Vegetables'},
+    {'name': 'Okra', 'hindi': 'भिंडी', 'icon': '🥒', 'category': 'Vegetables'},
+    {'name': 'Carrot', 'hindi': 'गाजर', 'icon': '🥕', 'category': 'Vegetables'},
+    {'name': 'Brinjal', 'hindi': 'बैंगन', 'icon': '🍆', 'category': 'Vegetables'},
+    {'name': 'Capsicum', 'hindi': 'शिमला मिर्च', 'icon': '🫑', 'category': 'Vegetables'},
+    // 🍎 Fruits
+    {'name': 'Mango', 'hindi': 'आम', 'icon': '🥭', 'category': 'Fruits'},
+    {'name': 'Banana', 'hindi': 'केला', 'icon': '🍌', 'category': 'Fruits'},
+    {'name': 'Apple', 'hindi': 'सेब', 'icon': '🍎', 'category': 'Fruits'},
+    {'name': 'Kinnow', 'hindi': 'किन्नू', 'icon': '🍊', 'category': 'Fruits'},
+    {'name': 'Guava', 'hindi': 'अमरूद', 'icon': '🍐', 'category': 'Fruits'},
+    {'name': 'Papaya', 'hindi': 'पपीता', 'icon': '🍈', 'category': 'Fruits'},
+    {'name': 'Pomegranate', 'hindi': 'अनार', 'icon': '🍇', 'category': 'Fruits'},
+    {'name': 'Grapes', 'hindi': 'अंगूर', 'icon': '🍇', 'category': 'Fruits'},
+    {'name': 'Watermelon', 'hindi': 'तरबूज', 'icon': '🍉', 'category': 'Fruits'},
+    // 🌾 Grains & Pulses & Cash
+    {'name': 'Wheat', 'hindi': 'गेहूं', 'icon': '🌾', 'category': 'Grains'},
+    {'name': 'Rice', 'hindi': 'चावल', 'icon': '🍚', 'category': 'Grains'},
+    {'name': 'Maize', 'hindi': 'मक्का', 'icon': '🌽', 'category': 'Grains'},
+    {'name': 'Desi Chana', 'hindi': 'चना', 'icon': '🫘', 'category': 'Pulses'},
+    {'name': 'Moong Dal', 'hindi': 'मूंग', 'icon': '🌱', 'category': 'Pulses'},
+    {'name': 'Mustard', 'hindi': 'सरसों', 'icon': '🌻', 'category': 'Oilseeds'},
+    {'name': 'Soybean', 'hindi': 'सोयाबीन', 'icon': '🫛', 'category': 'Oilseeds'},
+    {'name': 'Cotton', 'hindi': 'कपास', 'icon': '🌿', 'category': 'Cash Crops'},
+  ];
+
+  final List<String> _popularQuickCrops = [
     'Tomato',
     'Onion',
+    'Mango',
+    'Kinnow',
+    'Cauliflower',
     'Wheat',
     'Rice',
+    'Apple',
     'Potato',
-    'Cotton',
+    'Green Peas',
   ];
 
   final List<Map<String, String>> _supportedDistricts = [
@@ -155,6 +195,10 @@ class _DemandForecastingScreenState extends State<DemandForecastingScreen> {
           if (_isLoading)
             _buildLoadingIndicator()
           else if (_forecastData != null) ...[
+            // 2.5. Dynamic One-Line Factor Summary Banner
+            _buildHindiFactorSummaryBanner(_forecastData!),
+            const SizedBox(height: 16),
+
             // 3. Price Forecast & Revenue Estimator
             _buildPriceRealizationCard(_forecastData!),
             const SizedBox(height: 16),
@@ -227,43 +271,132 @@ class _DemandForecastingScreenState extends State<DemandForecastingScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Crop Selector Chips
-          Text(
-            'Select Commodity:',
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade700,
-            ),
+          // Commodity Dropdown & Category Selector
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Select Commodity (फसल / फल / सब्जी):',
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${_allCropsCatalog.length} Crops Available',
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green.shade800,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 6),
+
+          // Primary Categorized Dropdown
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _allCropsCatalog.any((c) => c['name'] == _selectedCrop)
+                    ? _selectedCrop
+                    : 'Tomato',
+                isExpanded: true,
+                icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: AppTheme.primaryGreen),
+                items: _allCropsCatalog.map((crop) {
+                  return DropdownMenuItem<String>(
+                    value: crop['name'],
+                    child: Row(
+                      children: [
+                        Text(crop['icon'] ?? '🌾', style: const TextStyle(fontSize: 16)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${crop['name']} (${crop['hindi']})',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.darkGreen,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: crop['category'] == 'Fruits'
+                                ? Colors.orange.shade50
+                                : crop['category'] == 'Vegetables'
+                                    ? Colors.green.shade50
+                                    : Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            crop['category'] ?? '',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w600,
+                              color: crop['category'] == 'Fruits'
+                                  ? Colors.orange.shade900
+                                  : crop['category'] == 'Vegetables'
+                                      ? Colors.green.shade900
+                                      : Colors.blue.shade900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null && val != _selectedCrop) {
+                    setState(() => _selectedCrop = val);
+                    _fetchForecast();
+                  }
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Quick-Access Chips
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: _supportedCrops.map((crop) {
-                final isSelected = _selectedCrop == crop;
-                String emoji = '🌾';
-                if (crop == 'Tomato') emoji = '🍅';
-                if (crop == 'Onion') emoji = '🧅';
-                if (crop == 'Rice') emoji = '🍚';
-                if (crop == 'Potato') emoji = '🥔';
-                if (crop == 'Cotton') emoji = '🌿';
-
+              children: _popularQuickCrops.map((cropName) {
+                final isSelected = _selectedCrop == cropName;
+                final meta = _allCropsCatalog.firstWhere(
+                  (c) => c['name'] == cropName,
+                  orElse: () => {'name': cropName, 'icon': '🌾', 'hindi': ''},
+                );
                 return Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: ChoiceChip(
-                    label: Text('$emoji $crop'),
+                    label: Text('${meta['icon']} $cropName'),
                     selected: isSelected,
                     selectedColor: AppTheme.primaryGreen,
                     backgroundColor: Colors.grey.shade100,
                     labelStyle: TextStyle(
                       color: isSelected ? Colors.white : Colors.grey.shade800,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      fontSize: 12,
+                      fontSize: 11.5,
                     ),
                     onSelected: (selected) {
                       if (selected) {
-                        setState(() => _selectedCrop = crop);
+                        setState(() => _selectedCrop = cropName);
                         _fetchForecast();
                       }
                     },
@@ -533,7 +666,87 @@ class _DemandForecastingScreenState extends State<DemandForecastingScreen> {
     );
   }
 
-  /// 3. Probabilistic Demand Quantiles (P10 / P50 / P90)
+  /// 2.5. Dynamic One-Line Factor Summary Banner
+  Widget _buildHindiFactorSummaryBanner(DemandForecastResponse data) {
+    final commodity = data.meta.commodity;
+    final district = data.meta.district;
+    final expectedQtl = (data.demandForecastKg.p50Expected / 100).toStringAsFixed(0);
+    final expectedKgFormatted = data.demandForecastKg.p50Expected.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (m) => '${m[1]},',
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1B5E20).withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.analytics_outlined, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF69F0AE),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'AI मांग निष्कर्ष (AI Demand Summary)',
+                        style: GoogleFonts.inter(
+                          color: const Color(0xFF0D381E),
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'मौसम के बदलाव, आगामी त्योहारी सीज़न और स्थानीय मंडी आवक के आधार पर अगले 14 दिनों में $district क्षेत्र में $commodity की कुल अनुमानित मांग लगभग $expectedQtl क्विंटल ($expectedKgFormatted kg) रहने की संभावना है।',
+                  style: GoogleFonts.inter(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 3. Probabilistic Demand Quantiles (Simple Hindi Terms)
   Widget _buildDemandQuantilesCard(DemandForecastResponse data) {
     final demand = data.demandForecastKg;
 
@@ -556,14 +769,14 @@ class _DemandForecastingScreenState extends State<DemandForecastingScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.analytics_outlined, color: AppTheme.primaryGreen, size: 20),
+              const Icon(Icons.show_chart, color: AppTheme.primaryGreen, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Probabilistic Demand Quantiles (KG)',
+                      'अनुमानित बाजार मांग (Estimated Demand in KG)',
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -571,7 +784,7 @@ class _DemandForecastingScreenState extends State<DemandForecastingScreen> {
                       ),
                     ),
                     Text(
-                      'Pinball Loss Quantile Risk Distribution (80% Confidence)',
+                      'न्यूनतम, संभावित और अधिकतम मांग का 3-स्तरीय विश्लेषण',
                       style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600),
                     ),
                   ],
@@ -581,24 +794,24 @@ class _DemandForecastingScreenState extends State<DemandForecastingScreen> {
           ),
           const SizedBox(height: 16),
 
-          // 3 Quantile Risk Cards (P10, P50, P90)
+          // 3 Quantile Risk Cards (Simple Hindi terms)
           Row(
             children: [
               Expanded(
                 child: _buildQuantileBox(
-                  title: 'P10 (Pessimistic)',
-                  subtitle: 'Downside Floor',
+                  title: 'न्यूनतम मांग\n(कम से कम)',
+                  subtitle: 'मंदी में भी इतना बिकेगा',
                   value: demand.p10Pessimistic,
-                  color: Colors.orange.shade700,
+                  color: Colors.orange.shade800,
                   bgColor: Colors.orange.shade50,
-                  borderColor: Colors.orange.shade200,
+                  borderColor: Colors.orange.shade300,
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: _buildQuantileBox(
-                  title: 'P50 (Expected)',
-                  subtitle: 'Baseline Target',
+                  title: 'संभावित मांग\n(सबसे सटीक)',
+                  subtitle: 'सामान्य व औसत मांग',
                   value: demand.p50Expected,
                   color: AppTheme.primaryGreen,
                   bgColor: Colors.green.shade50,
@@ -609,12 +822,12 @@ class _DemandForecastingScreenState extends State<DemandForecastingScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: _buildQuantileBox(
-                  title: 'P90 (Surge)',
-                  subtitle: 'Festival / Peak',
+                  title: 'अधिकतम मांग\n(पीक सीज़न)',
+                  subtitle: 'त्योहार/शादी की मांग',
                   value: demand.p90Optimistic,
-                  color: Colors.purple.shade700,
+                  color: Colors.purple.shade800,
                   bgColor: Colors.purple.shade50,
-                  borderColor: Colors.purple.shade200,
+                  borderColor: Colors.purple.shade300,
                 ),
               ),
             ],
@@ -691,7 +904,7 @@ class _DemandForecastingScreenState extends State<DemandForecastingScreen> {
               const Icon(Icons.lightbulb_outline, color: Colors.amber, size: 20),
               const SizedBox(width: 8),
               Text(
-                'AI Farm-Gate Advisory Strategy',
+                'कृषि सलाह व बिक्री रणनीति (Farm-Gate Advisory Strategy)',
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,

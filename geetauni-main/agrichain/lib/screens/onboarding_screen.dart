@@ -281,11 +281,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Widget _buildOnboardingPage(OnboardingData data) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
           // Icon
           Container(
             width: 120,
@@ -360,8 +361,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class OnboardingData {

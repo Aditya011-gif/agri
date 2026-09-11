@@ -10,3 +10,4 @@ export 'farmer_sell_to_fpo_screen.dart';
 export 'farmer_orders_screen.dart';
 export 'farmer_payout_history_screen.dart';
 export 'demand_forecasting_screen.dart';
+export 'farmer_fpo_consignment_dashboard_screen.dart';

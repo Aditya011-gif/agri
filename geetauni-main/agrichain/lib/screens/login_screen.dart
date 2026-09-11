@@ -535,7 +535,8 @@ class _LoginScreenState extends State<LoginScreen>
                                   runSpacing: 8,
                                   alignment: WrapAlignment.center,
                                   children: [
-                                    _buildDemoChip(context, '🌾 Farmer', UserType.farmer),
+                                    _buildDemoChip(context, '🌾 Solo Farmer', UserType.farmer),
+                                    _buildDemoChip(context, '🚜 FPO Member Farmer', UserType.fpoMemberFarmer),
                                     _buildDemoChip(context, '🏢 FPO Co-op', UserType.fpo),
                                     _buildDemoChip(context, '🏭 Bulk Buyer', UserType.buyer),
                                     _buildDemoChip(context, '🛒 Retail Buyer', UserType.retailBuyer),

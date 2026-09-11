@@ -12,6 +12,10 @@ import '../../utils/crop_image_helper.dart';
 import '../../widgets/language_switcher.dart';
 import 'escrow_checkout_screen.dart';
 import '../../widgets/fpo_lot_details_modal.dart';
+import 'bulk_buyer_recurring_orders_screen.dart';
+import 'create_recurring_order_screen.dart';
+import 'bulk_buyer_profile_screen.dart';
+import 'dynamic_demand_matcher_screen.dart';
 
 class BulkBuyerHomeScreen extends StatefulWidget {
   final Function(int)? onNavigateTab;
@@ -28,6 +32,8 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
   final MultiFpoClusterEngine _clusterEngine = MultiFpoClusterEngine();
 
   String _selectedCategory = 'All';
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   final List<String> _categories = [
     'All',
@@ -44,6 +50,12 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
   void initState() {
     super.initState();
     _dbService.cleanSampleBulkBuyerData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -124,20 +136,47 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                 maxRadiusKm: 10.0, // 7-10 km corridor
               );
 
-              // Filter real lots by selected category
+              // Filter real lots by selected category and search query
               final filteredLots = realFpoNodes.where((node) {
-                if (_selectedCategory == 'All') return true;
-                final name = node.commodity.toLowerCase();
-                final variety = node.variety.toLowerCase();
-                final selected = _selectedCategory.toLowerCase();
-                if (selected.contains('wheat') && name.contains('wheat')) return true;
-                if (selected.contains('rice') && (name.contains('rice') || name.contains('paddy'))) return true;
-                if (selected.contains('mustard') && (name.contains('mustard') || name.contains('oilseed'))) return true;
-                if (selected.contains('maize') && (name.contains('maize') || name.contains('corn'))) return true;
-                if (selected.contains('pulses') && (name.contains('pulse') || name.contains('dal') || name.contains('gram'))) return true;
-                if (selected.contains('cotton') && name.contains('cotton')) return true;
-                if (selected.contains('spices') && (name.contains('spice') || name.contains('chilli') || name.contains('turmeric'))) return true;
-                return name.contains(selected) || variety.contains(selected);
+                // Category match
+                bool matchesCategory = true;
+                if (_selectedCategory != 'All') {
+                  final name = node.commodity.toLowerCase();
+                  final variety = node.variety.toLowerCase();
+                  final selected = _selectedCategory.toLowerCase();
+                  if (selected.contains('wheat') && name.contains('wheat')) {
+                    matchesCategory = true;
+                  } else if (selected.contains('rice') && (name.contains('rice') || name.contains('paddy'))) {
+                    matchesCategory = true;
+                  } else if (selected.contains('mustard') && (name.contains('mustard') || name.contains('oilseed'))) {
+                    matchesCategory = true;
+                  } else if (selected.contains('maize') && (name.contains('maize') || name.contains('corn'))) {
+                    matchesCategory = true;
+                  } else if (selected.contains('pulses') && (name.contains('pulse') || name.contains('dal') || name.contains('gram'))) {
+                    matchesCategory = true;
+                  } else if (selected.contains('cotton') && name.contains('cotton')) {
+                    matchesCategory = true;
+                  } else if (selected.contains('spices') && (name.contains('spice') || name.contains('chilli') || name.contains('turmeric'))) {
+                    matchesCategory = true;
+                  } else {
+                    matchesCategory = name.contains(selected) || variety.contains(selected);
+                  }
+                }
+
+                if (!matchesCategory) return false;
+
+                // Search query match
+                if (_searchQuery.isNotEmpty) {
+                  final q = _searchQuery.toLowerCase();
+                  final matchesSearch = node.commodity.toLowerCase().contains(q) ||
+                      node.variety.toLowerCase().contains(q) ||
+                      node.fpoName.toLowerCase().contains(q) ||
+                      node.warehouseName.toLowerCase().contains(q) ||
+                      node.qualityGrade.toLowerCase().contains(q);
+                  if (!matchesSearch) return false;
+                }
+
+                return true;
               }).toList();
 
               return RefreshIndicator(
@@ -156,8 +195,16 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                       _buildSearchBar(context),
                       const SizedBox(height: 16),
 
+                      // 1b. NEW: Intelligent Farmer Lot Aggregator Matcher Banner
+                      _buildDynamicMatcherBanner(context),
+                      const SizedBox(height: 16),
+
                       // 2. Hero CTA Banner: FPO Direct Silos
                       _buildHeroCtaBanner(context, filteredLots.length),
+                      const SizedBox(height: 14),
+
+                      // 2b. 12-Week Recurring Supply Agreements Banner
+                      _buildRecurringSupplyBanner(context),
                       const SizedBox(height: 20),
 
                       // 3. Category Horizontal Pills
@@ -266,6 +313,20 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
           tooltip: 'Live Orders & Shipments',
           onPressed: () => widget.onNavigateTab?.call(3), // Tab 3 = Orders
         ),
+        IconButton(
+          icon: const Icon(Icons.person_outline, color: AppTheme.darkGreen),
+          tooltip: 'Company Profile (प्रोफाइल)',
+          onPressed: () {
+            if (widget.onNavigateTab != null) {
+              widget.onNavigateTab!(4);
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const BulkBuyerProfileScreen()),
+              );
+            }
+          },
+        ),
         const Padding(
           padding: EdgeInsets.only(right: 8.0),
           child: LanguageSwitcherPill(),
@@ -275,59 +336,169 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
   }
 
   Widget _buildSearchBar(BuildContext context) {
-    return GestureDetector(
-      onTap: () => widget.onNavigateTab?.call(1), // Go to Supply Tab
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _searchQuery.isNotEmpty ? AppTheme.primaryGreen : Colors.grey.shade200,
+          width: _searchQuery.isNotEmpty ? 1.5 : 1.0,
         ),
-        child: Row(
-          children: [
-            const Icon(Icons.search, color: AppTheme.primaryGreen, size: 22),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Search bulk commodities, FPO silos, milling grades...',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.w400,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (val) {
+          setState(() {
+            _searchQuery = val.trim();
+          });
+        },
+        decoration: InputDecoration(
+          hintText: 'Search bulk commodities, FPO silos, milling grades...',
+          hintStyle: GoogleFonts.inter(
+            fontSize: 13,
+            color: Colors.grey.shade500,
+            fontWeight: FontWeight.w400,
+          ),
+          prefixIcon: const Icon(Icons.search, color: AppTheme.primaryGreen, size: 22),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, color: Colors.grey, size: 18),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = '';
+                    });
+                  },
+                )
+              : Container(
+                  margin: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.tune, size: 14, color: AppTheme.primaryGreen),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Filters',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primaryGreen,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDynamicMatcherBanner(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0D381E), Color(0xFF1B5E20)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0D381E).withValues(alpha: 0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF69F0AE),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.auto_awesome, size: 12, color: Color(0xFF0D381E)),
+                    const SizedBox(width: 4),
+                    Text(
+                      'INTELLIGENT LOT AGGREGATOR',
+                      style: GoogleFonts.inter(
+                        color: const Color(0xFF0D381E),
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryGreen.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+              const Spacer(),
+              const Text(
+                'AI Engine ⚡',
+                style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.tune, size: 14, color: AppTheme.primaryGreen),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Filters',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.primaryGreen,
-                    ),
-                  ),
-                ],
-              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Smart Farmer Lot Matcher (स्मार्ट लॉट मैचिंग)',
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Combine small farmer lots (Farmer A: 150kg + Farmer B: 220kg + Farmer C: 130kg) into one seamless 500kg wholesale order with automated escrow.',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: Colors.white.withValues(alpha: 0.85),
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 14),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const DynamicDemandMatcherScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.hub_outlined, size: 16),
+            label: const Text('Launch Multi-Lot Matcher (लॉट मैच करें)'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF69F0AE),
+              foregroundColor: const Color(0xFF0D381E),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              textStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -432,6 +603,126 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                   foregroundColor: Colors.white,
                   side: const BorderSide(color: Colors.white54),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecurringSupplyBanner(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF334155)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.repeat, size: 12, color: Color(0xFF34D399)),
+                    SizedBox(width: 4),
+                    Text(
+                      '12-WEEK RECURRING SUPPLY',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF34D399),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              const Text(
+                'Weekly Monday Intake',
+                style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Institutional Supply Agreements',
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Lock in guaranteed weekly volumes directly with vetted FPO clusters. Compare candidate FPOs on price, transit ETA & NABL grade.',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: const Color(0xFFCBD5E1),
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CreateRecurringOrderScreen()),
+                  );
+                },
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('+ Setup 12-W Contract'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                  textStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const BulkBuyerRecurringOrdersScreen()),
+                  );
+                },
+                icon: const Icon(Icons.receipt_long_outlined, size: 16, color: Colors.white),
+                label: const Text('My Contracts'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Color(0xFF475569)),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                   textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),

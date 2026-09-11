@@ -180,7 +180,6 @@ class DemandForecastingService {
     required DateTime targetDate,
     required String state,
   }) {
-    final daysAhead = targetDate.difference(DateTime.now()).inDays.clamp(1, 30);
     final isWeekend = targetDate.weekday == DateTime.saturday || targetDate.weekday == DateTime.sunday;
     final dateStr =
         '${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}';
@@ -192,44 +191,237 @@ class DemandForecastingService {
     String category = 'Vegetable';
 
     switch (commodity.toLowerCase()) {
+      // Vegetables
       case 'tomato':
+      case 'tamatar':
+      case 'टमाटर':
         basePrice = 29.50;
         priceSpread = 12.0;
         baseDemand = 4200;
         category = 'Perishable';
         break;
       case 'onion':
+      case 'pyaz':
+      case 'प्याज':
         basePrice = 34.00;
         priceSpread = 10.0;
         baseDemand = 7500;
         category = 'Semi-Perishable';
         break;
+      case 'potato':
+      case 'aloo':
+      case 'आलू':
+        basePrice = 22.00;
+        priceSpread = 6.0;
+        baseDemand = 9000;
+        category = 'Semi-Perishable';
+        break;
+      case 'cauliflower':
+      case 'phool gobhi':
+      case 'फूलगोभी':
+        basePrice = 26.00;
+        priceSpread = 9.0;
+        baseDemand = 3800;
+        category = 'Perishable';
+        break;
+      case 'cabbage':
+      case 'patta gobhi':
+      case 'पत्तागोभी':
+        basePrice = 18.00;
+        priceSpread = 6.0;
+        baseDemand = 3500;
+        category = 'Perishable';
+        break;
+      case 'green peas':
+      case 'matar':
+      case 'हरी मटर':
+        basePrice = 48.00;
+        priceSpread = 15.0;
+        baseDemand = 4100;
+        category = 'Perishable';
+        break;
+      case 'green chilli':
+      case 'hari mirch':
+      case 'हरी मिर्च':
+        basePrice = 52.00;
+        priceSpread = 18.0;
+        baseDemand = 2800;
+        category = 'Perishable';
+        break;
+      case 'garlic':
+      case 'lahsun':
+      case 'लहसुन':
+        basePrice = 135.00;
+        priceSpread = 30.0;
+        baseDemand = 2200;
+        category = 'Semi-Perishable';
+        break;
+      case 'ginger':
+      case 'adrak':
+      case 'अदरक':
+        basePrice = 78.00;
+        priceSpread = 20.0;
+        baseDemand = 2500;
+        category = 'Semi-Perishable';
+        break;
+      case 'lady finger':
+      case 'okra':
+      case 'bhindi':
+      case 'भिंडी':
+        basePrice = 36.00;
+        priceSpread = 12.0;
+        baseDemand = 3200;
+        category = 'Perishable';
+        break;
+      case 'carrot':
+      case 'gajar':
+      case 'गाजर':
+        basePrice = 24.00;
+        priceSpread = 7.0;
+        baseDemand = 4600;
+        category = 'Semi-Perishable';
+        break;
+      case 'brinjal':
+      case 'eggplant':
+      case 'baingan':
+      case 'बैंगन':
+        basePrice = 22.00;
+        priceSpread = 8.0;
+        baseDemand = 3400;
+        category = 'Perishable';
+        break;
+      case 'capsicum':
+      case 'bell pepper':
+      case 'shimla mirch':
+      case 'शिमला मिर्च':
+        basePrice = 46.00;
+        priceSpread = 14.0;
+        baseDemand = 2600;
+        category = 'Perishable';
+        break;
+
+      // Fruits
+      case 'mango':
+      case 'aam':
+      case 'आम':
+        basePrice = 58.00;
+        priceSpread = 22.0;
+        baseDemand = 6200;
+        category = 'Fruit';
+        break;
+      case 'banana':
+      case 'kela':
+      case 'केला':
+        basePrice = 28.00;
+        priceSpread = 8.0;
+        baseDemand = 8500;
+        category = 'Fruit';
+        break;
+      case 'apple':
+      case 'seb':
+      case 'सेब':
+        basePrice = 85.00;
+        priceSpread = 25.0;
+        baseDemand = 5400;
+        category = 'Fruit';
+        break;
+      case 'kinnow':
+      case 'mandarin':
+      case 'orange':
+      case 'किन्नू':
+      case 'संतरा':
+        basePrice = 35.00;
+        priceSpread = 10.0;
+        baseDemand = 4800;
+        category = 'Fruit';
+        break;
+      case 'guava':
+      case 'amrood':
+      case 'अमरूद':
+        basePrice = 32.00;
+        priceSpread = 11.0;
+        baseDemand = 3600;
+        category = 'Fruit';
+        break;
+      case 'papaya':
+      case 'papita':
+      case 'पपीता':
+        basePrice = 26.00;
+        priceSpread = 8.0;
+        baseDemand = 4200;
+        category = 'Fruit';
+        break;
+      case 'pomegranate':
+      case 'anaar':
+      case 'अनार':
+        basePrice = 110.00;
+        priceSpread = 32.0;
+        baseDemand = 3100;
+        category = 'Fruit';
+        break;
+      case 'grapes':
+      case 'angoor':
+      case 'अंगूर':
+        basePrice = 75.00;
+        priceSpread = 20.0;
+        baseDemand = 3900;
+        category = 'Fruit';
+        break;
+      case 'watermelon':
+      case 'tarbooj':
+      case 'तरबूज':
+        basePrice = 16.00;
+        priceSpread = 5.0;
+        baseDemand = 9500;
+        category = 'Fruit';
+        break;
+
+      // Cereals, Pulses & Commercial
       case 'wheat':
+      case 'gehu':
+      case 'गेहूं':
         basePrice = 26.80;
         priceSpread = 4.5;
         baseDemand = 16000;
         category = 'Staple Grain';
         break;
       case 'rice':
+      case 'paddy':
+      case 'dhan':
+      case 'चावल':
+      case 'धान':
         basePrice = 38.50;
         priceSpread = 6.0;
         baseDemand = 18500;
         category = 'Staple Grain';
         break;
-      case 'potato':
-        basePrice = 22.00;
-        priceSpread = 6.0;
-        baseDemand = 9000;
-        category = 'Semi-Perishable';
+      case 'maize':
+      case 'corn':
+      case 'makka':
+      case 'मक्का':
+        basePrice = 24.00;
+        priceSpread = 5.0;
+        baseDemand = 8000;
+        category = 'Staple Grain';
+        break;
+      case 'mustard':
+      case 'sarson':
+      case 'सरसों':
+        basePrice = 61.00;
+        priceSpread = 10.0;
+        baseDemand = 6500;
+        category = 'Oilseed';
         break;
       case 'cotton':
-        basePrice = 64.00;
+      case 'kapas':
+      case 'कपास':
+        basePrice = 68.00;
         priceSpread = 14.0;
         baseDemand = 5000;
         category = 'Commercial';
         break;
       default:
-        basePrice = 30.00;
+        basePrice = 32.00;
         priceSpread = 8.0;
         baseDemand = 5000;
         category = 'General';
@@ -241,9 +433,9 @@ class DemandForecastingService {
     final dayVariation = (rng.nextDouble() * 0.2) - 0.1; // -10% to +10%
     final weekendSurge = isWeekend ? 1.22 : 1.0;
 
-    final expectedModal = (basePrice * (1.0 + dayVariation)).clamp(8.0, 150.0);
-    final minPrice = (expectedModal - (priceSpread * 0.45)).clamp(5.0, 140.0);
-    final maxPrice = (expectedModal + (priceSpread * 0.65)).clamp(minPrice + 2.0, 180.0);
+    final expectedModal = (basePrice * (1.0 + dayVariation)).clamp(8.0, 250.0);
+    final minPrice = (expectedModal - (priceSpread * 0.45)).clamp(5.0, 240.0);
+    final maxPrice = (expectedModal + (priceSpread * 0.65)).clamp(minPrice + 2.0, 300.0);
 
     final p50 = (baseDemand * weekendSurge * (1.0 + dayVariation)).round();
     final p10 = (p50 * 0.76).round();
@@ -252,7 +444,6 @@ class DemandForecastingService {
     // Formulate actionable insight & strategy
     final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     final formattedDate = '${targetDate.day} ${months[targetDate.month - 1]} ${targetDate.year}';
-    final harvestDate = '${targetDate.subtract(const Duration(days: 1)).day} ${months[targetDate.month - 1]}';
 
     final insightText =
         'Projected $commodity demand in $district cluster ($state) for $formattedDate '
@@ -263,18 +454,18 @@ class DemandForecastingService {
         'Key driver: ${isWeekend ? "weekend institutional and wholesale food services surge." : "steady daily retail consumption across regional supply corridors."}';
 
     String recText;
-    if (category == 'Perishable') {
+    if (category == 'Fruit') {
       recText =
-          'Harvest ~${(p50 * 0.95).round()} kg on the evening of $harvestDate for 4:00 AM auction delivery '
-          'at $district Mandi to capture peak modal price realization of ₹${expectedModal.toStringAsFixed(2)}/kg.';
+          '$commodity जैसे ताज़ा फलों के लिए: सुबह धूप तेज होने से पहले तुड़ाई करें। पक्के और अधपक्के फलों की ग्रेडिंग अलग करें और कम झटकों (Low Vibration) वाले वाहन से $district या नजदीकी एग्रीचेन कोल्ड-हब पर भेजें ताकि आपको ₹${expectedModal.toStringAsFixed(2)}/kg का अधिकतम मॉडल रेट मिल सके।';
+    } else if (category == 'Perishable') {
+      recText =
+          '$commodity जैसी हरी व ताज़ा सब्जी के लिए: शाम को लगभग ${(p50 * 0.95).round()} kg की क्रमिक तुड़ाई करें और सुबह 4:00 बजे $district मंडी या एग्रीचेन हब पर पहुंचाएं ताकि आपको ₹${expectedModal.toStringAsFixed(2)}/kg का अधिकतम मॉडल रेट मिल सके।';
     } else if (category == 'Semi-Perishable') {
       recText =
-          'Expected arrivals indicate positive price momentum. Hold 30% of cured inventory in ventilated storage '
-          'and dispatch ${(p50 * 0.7).round()} kg on $formattedDate to capture upper price realization (up to ₹${maxPrice.toStringAsFixed(2)}/kg).';
+          'मंडी आवक से सकारात्मक मूल्य रुझान के संकेत हैं। अपने 30% स्टॉक को हवादार गोदाम में सुरक्षित रखें और लगभग ${(p50 * 0.7).round()} kg माल $formattedDate को निकालें ताकि आपको ₹${maxPrice.toStringAsFixed(2)}/kg तक का उच्चतम भाव मिल सके।';
     } else {
       recText =
-          'Staple grain market realization is favorable. FPOs should aggregate farm lot sizes > 15 Tonnes '
-          'to negotiate directly with millers and avoid mandi intermediary fees.';
+          'अनाज व तिलहन बाजार में अनुकूल भाव है। किसान और FPO 15 टन से बड़े लॉट्स एक साथ पूल करें ताकि सीधे थोक खरीदारों व मिलर्स को बेचकर मंडी बिचौलियों का कमीशन बचाया जा सके।';
     }
 
     return DemandForecastResponse(

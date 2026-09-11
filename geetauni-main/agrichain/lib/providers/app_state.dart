@@ -166,6 +166,11 @@ class AppState extends ChangeNotifier {
               final str = userTypeString.toLowerCase();
               if (e == UserType.retailBuyer && (str == 'retailbuyer' || str == 'retail_buyer')) return true;
               if (e == UserType.buyer && (str == 'buyer' || str == 'bulk_buyer' || str == 'bulkbuyer')) return true;
+              if (e == UserType.fpoMemberFarmer &&
+                  (str == 'fpomemberfarmer' ||
+                      str == 'fpo_member_farmer' ||
+                      str == 'fpomember' ||
+                      str == 'fpo_member')) return true;
               return e.name.toLowerCase() == str;
             },
             orElse: () => UserType.farmer,
@@ -218,19 +223,27 @@ class AppState extends ChangeNotifier {
       name = 'Aryan Sharma';
       email = 'retail@agrichain.com';
       wallet = 25000.0;
+    } else if (role == UserType.fpoMemberFarmer) {
+      name = 'Rameshwar Singh';
+      email = 'fpomember@agrichain.com';
+      wallet = 82500.0;
     }
 
     _currentUser = FirestoreUser(
-      id: 'demo_${role.name}_001',
+      id: role == UserType.fpoMemberFarmer ? 'farmer_ramesh_01' : 'demo_${role.name}_001',
       name: name,
       email: email,
-      phone: '+91 98765 43210',
+      phone: '+91 98123 45678',
       userType: role,
-      location: 'Karnal, Haryana',
+      location: 'Taraori, Karnal',
       walletBalance: wallet,
       createdAt: DateTime.now(),
       isActive: true,
-      metadata: {'isDemoAccount': true},
+      metadata: {
+        'isDemoAccount': true,
+        'fpoName': 'Karnal Agro Producer Co-op',
+        'fpoMemberId': 'FPO-MBR-KNL-0842',
+      },
     );
     notifyListeners();
     debugPrint('⚡ Logged in as Demo Role: ${_currentUser!.name} (${role.name})');
@@ -1062,6 +1075,48 @@ class AppState extends ChangeNotifier {
     CropType.maize: {
       'msp': 1876.0,
       'marketPrice': 1950.0,
+      'unit': 'per quintal',
+      'season': '2025-26',
+    },
+    CropType.tomato: {
+      'msp': 800.0,
+      'marketPrice': 1500.0,
+      'unit': 'per quintal',
+      'season': '2025-26',
+    },
+    CropType.onion: {
+      'msp': 1450.0,
+      'marketPrice': 2200.0,
+      'unit': 'per quintal',
+      'season': '2025-26',
+    },
+    CropType.cotton: {
+      'msp': 7521.0,
+      'marketPrice': 8025.0,
+      'unit': 'per quintal',
+      'season': '2025-26',
+    },
+    CropType.sugarcane: {
+      'msp': 340.0,
+      'marketPrice': 355.0,
+      'unit': 'per quintal',
+      'season': '2025-26',
+    },
+    CropType.soybean: {
+      'msp': 4892.0,
+      'marketPrice': 5175.0,
+      'unit': 'per quintal',
+      'season': '2025-26',
+    },
+    CropType.apple: {
+      'msp': 0.0,
+      'marketPrice': 6500.0,
+      'unit': 'per quintal',
+      'season': '2025-26',
+    },
+    CropType.banana: {
+      'msp': 0.0,
+      'marketPrice': 2100.0,
       'unit': 'per quintal',
       'season': '2025-26',
     },

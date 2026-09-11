@@ -5,6 +5,7 @@ import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../services/database_service.dart';
+import 'farmer_fpo_consignment_dashboard_screen.dart';
 
 class FarmerSellToFpoScreen extends StatefulWidget {
   const FarmerSellToFpoScreen({super.key});
@@ -204,6 +205,49 @@ class _FarmerSellToFpoScreenState extends State<FarmerSellToFpoScreen>
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const FarmerFpoConsignmentDashboardScreen(),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.dashboard_customize_outlined, size: 15, color: Color(0xFF1B5E20)),
+                        SizedBox(width: 6),
+                        Text(
+                          'Track My FPO Consignments & Lab Passports',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1B5E20),
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Icon(Icons.arrow_forward_ios, size: 10, color: Color(0xFF1B5E20)),
+                      ],
+                    ),
                   ),
                 ),
               ],

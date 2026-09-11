@@ -519,42 +519,46 @@ class _HomeScreenState extends State<HomeScreen> {
         final orders = snapshot.data ?? [];
         final activeOrders = orders.where((o) => (o['status'] ?? '') == 'active' || (o['status'] ?? '') == 'in_transit').length;
 
-        return Row(
+        return Column(
           children: [
-            // Card 1: AI Demand & Price Forecast
-            Expanded(
-              child: _buildBentoCard(
-                title: 'AI Price Forecast',
-                subtitle: '7–14d Quantiles',
-                badgeText: 'P50/P90 ML',
-                icon: Icons.auto_graph,
-                accentColor: const Color(0xFF10B981),
-                gradientColors: [const Color(0xFF064E3B), const Color(0xFF047857)],
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const DemandForecastingScreen()),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Card 2: Orders & Smart Contracts
-            Expanded(
-              child: _buildBentoCard(
-                title: 'Orders & Escrow',
-                subtitle: 'Dual-Signed PDFs',
-                badgeText: activeOrders > 0 ? '$activeOrders NEW' : 'PROTECTED',
-                icon: Icons.receipt_long_outlined,
-                accentColor: const Color(0xFFF59E0B),
-                gradientColors: [const Color(0xFF1E293B), const Color(0xFF0F172A)],
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const FarmerOrdersScreen()),
-                  );
-                },
-              ),
+            Row(
+              children: [
+                // Card 1: AI Demand & Price Forecast
+                Expanded(
+                  child: _buildBentoCard(
+                    title: 'AI Price Forecast',
+                    subtitle: '7–14d Quantiles',
+                    badgeText: 'P50/P90 ML',
+                    icon: Icons.auto_graph,
+                    accentColor: const Color(0xFF10B981),
+                    gradientColors: [const Color(0xFF064E3B), const Color(0xFF047857)],
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const DemandForecastingScreen()),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Card 2: Orders & Smart Contracts
+                Expanded(
+                  child: _buildBentoCard(
+                    title: 'Orders & Escrow',
+                    subtitle: 'Dual-Signed PDFs',
+                    badgeText: activeOrders > 0 ? '$activeOrders NEW' : 'PROTECTED',
+                    icon: Icons.receipt_long_outlined,
+                    accentColor: const Color(0xFFF59E0B),
+                    gradientColors: [const Color(0xFF1E293B), const Color(0xFF0F172A)],
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const FarmerOrdersScreen()),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ],
         );

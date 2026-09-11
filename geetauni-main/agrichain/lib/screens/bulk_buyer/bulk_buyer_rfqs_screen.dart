@@ -5,6 +5,7 @@ import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../../services/database_service.dart';
 import '../../widgets/custom_app_bar.dart';
+import '../../models/crop_benchmark_model.dart';
 
 class BulkBuyerRfqsScreen extends StatefulWidget {
   const BulkBuyerRfqsScreen({super.key});
@@ -683,77 +684,157 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            padding: const EdgeInsets.all(20),
-            child: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Post Bulk Requirement (RFQ)',
-                      style: GoogleFonts.outfit(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Broadcast your bulk demand across regional FPO clusters.',
-                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                    ),
-                    const Divider(height: 24),
-
-                    // Commodity & Variety
-                    Row(
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: commodityController,
-                            decoration: const InputDecoration(
-                              labelText: 'Commodity *',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.agriculture),
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(2),
                             ),
-                            validator: (v) => v?.isEmpty == true ? 'Required' : null,
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextFormField(
-                            controller: varietyController,
-                            decoration: const InputDecoration(
-                              labelText: 'Variety *',
-                              border: OutlineInputBorder(),
-                            ),
-                            validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                        const SizedBox(height: 16),
+                        Text(
+                          'Post Bulk Requirement (RFQ)',
+                          style: GoogleFonts.outfit(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Broadcast your bulk demand across regional FPO clusters.',
+                          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                        ),
+                        const Divider(height: 24),
+
+                        // Categorized Commodity Dropdown Selector
+                        Text(
+                          'Select Commodity (फल / सब्जी / अनाज / दलहन) *',
+                          style: GoogleFonts.inter(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.darkGreen,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: CropBenchmark.catalog.any((c) => c.name == commodityController.text)
+                                  ? commodityController.text
+                                  : CropBenchmark.catalog.first.name,
+                              isExpanded: true,
+                              icon: const Icon(Icons.arrow_drop_down_circle, color: Color(0xFF2E7D32)),
+                              items: CropBenchmark.catalog.map((bench) {
+                                String icon = '🌾';
+                                if (bench.category == 'Fruits') icon = '🍎';
+                                if (bench.category.contains('Vegetable')) icon = '🥦';
+                                if (bench.category.contains('Oilseed')) icon = '🌻';
+                                if (bench.category.contains('Pulse')) icon = '🫘';
+                                if (bench.category.contains('Spice')) icon = '🌶️';
+
+                                return DropdownMenuItem<String>(
+                                  value: bench.name,
+                                  child: Row(
+                                    children: [
+                                      Text(icon, style: const TextStyle(fontSize: 16)),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          '${bench.name} (${bench.hindiName})',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppTheme.darkGreen,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: bench.category == 'Fruits'
+                                              ? Colors.orange.shade50
+                                              : bench.category.contains('Vegetable')
+                                                  ? Colors.green.shade50
+                                                  : Colors.blue.shade50,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          bench.category,
+                                          style: TextStyle(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                            color: bench.category == 'Fruits'
+                                                ? Colors.orange.shade900
+                                                : bench.category.contains('Vegetable')
+                                                    ? Colors.green.shade900
+                                                    : Colors.blue.shade900,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (selectedName) {
+                                if (selectedName != null) {
+                                  final benchmark = CropBenchmark.catalog.firstWhere(
+                                    (c) => c.name == selectedName,
+                                    orElse: () => CropBenchmark.catalog.first,
+                                  );
+                                  setModalState(() {
+                                    commodityController.text = benchmark.name;
+                                    varietyController.text = benchmark.defaultVariety;
+                                    maxPriceController.text = benchmark.mandiAvgPrice.toStringAsFixed(0);
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Variety Input Field
+                        TextFormField(
+                          controller: varietyController,
+                          decoration: const InputDecoration(
+                            labelText: 'Variety / Specification *',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.style),
+                            helperText: 'Auto-suggested from Indian APMC standards',
+                          ),
+                          validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 12),
 
                     // Quantity (Qtl) & Max Price
                     Row(
@@ -885,7 +966,9 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
         );
       },
     );
-  }
+  },
+);
+}
 
   void _showEditRfqDialog(Map<String, dynamic> rfq) {
     ScaffoldMessenger.of(context).showSnackBar(

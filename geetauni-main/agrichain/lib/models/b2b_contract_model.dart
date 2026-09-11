@@ -26,9 +26,10 @@ class B2bContractModel {
   final String fpoWarehouseAddress;
   final String fpoSignatory;
   
-  // Multi-FPO Pooling
+  // Multi-FPO Pooling & Constituent Farmer Beneficiaries
   final bool isMultiFpo;
   final List<Map<String, dynamic>> coFpos;
+  final List<Map<String, dynamic>> farmerBeneficiaries;
   
   // Commodity Quality Specs
   final String commodity;
@@ -90,6 +91,7 @@ class B2bContractModel {
     required this.fpoSignatory,
     this.isMultiFpo = false,
     this.coFpos = const [],
+    this.farmerBeneficiaries = const [],
     required this.commodity,
     required this.variety,
     required this.qualityGrade,
@@ -138,6 +140,7 @@ class B2bContractModel {
     String? fpoSignatory,
     bool isMultiFpo = false,
     List<Map<String, dynamic>> coFpos = const [],
+    List<Map<String, dynamic>> farmerBeneficiaries = const [],
     required String commodity,
     required String variety,
     required String qualityGrade,
@@ -214,6 +217,7 @@ class B2bContractModel {
       fpoSignatory: fpoSignatory ?? '$fpoName Managing Director',
       isMultiFpo: isMultiFpo,
       coFpos: coFpos,
+      farmerBeneficiaries: farmerBeneficiaries,
       commodity: commodity,
       variety: variety,
       qualityGrade: qualityGrade,
@@ -262,6 +266,7 @@ class B2bContractModel {
       'fpoSignatory': fpoSignatory,
       'isMultiFpo': isMultiFpo,
       'coFpos': coFpos,
+      'farmerBeneficiaries': farmerBeneficiaries,
       'commodity': commodity,
       'variety': variety,
       'qualityGrade': qualityGrade,
@@ -314,6 +319,10 @@ class B2bContractModel {
       fpoSignatory: map['fpoSignatory'] ?? '',
       isMultiFpo: map['isMultiFpo'] == true,
       coFpos: (map['coFpos'] as List<dynamic>?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          const [],
+      farmerBeneficiaries: (map['farmerBeneficiaries'] as List<dynamic>?)
               ?.map((e) => Map<String, dynamic>.from(e as Map))
               .toList() ??
           const [],

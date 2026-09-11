@@ -448,10 +448,20 @@ class FpoInventoryService {
         });
       }
 
-      debugPrint('✅ Commercial Bulk Listing published: ${listing.cropName} (${listing.listedQuantityMT} MT)');
+      // Record constituent farmer inward consignments for full traceability
+      if (listing.farmerContributions.isNotEmpty) {
+        await recordFarmerConsignments(
+          listing.id,
+          listing.fpoId,
+          listing.fpoName,
+          listing.farmerContributions,
+        );
+      }
+
+      debugPrint('FPO Commercial Bulk Listing published: ${listing.cropName} (${listing.listedQuantityMT} MT) with ${listing.farmerContributions.length} farmer inward consignments');
       return true;
     } catch (e) {
-      debugPrint('❌ Error publishing listing: $e');
+      debugPrint('Error publishing listing: $e');
       return false;
     }
   }
@@ -465,10 +475,136 @@ class FpoInventoryService {
       });
       return true;
     } catch (e) {
-      debugPrint('❌ Error updating listing status: $e');
+      debugPrint('Error updating listing status: $e');
       return false;
     }
   }
 
-}
+  static const String _farmerConsignmentsCollection = 'fpo_farmer_consignments';
 
+  /// Save farmer inward consignments with cross-referencing
+  Future<void> recordFarmerConsignments(
+    String listingId,
+    String fpoId,
+    String fpoName,
+    List<FarmerInwardConsignment> consignments,
+  ) async {
+    try {
+      final batch = _firestore.batch();
+      for (final item in consignments) {
+        final docRef = _firestore
+            .collection(_farmerConsignmentsCollection)
+            .doc(item.receiptNumber.isNotEmpty ? item.receiptNumber : null);
+        final mapData = item.toMap();
+        mapData['listingId'] = listingId;
+        mapData['fpoId'] = fpoId;
+        mapData['fpoName'] = fpoName;
+        mapData['updatedAt'] = DateTime.now().toIso8601String();
+        batch.set(docRef, mapData);
+      }
+      await batch.commit();
+      debugPrint('Recorded ${consignments.length} farmer inward consignments for listing $listingId');
+    } catch (e) {
+      debugPrint('Error recording farmer consignments: $e');
+    }
+  }
+
+  /// Stream inward consignments for a specific farmer or all if null
+  Stream<List<FarmerInwardConsignment>> streamFarmerConsignments({String? farmerId}) {
+    ensureInitialFarmerConsignmentSeed();
+    Query query = _firestore.collection(_farmerConsignmentsCollection);
+    if (farmerId != null && farmerId.isNotEmpty) {
+      query = query.where('farmerId', isEqualTo: farmerId);
+    }
+    return query.snapshots().map((snapshot) {
+      if (snapshot.docs.isEmpty) {
+        return _getDemoFarmerConsignments(farmerId);
+      }
+      return snapshot.docs
+          .map((doc) => FarmerInwardConsignment.fromMap(doc.data() as Map<String, dynamic>))
+          .toList();
+    });
+  }
+
+  /// Fallback demo inward consignments for demo farmers
+  List<FarmerInwardConsignment> _getDemoFarmerConsignments([String? farmerId]) {
+    final now = DateTime.now();
+    return [
+      FarmerInwardConsignment(
+        farmerId: farmerId ?? 'farmer_ramesh_01',
+        farmerName: 'Rameshwar Singh',
+        farmerPhone: '+91 98123 45678',
+        village: 'Taraori, Karnal',
+        commodity: 'Sharbati Wheat',
+        variety: 'PBW-502 (Milling Grade)',
+        quantityQtl: 350.0,
+        procurementPricePerQtl: 2450.0,
+        depositDate: now.subtract(const Duration(days: 4)),
+        moisturePct: 11.2,
+        qualityGrade: 'Grade A (NABL Assayed)',
+        receiptNumber: 'REC-KNL-2025-0841',
+        status: 'contract_executed',
+        b2bOrderId: 'ORD-B2B-8831',
+        buyerName: 'ITC Agri Foods Ltd (Milling Division)',
+        finalSettlementPricePerQtl: 2520.0,
+        dbtUtrNumber: 'CMS9821849182',
+        labCertificateId: 'NABL-LAB-8912',
+      ),
+      FarmerInwardConsignment(
+        farmerId: farmerId ?? 'farmer_ramesh_01',
+        farmerName: 'Rameshwar Singh',
+        farmerPhone: '+91 98123 45678',
+        village: 'Taraori, Karnal',
+        commodity: 'Basmati Rice',
+        variety: '1121 Super Steam',
+        quantityQtl: 180.0,
+        procurementPricePerQtl: 6800.0,
+        depositDate: now.subtract(const Duration(days: 12)),
+        moisturePct: 10.8,
+        qualityGrade: 'Super Fine Export Grade',
+        receiptNumber: 'REC-KNL-2025-0722',
+        status: 'settled_dbt',
+        b2bOrderId: 'ORD-B2B-7419',
+        buyerName: 'Adani Wilmar Export Hub',
+        finalSettlementPricePerQtl: 6950.0,
+        dbtUtrNumber: 'AXIS9931882041',
+        labCertificateId: 'NABL-LAB-7741',
+      ),
+      FarmerInwardConsignment(
+        farmerId: farmerId ?? 'farmer_ramesh_01',
+        farmerName: 'Rameshwar Singh',
+        farmerPhone: '+91 98123 45678',
+        village: 'Taraori, Karnal',
+        commodity: 'Mustard Seeds',
+        variety: 'RH-749 High Oil',
+        quantityQtl: 120.0,
+        procurementPricePerQtl: 5850.0,
+        depositDate: now.subtract(const Duration(days: 1)),
+        moisturePct: 8.5,
+        qualityGrade: 'Grade A (Milling)',
+        receiptNumber: 'REC-KNL-2025-0914',
+        status: 'pooled_in_listing',
+        labCertificateId: 'AGRI-ASSAY-9932',
+      ),
+    ];
+  }
+
+  bool _isFarmerConsignmentSeeding = false;
+  Future<void> ensureInitialFarmerConsignmentSeed() async {
+    if (_isFarmerConsignmentSeeding) return;
+    _isFarmerConsignmentSeeding = true;
+    try {
+      final snap = await _firestore.collection(_farmerConsignmentsCollection).limit(1).get();
+      if (snap.docs.isEmpty) {
+        final demoItems = _getDemoFarmerConsignments('farmer_ramesh_01');
+        for (final item in demoItems) {
+          await _firestore
+              .collection(_farmerConsignmentsCollection)
+              .doc(item.receiptNumber)
+              .set(item.toMap());
+        }
+      }
+    } catch (_) {}
+    _isFarmerConsignmentSeeding = false;
+  }
+}

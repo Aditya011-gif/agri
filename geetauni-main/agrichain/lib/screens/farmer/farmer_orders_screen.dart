@@ -16,8 +16,22 @@ class FarmerOrdersScreen extends StatefulWidget {
   State<FarmerOrdersScreen> createState() => _FarmerOrdersScreenState();
 }
 
-class _FarmerOrdersScreenState extends State<FarmerOrdersScreen> {
+class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
+    with SingleTickerProviderStateMixin {
   final DatabaseService _dbService = DatabaseService();
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   double _toDouble(dynamic val) {
     if (val == null) return 0.0;
@@ -30,17 +44,62 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen> {
     final appState = Provider.of<AppState>(context);
     final user = appState.currentUser;
     final farmerId = user?.id ?? '';
+    final farmerName = user?.name.isNotEmpty == true ? user!.name : 'Kisan';
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundGreen,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           const CustomAppBar(
-            title: 'My Orders',
+            title: 'My Orders & Demands',
             subtitle: 'Buyer Orders & Escrow Settlements',
           ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: AppTheme.softShadow,
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: const Color(0xFF1B5E20),
+                  unselectedLabelColor: AppTheme.textSecondary,
+                  indicatorColor: const Color(0xFF1B5E20),
+                  indicatorWeight: 3,
+                  labelStyle: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                  tabs: const [
+                    Tab(
+                      icon: Icon(Icons.shopping_bag_outlined, size: 18),
+                      text: 'Retail (खुदरा)',
+                    ),
+                    Tab(
+                      icon: Icon(Icons.business_outlined, size: 18),
+                      text: 'FPO (एफपीओ)',
+                    ),
+                    Tab(
+                      icon: Icon(Icons.hub_outlined, size: 18),
+                      text: 'Buyer Demands (मांगें)',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
-        body: _buildRetailOrdersTab(farmerId),
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            _buildRetailOrdersTab(farmerId),
+            _buildFpoProcurementOrdersTab(farmerId),
+            _buildFarmerBulkDemandsTab(farmerId, farmerName),
+          ],
+        ),
       ),
     );
   }
@@ -853,4 +912,290 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen> {
       },
     );
   }
+
+  Widget _buildFarmerBulkDemandsTab(String farmerId, String farmerName) {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _dbService.streamBulkRfqs(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen));
+        }
+
+        final rfqs = snapshot.data ?? [];
+
+        if (rfqs.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.hub_outlined,
+                    size: 64,
+                    color: AppTheme.textSecondary.withValues(alpha: 0.35),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No Active Bulk Demands Right Now',
+                    style: GoogleFonts.outfit(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'When bulk buyers and millers post large procurement orders, they will appear here so you can commit your harvested lot at fair guaranteed prices.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+          itemCount: rfqs.length,
+          itemBuilder: (context, index) {
+            final rfq = rfqs[index];
+            return _buildFarmerDemandCard(rfq, farmerId, farmerName);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFarmerDemandCard(Map<String, dynamic> rfq, String farmerId, String farmerName) {
+    final buyer = rfq['buyerName'] ?? rfq['companyName'] ?? 'AgroFoods Milling India';
+    final crop = rfq['commodity'] ?? 'Wheat';
+    final variety = rfq['variety'] ?? 'Premium Milling';
+    final grade = rfq['qualityGrade'] ?? 'Grade A';
+    final qtyQtl = (rfq['quantityQtl'] as num?)?.toDouble() ??
+        ((rfq['requiredQuantityQtl'] as num?)?.toDouble() ?? 50.0);
+    final targetPriceQtl = (rfq['targetPricePerQtl'] as num?)?.toDouble() ??
+        ((rfq['maxPricePerQtl'] as num?)?.toDouble() ?? 3200.0);
+    final pricePerKg = targetPriceQtl / 100.0;
+    final location = rfq['deliveryLocation'] ?? 'Karnal Central Hub';
+    final rfqId = rfq['id'] ?? 'RFQ-${DateTime.now().millisecondsSinceEpoch}';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.corporate_fare, size: 16, color: Color(0xFF15803D)),
+                    const SizedBox(width: 6),
+                    Text(
+                      buyer,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCFCE7),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'VERIFIED BUYER',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF15803D),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$crop ($variety)',
+                          style: GoogleFonts.outfit(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.darkGreen,
+                          ),
+                        ),
+                        Text(
+                          'Required: ${qtyQtl.toStringAsFixed(0)} Qtl (${(qtyQtl * 100).toStringAsFixed(0)} kg) • $grade',
+                          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '₹${pricePerKg.toStringAsFixed(2)} / kg',
+                          style: GoogleFonts.inter(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF2E7D32),
+                          ),
+                        ),
+                        Text(
+                          '₹${targetPriceQtl.toStringAsFixed(0)} / Qtl',
+                          style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on_outlined, size: 14, color: AppTheme.textSecondary),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'Delivery Terminal: $location',
+                        style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showFarmerParticipateModal(rfqId, farmerId, farmerName, crop, pricePerKg),
+                    icon: const Icon(Icons.add_shopping_cart, size: 16),
+                    label: const Text('Participate in Order / Supply Lot (लॉट से माल दें)'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      textStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFarmerParticipateModal(String rfqId, String farmerId, String farmerName, String crop, double pricePerKg) {
+    final qtyCtrl = TextEditingController(text: '150');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Supply $crop Lot', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Buyer Guaranteed Rate: ₹${pricePerKg.toStringAsFixed(2)} / kg',
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: qtyCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Quantity to contribute (kg)',
+                border: OutlineInputBorder(),
+                suffixText: 'kg',
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryGreen,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () async {
+                  final qty = double.tryParse(qtyCtrl.text) ?? 150.0;
+                  final totalEarnings = qty * pricePerKg;
+                  Navigator.pop(ctx);
+                  await _dbService.submitRfqQuote(rfqId, {
+                    'farmerId': farmerId,
+                    'farmerName': farmerName,
+                    'offeredQuantityKg': qty,
+                    'offeredPricePerKg': pricePerKg,
+                    'totalEarnings': totalEarnings,
+                    'status': 'FARMER_LOT_CONTRIBUTED',
+                  });
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: const Color(0xFF1B5E20),
+                        content: Text('Committed $qty kg of $crop! Total: ₹${totalEarnings.toStringAsFixed(0)}'),
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Confirm Lot Contribution (स्वीकारें)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
+

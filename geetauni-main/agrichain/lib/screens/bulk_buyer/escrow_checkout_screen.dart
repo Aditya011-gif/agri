@@ -11,6 +11,8 @@ import '../../services/smart_contract_pdf_service.dart';
 import '../../theme/app_theme.dart';
 import 'b2b_contract_screen.dart';
 import 'bulk_buyer_orders_screen.dart';
+import 'package:latlong2/latlong.dart';
+import '../../widgets/optimized_logistics_route_widget.dart';
 
 /// Screen: Enterprise B2B Bulk Buying Payment Screen & Non-Custodial Smart Escrow Lock
 /// Supports Corporate RTGS/NEFT Virtual Escrow Accounts, NetBanking/UPI Smart Vaults,
@@ -600,106 +602,21 @@ class _EscrowCheckoutScreenState extends State<EscrowCheckoutScreen> {
   }
 
   Widget _build7CarrierComparatorSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.local_shipping, color: Color(0xFF1B5E20), size: 18),
-                const SizedBox(width: 8),
-                Text(
-                  '7-Carrier Freight Comparison Engine',
-                  style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1B5E20)),
-                ),
-              ],
-            ),
-            Text('Live Quotes (<400ms)', style: GoogleFonts.inter(fontSize: 10, color: Colors.green.shade800, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        const SizedBox(height: 10),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: List.generate(_carriers.length, (index) {
-              final carrier = _carriers[index];
-              final isSelected = _selectedCarrierIndex == index;
-              return InkWell(
-                onTap: () => setState(() => _selectedCarrierIndex = index),
-                borderRadius: BorderRadius.circular(14),
-                child: Container(
-                  width: 205,
-                  margin: const EdgeInsets.only(right: 10),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF1B5E20).withValues(alpha: 0.05) : Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: isSelected ? const Color(0xFF1B5E20) : Colors.grey.shade200,
-                      width: isSelected ? 2 : 1,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              carrier['name'],
-                              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade900),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Icon(
-                            isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                            color: isSelected ? const Color(0xFF1B5E20) : Colors.grey.shade400,
-                            size: 16,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFF1B5E20) : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          carrier['tag'],
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: isSelected ? Colors.white : Colors.grey.shade800,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '₹${(carrier['quote'] as double).toStringAsFixed(0)}',
-                        style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w900, color: const Color(0xFF1B5E20)),
-                      ),
-                      Text(
-                        '⏱️ ETA: ${carrier['transitHours']}',
-                        style: GoogleFonts.inter(fontSize: 10, color: Colors.grey.shade600),
-                      ),
-                      Text(
-                        '🚛 ${carrier['truckType']}',
-                        style: GoogleFonts.inter(fontSize: 9, color: Colors.grey.shade500),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-          ),
-        ),
-      ],
+    final destLat = _selectedPlant?.latitude ?? 28.6139;
+    final destLng = _selectedPlant?.longitude ?? 77.2090;
+
+    return OptimizedLogisticsRouteWidget(
+      commodity: widget.commodity,
+      originCluster: widget.originCluster,
+      destination: _selectedPlant?.name ?? widget.destinationFactory,
+      originPos: const LatLng(29.8021, 76.9298),
+      destinationPos: LatLng(destLat, destLng),
+      onCarrierAutoSelected: (carrier) {
+        final idx = _carriers.indexWhere((c) => c['name'] == carrier['name']);
+        if (idx != -1 && idx != _selectedCarrierIndex) {
+          setState(() => _selectedCarrierIndex = idx);
+        }
+      },
     );
   }
 

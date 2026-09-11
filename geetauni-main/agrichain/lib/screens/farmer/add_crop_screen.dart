@@ -9,6 +9,8 @@ import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../../services/blockchain_service.dart';
 import '../../services/gemini_crop_assay_service.dart';
+import '../../services/crop_image_validator_service.dart';
+import '../../models/crop_benchmark_model.dart';
 import '../../widgets/enhanced_app_bar.dart';
 import '../../models/crop.dart';
 import '../../utils/crop_image_helper.dart';
@@ -24,12 +26,10 @@ class AddCropScreen extends StatefulWidget {
 
 class _AddCropScreenState extends State<AddCropScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController(text: 'Basmati Paddy 1121');
-  final _descriptionController = TextEditingController(
-    text: 'Premium Grade A harvest with optimum grain length, sorted and ready for mill procurement.',
-  );
-  final _quantityController = TextEditingController(text: '500 kg');
-  final _priceController = TextEditingController(text: '35.00');
+  final _nameController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _quantityController = TextEditingController(text: '100 kg');
+  final _priceController = TextEditingController();
   final _locationController = TextEditingController(text: 'Karnal Cluster, Haryana');
 
   String? _selectedImagePath;
@@ -38,9 +38,9 @@ class _AddCropScreenState extends State<AddCropScreen> {
   bool _isUploading = false;
   DateTime _harvestDate = DateTime.now();
 
-  // New fields for enhanced crop listing
-  CropType? _selectedCropType = CropType.rice;
-  CropCategory? _selectedCategory = CropCategory.grains;
+  // Dynamic crop selection fields (auto-populated by AI image assaying or user dropdown)
+  CropType? _selectedCropType;
+  CropCategory? _selectedCategory;
   QualityGrade _selectedQualityGrade = QualityGrade.premium;
   final List<CertificationType> _selectedCertifications = [CertificationType.organic];
   CropPricing? _currentPricing;
@@ -52,7 +52,6 @@ class _AddCropScreenState extends State<AddCropScreen> {
   @override
   void initState() {
     super.initState();
-    _currentPricing = CropDataHelper.getPricingForCropType(CropType.rice);
   }
 
   @override
@@ -149,15 +148,77 @@ class _AddCropScreenState extends State<AddCropScreen> {
       );
 
       if (image != null) {
+        final bytes = await image.readAsBytes();
+
         setState(() {
           _cropImageFile = image;
           _selectedImagePath = image.path;
+          _isAnalyzingWithAi = true;
           _aiAssayResult = null;
         });
 
-        // Prompt farmer for mandatory automated AI Quality Assaying
+        // Run Multimodal Google Gemini 2.5 Flash Vision Assaying
+        final inspection = await GeminiCropAssayService().inspectAndAssayProduce(
+          imageBytes: bytes,
+          fileName: image.name,
+        );
+
+        if (!inspection.isValidProduce) {
+          if (mounted) {
+            setState(() {
+              _isAnalyzingWithAi = false;
+              _cropImageFile = null;
+              _selectedImagePath = null;
+            });
+            _showInvalidCropImageDialog(
+              CropValidationResult.invalid(
+                reason: inspection.rejectionReason ?? 'Non-crop image detected.',
+                hindiReason: inspection.hindiRejectionReason ?? 'यह फोटो फसल की नहीं लग रही है।',
+                detectedSubject: inspection.cropName,
+              ),
+            );
+          }
+          return;
+        }
+
         if (mounted) {
-          _showAutoAiAssayPromptDialog();
+          final assayResult = inspection.toAssayResult();
+          final isSpoiled = inspection.hasRotOrSpoilage;
+
+          setState(() {
+            _aiAssayResult = assayResult;
+            _isAnalyzingWithAi = false;
+
+            // Automatically sync form to the crop detected by Gemini Vision
+            _selectedCropType = inspection.detectedCropType;
+            _selectedCategory = inspection.detectedCategory;
+            _nameController.text = inspection.cropName;
+            _descriptionController.text = inspection.description;
+            _selectedQualityGrade = inspection.qualityGrade;
+
+            _currentPricing = CropDataHelper.getPricingForCropType(inspection.detectedCropType);
+            if (_currentPricing != null && _currentPricing!.marketPrice > 0) {
+              _priceController.text = (_currentPricing!.marketPrice / 100).toStringAsFixed(2);
+            } else {
+              final bm = CropBenchmark.findByName(inspection.cropName);
+              if (bm != null && bm.mandiAvgPrice > 0) {
+                _priceController.text = (bm.mandiAvgPrice / 100).toStringAsFixed(2);
+              }
+            }
+            if (_quantityController.text.isEmpty) {
+              _quantityController.text = '100 kg';
+            }
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(isSpoiled
+                  ? '⚠️ Gemini Vision: सड़े/खराब लक्षण पाए गए (${inspection.agmarkGrade})'
+                  : '✅ Gemini Vision: ${inspection.cropName} (${inspection.agmarkGrade}) सत्यापित!'),
+              backgroundColor: isSpoiled ? Colors.red.shade800 : AppTheme.primaryGreen,
+              duration: const Duration(seconds: 4),
+            ),
+          );
         }
       }
     } catch (e) {
@@ -168,6 +229,99 @@ class _AddCropScreenState extends State<AddCropScreen> {
         );
       }
     }
+  }
+
+  void _showInvalidCropImageDialog(CropValidationResult res) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.cancel_outlined, color: Colors.red, size: 28),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'अमान्य फोटो / Image Rejected',
+                style: GoogleFonts.outfit(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red.shade900,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    res.hindiMessage,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF991B1B),
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    res.message,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade700,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              '⚠️ जरूरी नियम (Produce Photo Rules):',
+              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            const Text('• केवल खेत की कटी फसल या बोरियों के दानों का खुला सैंपल दिखाएं।',
+                style: TextStyle(fontSize: 11.5, color: Colors.black87)),
+            const Text('• किसी व्यक्ति, गाड़ी, चेहरे, स्क्रीनशॉट या सादे कागज़ की फोटो स्वीकार नहीं होगी।',
+                style: TextStyle(fontSize: 11.5, color: Colors.black87)),
+            const Text('• फोटो साफ और पर्याप्त रोशनी में खींची होनी चाहिए।',
+                style: TextStyle(fontSize: 11.5, color: Colors.black87)),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('समझ गया (Understood)'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showAutoAiAssayPromptDialog() {
@@ -253,29 +407,69 @@ class _AddCropScreenState extends State<AddCropScreen> {
 
     try {
       final bytes = await _cropImageFile!.readAsBytes();
-      final result = await GeminiCropAssayService().analyzeCropSample(
+      final inspection = await GeminiCropAssayService().inspectAndAssayProduce(
         imageBytes: bytes,
-        cropCategory: _selectedCategory != null ? CropDataHelper.getCategoryDisplayName(_selectedCategory!) : 'Grains',
-        cropVariety: _nameController.text.isNotEmpty ? _nameController.text : 'Wheat',
+        fileName: _cropImageFile!.name,
       );
 
+      if (!inspection.isValidProduce) {
+        throw CropValidationException(
+          message: inspection.rejectionReason ?? 'Non-crop image detected.',
+          hindiMessage: inspection.hindiRejectionReason ?? 'यह फोटो फसल की नहीं लग रही है।',
+          title: 'अमान्य फोटो / Image Rejected',
+        );
+      }
+
+      final result = inspection.toAssayResult();
+
       if (mounted) {
+        final bool isSpoiled = inspection.hasRotOrSpoilage;
+
         setState(() {
           _aiAssayResult = result;
           _isAnalyzingWithAi = false;
-          _selectedQualityGrade = QualityGrade.premium;
+          _selectedCropType = inspection.detectedCropType;
+          _selectedCategory = inspection.detectedCategory;
+          _nameController.text = inspection.cropName;
+          _descriptionController.text = inspection.description;
+          _selectedQualityGrade = inspection.qualityGrade;
         });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✅ AI Assaying Complete: ${result.agmarkGrade} Verified! Listing Unlocked.'),
-            backgroundColor: AppTheme.primaryGreen,
+            content: Text(isSpoiled
+                ? '⚠️ Gemini Vision: सड़े/खराब लक्षण पाए गए (${result.agmarkGrade})'
+                : '✅ Gemini Vision: ${inspection.cropName} (${result.agmarkGrade}) सत्यापित!'),
+            backgroundColor: isSpoiled ? Colors.red.shade800 : AppTheme.primaryGreen,
           ),
         );
       }
     } catch (e) {
       debugPrint('AI Assaying error: $e');
       if (mounted) {
-        setState(() => _isAnalyzingWithAi = false);
+        setState(() {
+          _isAnalyzingWithAi = false;
+          _cropImageFile = null;
+          _selectedImagePath = null;
+          _aiAssayResult = null;
+        });
+
+        if (e is CropValidationException) {
+          _showInvalidCropImageDialog(
+            CropValidationResult.invalid(
+              reason: e.message,
+              hindiReason: e.hindiMessage,
+              detectedSubject: 'Non-crop / Document Detected',
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('AI Assaying error: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
@@ -356,67 +550,127 @@ class _AddCropScreenState extends State<AddCropScreen> {
   }
 
   Widget _buildPricingInfo() {
-    if (_currentPricing == null) return const SizedBox.shrink();
+    final cropText = _nameController.text.trim();
+    final bm = CropBenchmark.findByName(cropText.isNotEmpty ? cropText : (_selectedCropType?.name ?? 'wheat'));
+
+    if (bm == null && _currentPricing == null) return const SizedBox.shrink();
+
+    final msp = bm?.mspPerQtl ?? _currentPricing?.msp.toDouble() ?? 2275.0;
+    final mandiMin = bm?.mandiMinPrice ?? (msp * 1.05);
+    final mandiMax = bm?.mandiMaxPrice ?? (msp * 1.25);
+    final mandiAvg = bm?.mandiAvgPrice ?? (msp * 1.15);
+    final hindi = bm?.hindiName ?? 'फसल';
 
     return Container(
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: AppTheme.lightGreen.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.lightGreen),
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFBBF7D0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Market Pricing Information',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.darkGreen,
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (_currentPricing!.msp > 0) ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('MSP:', style: TextStyle(color: AppTheme.grey)),
-                Text(
-                  '₹${(_currentPricing!.msp / 100).toStringAsFixed(2)}/kg',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w500,
+          Row(
+            children: [
+              const Icon(Icons.price_check, color: AppTheme.darkGreen, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'सरकारी समर्थन मूल्य (MSP) व मंडी भाव • $hindi',
+                  style: GoogleFonts.outfit(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
                     color: AppTheme.darkGreen,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDCFCE7),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0xFF86EFAC)),
+                ),
+                child: const Text(
+                  'MSP 2024-25',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              // Govt MSP Card
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFA7F3D0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Govt. MSP (न्यूनतम भाव):', style: TextStyle(fontSize: 11, color: Color(0xFF065F46))),
+                      const SizedBox(height: 2),
+                      Text(
+                        '₹${msp.toInt()} / क्विंटल',
+                        style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF047857)),
+                      ),
+                      Text('≈ ₹${(msp / 100).toStringAsFixed(1)} / किलो', style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Mandi Average
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFFED7AA)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('मंडी औसत (Market Avg):', style: TextStyle(fontSize: 11, color: Color(0xFF9A3412))),
+                      const SizedBox(height: 2),
+                      Text(
+                        '₹${mandiAvg.toInt()} / क्विंटल',
+                        style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFFC2410C)),
+                      ),
+                      Text('रेंज: ₹${mandiMin.toInt()} - ₹${mandiMax.toInt()}', style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF3C7),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.info_outline, size: 14, color: Color(0xFFB45309)),
+                SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '💡 किसान सलाह: अपनी फसल को सरकारी MSP से कम दाम पर कभी लिस्ट न करें।',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF92400E)),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 4),
-          ],
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Market Price:', style: TextStyle(color: AppTheme.grey)),
-              Text(
-                '₹${(_currentPricing!.marketPrice / 100).toStringAsFixed(2)}/kg',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                  color: AppTheme.primaryGreen,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Season:', style: TextStyle(color: AppTheme.grey)),
-              Text(
-                _currentPricing!.season,
-                style: const TextStyle(fontSize: 12, color: AppTheme.grey),
-              ),
-            ],
           ),
         ],
       ),
@@ -443,6 +697,21 @@ class _AddCropScreenState extends State<AddCropScreen> {
           ),
         );
       }
+      return;
+    }
+
+    final isSpoiled = _aiAssayResult != null &&
+        (_aiAssayResult!.agmarkGrade.contains('REJECTED') ||
+         _aiAssayResult!.agmarkGrade.contains('SUB-STANDARD') ||
+         !_aiAssayResult!.isMspCompliant);
+
+    if (isSpoiled && _selectedQualityGrade == QualityGrade.premium) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ गुणवत्ता त्रुटि: सड़े/खराब माल को प्रीमियम ग्रेड में लिस्ट नहीं किया जा सकता। कृपया ग्रेड को "Sub-standard" चुनें।'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
@@ -701,69 +970,138 @@ class _AddCropScreenState extends State<AddCropScreen> {
 
               if (_aiAssayResult != null && !_isAnalyzingWithAi) ...[
                 const SizedBox(height: 14),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF0F381E), Color(0xFF1B5E20)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF1B5E20).withValues(alpha: 0.2),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                Builder(builder: (context) {
+                  final isRejected = _aiAssayResult!.agmarkGrade.contains('REJECTED') ||
+                      _aiAssayResult!.agmarkGrade.contains('SUB-STANDARD') ||
+                      !_aiAssayResult!.isMspCompliant;
+
+                  return Column(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: isRejected
+                                ? const [Color(0xFF450A0A), Color(0xFF7F1D1D)]
+                                : const [Color(0xFF0F381E), Color(0xFF1B5E20)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: (isRejected ? Colors.red : const Color(0xFF1B5E20)).withValues(alpha: 0.25),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      isRejected ? Icons.warning_amber_rounded : Icons.auto_awesome,
+                                      color: isRejected ? const Color(0xFFFCA5A5) : const Color(0xFF69F0AE),
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'AI Crop Assaying Results',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: isRejected ? const Color(0xFFF87171) : const Color(0xFF69F0AE),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    _aiAssayResult!.agmarkGrade,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w900,
+                                      color: isRejected ? Colors.white : const Color(0xFF0F381E),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                _buildAssayMetricCol(
+                                  isRejected ? 'Moisture/Decay' : 'Moisture',
+                                  '${_aiAssayResult!.moisturePercentage}%',
+                                  isRejected ? 'Critical Rot' : 'Optimal <12%',
+                                ),
+                                _buildAssayMetricCol(
+                                  isRejected ? 'Defect/Rot %' : 'Broken Grain',
+                                  '${_aiAssayResult!.brokenGrainPercentage}%',
+                                  isRejected ? 'Severe Decay' : 'Grade A <3%',
+                                ),
+                                _buildAssayMetricCol(
+                                  isRejected ? 'Fungal Residue' : 'Foreign Matter',
+                                  '${_aiAssayResult!.foreignMatterPercentage}%',
+                                  isRejected ? 'Mold Infested' : 'Clean <0.5%',
+                                ),
+                                _buildAssayMetricCol(
+                                  'AI Purity',
+                                  '${_aiAssayResult!.purityScore}%',
+                                  isRejected ? 'Failed Standard' : 'High Purity',
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              _aiAssayResult!.assessmentSummary,
+                              style: GoogleFonts.inter(fontSize: 10, color: Colors.white70, height: 1.3),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isRejected) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.red.shade300),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.auto_awesome, color: Color(0xFF69F0AE), size: 18),
-                              const SizedBox(width: 6),
-                              Text(
-                                'AI Crop Assaying Results',
-                                style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                              const Icon(Icons.cancel, color: Colors.red, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  '⚠️ गुणवत्ता चेतावनी (Quality Warning): फोटो में सड़ी/खराब फसल (Fungal Rot & Decay) पाई गई है। ऐसी फसल प्रीमियम में नहीं बिक सकती और इसका ग्रेड "Sub-standard / Rejected" कर दिया गया है।',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: Colors.red.shade900,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.3,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF69F0AE),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              _aiAssayResult!.agmarkGrade,
-                              style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF0F381E)),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          _buildAssayMetricCol('Moisture', '${_aiAssayResult!.moisturePercentage}%', 'Optimal <12%'),
-                          _buildAssayMetricCol('Broken Grain', '${_aiAssayResult!.brokenGrainPercentage}%', 'Grade A <3%'),
-                          _buildAssayMetricCol('Foreign Matter', '${_aiAssayResult!.foreignMatterPercentage}%', 'Clean <0.5%'),
-                          _buildAssayMetricCol('AI Purity', '${_aiAssayResult!.purityScore}%', 'High Purity'),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        _aiAssayResult!.assessmentSummary,
-                        style: GoogleFonts.inter(fontSize: 10, color: Colors.white70, height: 1.3),
-                      ),
+                        ),
+                      ],
                     ],
-                  ),
-                ),
+                  );
+                }),
               ],
               const SizedBox(height: 24),
 
@@ -806,7 +1144,7 @@ class _AddCropScreenState extends State<AddCropScreen> {
 
               // Crop Type Dropdown
               DropdownButtonFormField<CropType>(
-                initialValue: _selectedCropType,
+                value: _selectedCropType,
                 decoration: InputDecoration(
                   labelText: 'Crop Type',
                   hintText: 'Select crop type',
@@ -870,7 +1208,7 @@ class _AddCropScreenState extends State<AddCropScreen> {
 
               // Quality Grade Dropdown
               DropdownButtonFormField<QualityGrade>(
-                initialValue: _selectedQualityGrade,
+                value: _selectedQualityGrade,
                 decoration: InputDecoration(
                   labelText: 'Quality Grade',
                   border: OutlineInputBorder(

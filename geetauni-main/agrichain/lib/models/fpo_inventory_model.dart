@@ -261,6 +261,7 @@ class BulkCropListing {
   final bool isMultiFpoEligible; // Can be pooled with 7 km neighbors
   final ListingStatus status;
   final String? imageUrl;
+  final List<FarmerInwardConsignment> farmerContributions;
   final DateTime publishedAt;
   final DateTime updatedAt;
 
@@ -285,6 +286,7 @@ class BulkCropListing {
     this.isMultiFpoEligible = true,
     this.status = ListingStatus.published,
     this.imageUrl,
+    this.farmerContributions = const [],
     required this.publishedAt,
     required this.updatedAt,
   });
@@ -294,6 +296,8 @@ class BulkCropListing {
   /// Measurement in Quintals (1 MT = 10 Quintals / Qtl)
   double get listedQuantityQtl => listedQuantityMT * 10;
   double get minimumOrderQuantityQtl => minimumOrderQuantityMT * 10;
+  double get totalAllocatedFarmerQtl =>
+      farmerContributions.fold<double>(0.0, (sum, f) => sum + f.quantityQtl);
 
   Map<String, dynamic> toMap() => {
     'id': id,
@@ -316,6 +320,7 @@ class BulkCropListing {
     'isMultiFpoEligible': isMultiFpoEligible,
     'status': status.name,
     'imageUrl': imageUrl,
+    'farmerContributions': farmerContributions.map((f) => f.toMap()).toList(),
     'publishedAt': publishedAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
   };
@@ -344,7 +349,139 @@ class BulkCropListing {
       orElse: () => ListingStatus.published,
     ),
     imageUrl: map['imageUrl'],
+    farmerContributions: (map['farmerContributions'] as List<dynamic>?)
+            ?.map((e) => FarmerInwardConsignment.fromMap(Map<String, dynamic>.from(e)))
+            .toList() ??
+        const [],
     publishedAt: map['publishedAt'] != null ? DateTime.tryParse(map['publishedAt']) ?? DateTime.now() : DateTime.now(),
     updatedAt: map['updatedAt'] != null ? DateTime.tryParse(map['updatedAt']) ?? DateTime.now() : DateTime.now(),
   );
+}
+
+/// Model: Inward Farmer Consignment deposited with FPO
+/// Enforces physical grain provenance, deposit receipts, and pro-rata B2B realizations.
+class FarmerInwardConsignment {
+  final String farmerId;
+  final String farmerName;
+  final String farmerPhone;
+  final String village;
+  final String commodity;
+  final String variety;
+  final double quantityQtl;
+  final double procurementPricePerQtl;
+  final DateTime depositDate;
+  final double moisturePct;
+  final String qualityGrade;
+  final String receiptNumber;
+  final String status; // 'deposited_at_godown', 'pooled_in_listing', 'contract_executed', 'in_transit', 'settled_dbt'
+  final String? b2bOrderId;
+  final String? buyerName;
+  final double? finalSettlementPricePerQtl;
+  final String? dbtUtrNumber;
+  final String? labCertificateId;
+
+  const FarmerInwardConsignment({
+    required this.farmerId,
+    required this.farmerName,
+    this.farmerPhone = '+91 98765 43210',
+    this.village = 'Karnal, Haryana',
+    required this.commodity,
+    this.variety = 'Sharbati 306',
+    required this.quantityQtl,
+    required this.procurementPricePerQtl,
+    required this.depositDate,
+    this.moisturePct = 11.2,
+    this.qualityGrade = 'Grade A (Milling)',
+    required this.receiptNumber,
+    this.status = 'deposited_at_godown',
+    this.b2bOrderId,
+    this.buyerName,
+    this.finalSettlementPricePerQtl,
+    this.dbtUtrNumber,
+    this.labCertificateId,
+  });
+
+  double get quantityMT => quantityQtl / 10.0;
+  double get totalAgreedAmount => quantityQtl * procurementPricePerQtl;
+  double get totalSettlementAmount =>
+      quantityQtl * (finalSettlementPricePerQtl ?? procurementPricePerQtl);
+
+  FarmerInwardConsignment copyWith({
+    String? status,
+    String? b2bOrderId,
+    String? buyerName,
+    double? finalSettlementPricePerQtl,
+    String? dbtUtrNumber,
+    String? labCertificateId,
+  }) {
+    return FarmerInwardConsignment(
+      farmerId: farmerId,
+      farmerName: farmerName,
+      farmerPhone: farmerPhone,
+      village: village,
+      commodity: commodity,
+      variety: variety,
+      quantityQtl: quantityQtl,
+      procurementPricePerQtl: procurementPricePerQtl,
+      depositDate: depositDate,
+      moisturePct: moisturePct,
+      qualityGrade: qualityGrade,
+      receiptNumber: receiptNumber,
+      status: status ?? this.status,
+      b2bOrderId: b2bOrderId ?? this.b2bOrderId,
+      buyerName: buyerName ?? this.buyerName,
+      finalSettlementPricePerQtl:
+          finalSettlementPricePerQtl ?? this.finalSettlementPricePerQtl,
+      dbtUtrNumber: dbtUtrNumber ?? this.dbtUtrNumber,
+      labCertificateId: labCertificateId ?? this.labCertificateId,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+    'farmerId': farmerId,
+    'farmerName': farmerName,
+    'farmerPhone': farmerPhone,
+    'village': village,
+    'commodity': commodity,
+    'variety': variety,
+    'quantityQtl': quantityQtl,
+    'procurementPricePerQtl': procurementPricePerQtl,
+    'depositDate': depositDate.toIso8601String(),
+    'moisturePct': moisturePct,
+    'qualityGrade': qualityGrade,
+    'receiptNumber': receiptNumber,
+    'status': status,
+    'b2bOrderId': b2bOrderId,
+    'buyerName': buyerName,
+    'finalSettlementPricePerQtl': finalSettlementPricePerQtl,
+    'dbtUtrNumber': dbtUtrNumber,
+    'labCertificateId': labCertificateId,
+  };
+
+  factory FarmerInwardConsignment.fromMap(Map<String, dynamic> map) =>
+      FarmerInwardConsignment(
+        farmerId: map['farmerId'] ?? '',
+        farmerName: map['farmerName'] ?? 'Member Farmer',
+        farmerPhone: map['farmerPhone'] ?? '+91 98765 43210',
+        village: map['village'] ?? 'Karnal, Haryana',
+        commodity: map['commodity'] ?? 'Wheat',
+        variety: map['variety'] ?? 'Standard Variety',
+        quantityQtl: (map['quantityQtl'] as num?)?.toDouble() ?? 0.0,
+        procurementPricePerQtl:
+            (map['procurementPricePerQtl'] as num?)?.toDouble() ?? 3500.0,
+        depositDate: map['depositDate'] != null
+            ? DateTime.tryParse(map['depositDate']) ?? DateTime.now()
+            : DateTime.now(),
+        moisturePct: (map['moisturePct'] as num?)?.toDouble() ?? 11.2,
+        qualityGrade: map['qualityGrade'] ?? 'Grade A (Milling)',
+        receiptNumber: map['receiptNumber'] ??
+            'FPO-REC-${DateTime.now().millisecondsSinceEpoch}',
+        status: map['status'] ?? 'deposited_at_godown',
+        b2bOrderId: map['b2bOrderId'],
+        buyerName: map['buyerName'],
+        finalSettlementPricePerQtl:
+            (map['finalSettlementPricePerQtl'] as num?)?.toDouble(),
+        dbtUtrNumber: map['dbtUtrNumber'],
+        labCertificateId: map['labCertificateId'],
+      );
 }

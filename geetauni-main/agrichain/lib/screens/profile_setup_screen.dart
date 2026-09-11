@@ -694,13 +694,66 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           const SizedBox(height: 24),
 
           // Crops Selection
-          const Text(
-            'Crops',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.darkGreen,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Crops',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.darkGreen,
+                ),
+              ),
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    if (_selectedCrops.length == _cropOptions.length) {
+                      _selectedCrops.clear();
+                    } else {
+                      _selectedCrops.clear();
+                      _selectedCrops.addAll(_cropOptions);
+                    }
+                  });
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Checkbox(
+                        value: _selectedCrops.length == _cropOptions.length && _cropOptions.isNotEmpty,
+                        tristate: _selectedCrops.isNotEmpty && _selectedCrops.length < _cropOptions.length,
+                        onChanged: (bool? val) {
+                          setState(() {
+                            if (val == true) {
+                              _selectedCrops.clear();
+                              _selectedCrops.addAll(_cropOptions);
+                            } else {
+                              _selectedCrops.clear();
+                            }
+                          });
+                        },
+                        activeColor: AppTheme.primaryGreen,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      Text(
+                        _selectedCrops.length == _cropOptions.length
+                            ? 'Deselect All'
+                            : 'Select All (${_cropOptions.length})',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primaryGreen,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -729,13 +782,66 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           // Services Selection (for buyers only)
           if (widget.userType == UserType.buyer) ...[
             const SizedBox(height: 24),
-            const Text(
-              'Services',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.darkGreen,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Services',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.darkGreen,
+                  ),
+                ),
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      if (_selectedServices.length == _serviceOptions.length) {
+                        _selectedServices.clear();
+                      } else {
+                        _selectedServices.clear();
+                        _selectedServices.addAll(_serviceOptions);
+                      }
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Checkbox(
+                          value: _selectedServices.length == _serviceOptions.length && _serviceOptions.isNotEmpty,
+                          tristate: _selectedServices.isNotEmpty && _selectedServices.length < _serviceOptions.length,
+                          onChanged: (bool? val) {
+                            setState(() {
+                              if (val == true) {
+                                _selectedServices.clear();
+                                _selectedServices.addAll(_serviceOptions);
+                              } else {
+                                _selectedServices.clear();
+                              }
+                            });
+                          },
+                          activeColor: AppTheme.primaryGreen,
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        Text(
+                          _selectedServices.length == _serviceOptions.length
+                              ? 'Deselect All'
+                              : 'Select All (${_serviceOptions.length})',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primaryGreen,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             Wrap(

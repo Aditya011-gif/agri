@@ -365,7 +365,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     const BulkBuyerSupplyScreen(),
     const BulkBuyerRfqsScreen(),
     const BulkBuyerOrdersScreen(),
-    const BuyerInvoicesScreen(),
+    const BulkBuyerProfileScreen(),
   ];
 
   // Retail Buyer screens (5 primary tabs: Home, 7km Clusters, Orders, Saved, Profile)
@@ -463,10 +463,10 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       activeIcon: Icon(Icons.inventory_2),
       label: 'Orders',
     ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.receipt_outlined),
-      activeIcon: Icon(Icons.receipt),
-      label: 'Invoices',
+    BottomNavigationBarItem(
+      icon: const Icon(Icons.person_outline),
+      activeIcon: const Icon(Icons.person),
+      label: l10n?.navProfile ?? 'Profile',
     ),
   ];
 
@@ -575,6 +575,11 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         // If no user at all, return LoginScreen
         if (user == null) {
           return const LoginScreen();
+        }
+
+        // Dedicated FPO Member Farmer experience (zero-marketplace, pure consignment & DBT dashboard)
+        if (user.userType == UserType.fpoMemberFarmer) {
+          return const FarmerFpoConsignmentDashboardScreen(isRootHome: true);
         }
 
         final isFpo = user.userType == UserType.fpo;

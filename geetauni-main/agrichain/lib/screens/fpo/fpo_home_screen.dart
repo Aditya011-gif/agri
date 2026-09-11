@@ -11,6 +11,7 @@ import '../../models/fpo_inventory_model.dart';
 import '../../services/fpo_inventory_service.dart';
 import '../../services/database_service.dart';
 import 'fpo_add_crop_screen.dart';
+import 'fpo_recurring_orders_screen.dart';
 
 class FpoHomeScreen extends StatefulWidget {
   final Function(int)? onNavigateTab;
@@ -131,6 +132,10 @@ class _FpoHomeScreenState extends State<FpoHomeScreen> {
 
                     // 2. PRIMARY 64px CTA BUTTON: ADD BULK CROP LOT
                     _buildPrimaryAddCropButton(),
+                    const SizedBox(height: 12),
+
+                    // 2b. 12-WEEK RECURRING CONTRACTS BANNER
+                    _buildRecurringContractsBanner(),
                     const SizedBox(height: 14),
 
                     // 3. Simple Stats Overview (Stock in Qtl, Available, Confirmed Sales)
@@ -301,6 +306,89 @@ class _FpoHomeScreenState extends State<FpoHomeScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildRecurringContractsBanner() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFFDE68A), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FpoRecurringOrdersScreen()),
+            );
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.repeat, color: Color(0xFFB45309), size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          '12-Week Recurring Supply',
+                          style: GoogleFonts.outfit(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDC2626),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'NEW',
+                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Review incoming corporate buyer proposals & Monday dispatches',
+                      style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios, color: Color(0xFF94A3B8), size: 14),
+            ],
+          ),
+        ),
+      ),
       ),
     );
   }
