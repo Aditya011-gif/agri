@@ -19,6 +19,7 @@ import '../models/firestore_models.dart';
 import '../screens/farmer/land_analysis_screen.dart';
 import '../screens/retail_buyer/farmer_public_profile_screen.dart';
 import 'fpo_lot_details_modal.dart';
+import '../utils/crop_image_helper.dart';
 
 class CropCard extends StatefulWidget {
   final FirestoreCrop crop;
@@ -298,87 +299,15 @@ class _CropCardState extends State<CropCard>
   }
 
   Widget _buildCropImage() {
-    if (widget.crop.imageUrl.isNotEmpty && !widget.crop.imageUrl.startsWith('assets/')) {
-      if (widget.crop.imageUrl.startsWith('data:image')) {
-        try {
-          final base64String = widget.crop.imageUrl.split(',').last;
-          return Image.memory(
-            base64Decode(base64String),
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
-          );
-        } catch (e) {
-          debugPrint('Error decoding crop image: $e');
-        }
-      } else if (widget.crop.imageUrl.startsWith('http')) {
-        return Image.network(
-          widget.crop.imageUrl,
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: double.infinity,
-        );
-      } else {
-        try {
-          return kIsWeb
-              ? Image.network(
-                  widget.crop.imageUrl,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                )
-              : Image.file(
-                  File(widget.crop.imageUrl),
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                );
-        } catch (e) {
-          debugPrint('Error loading local crop image: $e');
-        }
-      }
-    }
-
-    final colors = _getCropColors(widget.crop.name);
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: colors,
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          _getCropIcon(widget.crop.name),
-          size: 48,
-          color: Colors.white.withValues(alpha: 0.3),
-        ),
-      ),
+    return CropImageHelper.buildCropImage(
+      widget.crop.imageUrl,
+      widget.crop.name,
+      width: double.infinity,
+      height: double.infinity,
+      fit: BoxFit.cover,
     );
   }
 
-  List<Color> _getCropColors(String cropName) {
-    if (cropName.toLowerCase().contains('wheat')) {
-      return [const Color(0xFFE6D690), const Color(0xFFC7A008)];
-    } else if (cropName.toLowerCase().contains('rice')) {
-      return [const Color(0xFFC8E6C9), const Color(0xFF81C784)];
-    } else if (cropName.toLowerCase().contains('corn')) {
-      return [const Color(0xFFFFECB3), const Color(0xFFFFCA28)];
-    } else if (cropName.toLowerCase().contains('tomato')) {
-      return [const Color(0xFFFFCCBC), const Color(0xFFFF7043)];
-    } else {
-      return [const Color(0xFFA5D6A7), const Color(0xFF66BB6A)];
-    }
-  }
-
-  IconData _getCropIcon(String cropName) {
-    if (cropName.toLowerCase().contains('wheat')) return Icons.grass;
-    if (cropName.toLowerCase().contains('rice')) return Icons.rice_bowl;
-    if (cropName.toLowerCase().contains('corn')) return Icons.agriculture;
-    if (cropName.toLowerCase().contains('tomato')) return Icons.local_florist;
-    return Icons.eco;
-  }
 
   Widget _buildPricingSection(BuildContext context) {
     final theme = Theme.of(context);

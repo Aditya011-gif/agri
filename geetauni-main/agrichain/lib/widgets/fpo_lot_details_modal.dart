@@ -123,6 +123,24 @@ class _FpoLotDetailsContent extends StatefulWidget {
 
 class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
   bool _isDownloadingPdf = false;
+  double? _selectedBuyerQty;
+  late TextEditingController _buyerQtyController;
+
+  @override
+  void initState() {
+    super.initState();
+    final defaultQty = widget.isRetail
+        ? (widget.availableMt * 1000.0 >= 25.0 ? 25.0 : (widget.availableMt * 1000.0 > 0 ? widget.availableMt * 1000.0 : 5.0))
+        : (widget.availableMt * 10.0 >= 50.0 ? 50.0 : (widget.availableMt * 10.0 > 0 ? widget.availableMt * 10.0 : 10.0));
+    _selectedBuyerQty = defaultQty;
+    _buyerQtyController = TextEditingController(text: defaultQty.toStringAsFixed(0));
+  }
+
+  @override
+  void dispose() {
+    _buyerQtyController.dispose();
+    super.dispose();
+  }
 
   void _triggerDownloadPdf() async {
     setState(() => _isDownloadingPdf = true);
@@ -593,67 +611,307 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
 
         // 10. PRIMARY PROCUREMENT ACTION
         if (widget.isBuyer) ...[
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-                if (widget.isRetail) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => RetailCheckoutScreen(
-                        crop: {
-                          'id': widget.inventoryItemId ?? 'LOT-${widget.cropName}',
-                          'name': widget.cropName,
-                          'crop': widget.cropName,
-                          'variety': widget.variety,
-                          'qualityGrade': widget.qualityGrade,
-                          'price': pricePerKg,
-                          'farmerName': widget.fpoName ?? 'Direct Farm Lot',
-                          'location': widget.siloLocation,
-                          'quantity': '${(widget.availableMt * 1000).toStringAsFixed(0)} kg',
-                          'availableStockKg': widget.availableMt * 1000,
-                          'imageUrl': widget.imageUrl ?? '',
-                        },
+          // Custom Quantity Selector for Buyers (Retail in kg, Bulk in Qtl)
+          Builder(
+            builder: (context) {
+              final isRetail = widget.isRetail;
+              final maxStock = isRetail ? (widget.availableMt * 1000.0) : (widget.availableMt * 10.0);
+              final unit = isRetail ? 'kg' : 'Qtl';
+              final effectivePrice = isRetail ? pricePerKg : widget.pricePerQtl;
+              final currentQty = (_selectedBuyerQty ?? (isRetail ? 25.0 : 50.0)).clamp(1.0, maxStock > 0 ? maxStock : 5000.0);
+              final totalCost = currentQty * effectivePrice;
+
+              void updateQty(double newQty) {
+                final clamped = newQty.clamp(1.0, maxStock > 0 ? maxStock : 5000.0);
+                setState(() {
+                  _selectedBuyerQty = clamped;
+                  _buyerQtyController.text = clamped.toStringAsFixed(0);
+                });
+              }
+
+              final presets = isRetail
+                  ? [5.0, 10.0, 25.0, 50.0, 100.0]
+                  : [25.0, 50.0, 100.0, 250.0, 500.0];
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          isRetail ? 'Procurement Quantity ($unit):' : 'Lot Order Quantity ($unit):',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
+                        ),
+                        Text(
+                          'Max ${maxStock.toStringAsFixed(0)} $unit available',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Stepper & Editable TextField
+                    Row(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFCBD5E1)),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.remove, size: 18, color: Color(0xFF15803D)),
+                            onPressed: () => updateQty(currentQty - (isRetail ? (currentQty > 10 ? 5 : 1) : 25)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFF15803D), width: 1.5),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _buyerQtyController,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: false),
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(vertical: 8),
+                                      hintText: 'Qty',
+                                    ),
+                                    onChanged: (val) {
+                                      final parsed = double.tryParse(val.trim());
+                                      if (parsed != null && parsed > 0) {
+                                        final clamped = parsed.clamp(1.0, maxStock > 0 ? maxStock : 5000.0);
+                                        setState(() {
+                                          _selectedBuyerQty = clamped;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ),
+                                Text(
+                                  unit,
+                                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF15803D)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFCBD5E1)),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.add, size: 18, color: Color(0xFF15803D)),
+                            onPressed: () => updateQty(currentQty + (isRetail ? (currentQty >= 10 ? 5 : 1) : 25)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Slider
+                    Row(
+                      children: [
+                        Text('1 $unit', style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                        Expanded(
+                          child: SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              activeTrackColor: const Color(0xFF15803D),
+                              inactiveTrackColor: const Color(0xFFDCFCE7),
+                              thumbColor: const Color(0xFF15803D),
+                              trackHeight: 4,
+                            ),
+                            child: Slider(
+                              value: currentQty.clamp(1.0, maxStock > 1.0 ? maxStock : 500.0),
+                              min: 1.0,
+                              max: maxStock > 1.0 ? maxStock : 500.0,
+                              divisions: maxStock > 1.0 ? (maxStock <= 100 ? maxStock.toInt() : 50) : 50,
+                              label: '${currentQty.toStringAsFixed(0)} $unit',
+                              onChanged: (val) => updateQty(val),
+                            ),
+                          ),
+                        ),
+                        Text('${maxStock.toStringAsFixed(0)} $unit', style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                      ],
+                    ),
+
+                    // Quick Chips
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          ...presets.where((opt) => opt <= (maxStock > 0 ? maxStock : 5000.0)).map((opt) {
+                            final isSel = (currentQty - opt).abs() < 0.1;
+                            return GestureDetector(
+                              onTap: () => updateQty(opt),
+                              child: Container(
+                                margin: const EdgeInsets.only(right: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: isSel ? const Color(0xFF15803D) : Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: isSel ? const Color(0xFF15803D) : const Color(0xFFCBD5E1)),
+                                ),
+                                child: Text(
+                                  '${opt.toStringAsFixed(0)} $unit',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
+                                    color: isSel ? Colors.white : const Color(0xFF334155),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                          GestureDetector(
+                            onTap: () => updateQty(maxStock),
+                            child: Container(
+                              margin: const EdgeInsets.only(right: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: (currentQty - maxStock).abs() < 0.1 ? const Color(0xFF15803D) : Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: (currentQty - maxStock).abs() < 0.1 ? const Color(0xFF15803D) : const Color(0xFFCBD5E1)),
+                              ),
+                              child: Text(
+                                'Full Lot (${maxStock.toStringAsFixed(0)} $unit)',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: (currentQty - maxStock).abs() < 0.1 ? Colors.white : const Color(0xFF15803D),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  );
-                } else {
-                  final qtyMt = widget.availableMt > 0 ? (widget.availableMt > 250 ? 250.0 : widget.availableMt) : 100.0;
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => EscrowCheckoutScreen(
-                        commodity: '${widget.cropName} (${widget.variety})',
-                        variety: widget.variety,
-                        originCluster: widget.siloLocation,
-                        orderedTonnage: qtyMt,
-                        cropRatePerTonne: widget.pricePerMt,
-                        orderedQuantityQtl: qtyMt * 10,
-                        cropRatePerQtl: widget.pricePerQtl,
-                        fpoId: widget.fpoId ?? 'fpo_karnal_01',
-                        fpoName: widget.fpoName ?? 'Karnal Agro Farmers Producer Co.',
-                        inventoryItemId: widget.inventoryItemId,
+                    const SizedBox(height: 8),
+
+                    // Price Breakdown formula
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Rate: ₹${effectivePrice.toStringAsFixed(0)}/$unit × ${currentQty.toStringAsFixed(0)} $unit',
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                          ),
+                          Text(
+                            '₹${totalCost.toStringAsFixed(0)} Total',
+                            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF15803D)),
+                          ),
+                        ],
                       ),
                     ),
-                  );
-                }
-              },
-              icon: Icon(widget.isRetail ? Icons.shopping_bag_outlined : Icons.lock, size: 18, color: Colors.white),
-              label: Text(
-                widget.isRetail
-                    ? 'Buy Direct & Escrow Lock (@ ₹${pricePerKg.toStringAsFixed(0)}/kg)'
-                    : 'Order Lot & Escrow Lock (@ ₹${widget.pricePerQtl.toStringAsFixed(0)}/Qtl)',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF15803D),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
+                  ],
+                ),
+              );
+            },
+          ),
+          Builder(
+            builder: (context) {
+              final isRetail = widget.isRetail;
+              final maxStock = isRetail ? (widget.availableMt * 1000.0) : (widget.availableMt * 10.0);
+              final effectivePrice = isRetail ? pricePerKg : widget.pricePerQtl;
+              final chosenQty = (_selectedBuyerQty ?? (isRetail ? 25.0 : 50.0)).clamp(1.0, maxStock > 0 ? maxStock : 5000.0);
+              final totalCost = chosenQty * effectivePrice;
+
+              return SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    if (widget.isRetail) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => RetailCheckoutScreen(
+                            crop: {
+                              'id': widget.inventoryItemId ?? 'LOT-${widget.cropName}',
+                              'name': widget.cropName,
+                              'crop': widget.cropName,
+                              'variety': widget.variety,
+                              'qualityGrade': widget.qualityGrade,
+                              'price': pricePerKg,
+                              'farmerName': widget.fpoName ?? 'Direct Farm Lot',
+                              'location': widget.siloLocation,
+                              'quantity': '${(widget.availableMt * 1000).toStringAsFixed(0)} kg',
+                              'availableStockKg': widget.availableMt * 1000,
+                              'selectedQuantity': chosenQty,
+                              'orderQuantity': chosenQty,
+                              'totalPrice': totalCost,
+                              'imageUrl': widget.imageUrl ?? '',
+                            },
+                          ),
+                        ),
+                      );
+                    } else {
+                      final qtyQtl = chosenQty;
+                      final qtyMt = qtyQtl / 10.0;
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EscrowCheckoutScreen(
+                            commodity: '${widget.cropName} (${widget.variety})',
+                            variety: widget.variety,
+                            originCluster: widget.siloLocation,
+                            orderedTonnage: qtyMt,
+                            cropRatePerTonne: widget.pricePerMt,
+                            orderedQuantityQtl: qtyQtl,
+                            cropRatePerQtl: widget.pricePerQtl,
+                            fpoId: widget.fpoId ?? 'fpo_karnal_01',
+                            fpoName: widget.fpoName ?? 'Karnal Agro Farmers Producer Co.',
+                            inventoryItemId: widget.inventoryItemId,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  icon: Icon(widget.isRetail ? Icons.shopping_bag_outlined : Icons.lock, size: 18, color: Colors.white),
+                  label: Text(
+                    widget.isRetail
+                        ? 'Buy Direct & Escrow Lock (${chosenQty.toStringAsFixed(0)} kg • ₹${totalCost.toStringAsFixed(0)})'
+                        : 'Order Lot & Escrow Lock (${chosenQty.toStringAsFixed(0)} Qtl • ₹${totalCost.toStringAsFixed(0)})',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF15803D),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 12),
           SizedBox(

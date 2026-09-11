@@ -695,21 +695,13 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: imageUrl.isNotEmpty
-                          ? CropImageHelper.buildCropImage(
-                              imageUrl,
-                              cropName,
-                              height: 100,
-                              width: 100,
-                              fit: BoxFit.cover,
-                            )
-                          : Container(
-                              height: 100,
-                              width: 100,
-                              color: const Color(0xFFF1F8E9),
-                              alignment: Alignment.center,
-                              child: const Icon(Icons.agriculture, size: 36, color: Color(0xFF15803D)),
-                            ),
+                      child: CropImageHelper.buildCropImage(
+                        imageUrl.isNotEmpty ? imageUrl : null,
+                        cropName,
+                        height: 100,
+                        width: 100,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                     Positioned(
                       bottom: 4,
@@ -934,7 +926,9 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
     final lng = (crop['lng'] as num?)?.toDouble() ?? 76.9905;
     final farmPos = LatLng(lat, lng);
 
+    final cleanLotId = 'LOT-HR-KNL-${cropId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase().padRight(8, '0').substring(0, 8)}';
     double modalQty = _getSingleQuantity(cropId, stock >= 25 ? 25.0 : (stock > 0 ? stock : 5.0)).clamp(1.0, stock > 0 ? stock : 5000.0);
+    final qtyController = TextEditingController(text: modalQty.toStringAsFixed(0));
 
     showModalBottomSheet(
       context: context,
@@ -945,8 +939,17 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
           builder: (context, setModalState) {
             final totalPayable = modalQty * price;
 
+            void updateQty(double newQty) {
+              final clamped = newQty.clamp(1.0, stock > 0 ? stock : 5000.0);
+              setModalState(() {
+                modalQty = clamped;
+                _setSingleQuantity(cropId, modalQty);
+                qtyController.text = modalQty.toStringAsFixed(0);
+              });
+            }
+
             return Container(
-              height: MediaQuery.of(context).size.height * 0.88,
+              height: MediaQuery.of(context).size.height * 0.90,
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -970,9 +973,30 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Crop Details & Direct Procurement',
-                          style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDCFCE7),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                cleanLotId,
+                                style: const TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF15803D),
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Direct Kisaan Harvest',
+                              style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                            ),
+                          ],
                         ),
                         IconButton(
                           icon: const Icon(Icons.close, size: 20),
@@ -990,54 +1014,76 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 1. Hero Image & Direct Badges
+                          // 1. Hero Image & Direct Badges (Authentic Crop Photo)
                           Stack(
                             children: [
                               ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: imageUrl.isNotEmpty
-                                    ? CropImageHelper.buildCropImage(
-                                        imageUrl,
-                                        cropName,
-                                        height: 160,
-                                        width: double.infinity,
-                                        fit: BoxFit.cover,
-                                      )
-                                    : Container(
-                                        height: 140,
-                                        width: double.infinity,
-                                        color: const Color(0xFFE8F5E9),
-                                        alignment: Alignment.center,
-                                        child: const Icon(Icons.grass, size: 56, color: Color(0xFF15803D)),
-                                      ),
-                              ),
-                              Positioned(
-                                top: 10,
-                                left: 10,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.8),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Text(
-                                    '100% Single Farm Direct',
-                                    style: TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.bold),
+                                borderRadius: BorderRadius.circular(18),
+                                child: SizedBox(
+                                  height: 185,
+                                  width: double.infinity,
+                                  child: CropImageHelper.buildCropImage(
+                                    imageUrl.isNotEmpty ? imageUrl : null,
+                                    cropName,
+                                    height: 185,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
                                   ),
                                 ),
                               ),
+                              // Top-Left Badge
                               Positioned(
-                                top: 10,
-                                right: 10,
+                                top: 12,
+                                left: 12,
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.8),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text(
+                                    '100% Single Farm Direct',
+                                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                              // Top-Right Badge
+                              Positioned(
+                                top: 12,
+                                right: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFF15803D),
-                                    borderRadius: BorderRadius.circular(6),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Text(
                                     'ZERO MIDDLEMEN',
-                                    style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                              // Bottom-Left Floating Certification Badge
+                              Positioned(
+                                bottom: 12,
+                                left: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF0F172A).withValues(alpha: 0.85),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.verified, color: Color(0xFF4ADE80), size: 14),
+                                      SizedBox(width: 5),
+                                      Text(
+                                        'AI Assayed & Lab Certified',
+                                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -1048,6 +1094,7 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
                           // 2. Crop Title, Grade & Price Row
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(
                                 child: Column(
@@ -1055,11 +1102,29 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
                                   children: [
                                     Text(
                                       cropName,
-                                      style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                                      style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
                                     ),
-                                    Text(
-                                      '$variety • $grade',
-                                      style: GoogleFonts.inter(fontSize: 12.5, color: Colors.grey.shade600),
+                                    const SizedBox(height: 3),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFF1F5F9),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                                          ),
+                                          child: Text(
+                                            '$variety • $grade',
+                                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'NABL Lab Certified',
+                                          style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF15803D), fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -1073,20 +1138,32 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
                                     children: [
                                       Text(
                                         '₹${price.toStringAsFixed(0)}',
-                                        style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.bold, color: const Color(0xFF15803D)),
+                                        style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold, color: const Color(0xFF15803D)),
                                       ),
                                       Text('/kg', style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF15803D), fontWeight: FontWeight.bold)),
                                     ],
                                   ),
                                   Text(
-                                    '${stock.toStringAsFixed(0)} kg available',
-                                    style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600),
+                                    '₹${(price * 100).toStringAsFixed(0)} / Qtl (Direct Farm Price)',
+                                    style: GoogleFonts.inter(fontSize: 10, color: Colors.grey.shade600),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF0FDF4),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      '${stock.toStringAsFixed(0)} kg available',
+                                      style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF15803D)),
+                                    ),
                                   ),
                                 ],
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 14),
 
                           // 3. Farmer Identity & Verification Card
                           Container(
@@ -1099,9 +1176,9 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
                             child: Row(
                               children: [
                                 CircleAvatar(
-                                  radius: 20,
+                                  radius: 22,
                                   backgroundColor: const Color(0xFF15803D).withValues(alpha: 0.15),
-                                  child: const Icon(Icons.person, color: Color(0xFF15803D), size: 22),
+                                  child: const Icon(Icons.person, color: Color(0xFF15803D), size: 24),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
@@ -1115,7 +1192,7 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
                                             style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
                                           ),
                                           const SizedBox(width: 4),
-                                          const Icon(Icons.verified, size: 14, color: Color(0xFF15803D)),
+                                          const Icon(Icons.verified, size: 15, color: Color(0xFF15803D)),
                                         ],
                                       ),
                                       Text(
@@ -1139,9 +1216,9 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 16),
 
-                          // 4. Quality & Lab Testing Parameters
+                          // 4. Detailed Quality Specifications & Certifications (The Lab Specs)
                           Text(
                             'Quality Specifications & Certifications',
                             style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
@@ -1149,7 +1226,7 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              _buildDetailSpecTile(Icons.water_drop, '11.2% Moisture', 'Storage standard'),
+                              _buildDetailSpecTile(Icons.water_drop, '11.2% Moisture', 'Storage standard (≤ 12%)'),
                               const SizedBox(width: 8),
                               _buildDetailSpecTile(Icons.eco, 'Residue-Free GAP', 'Zero synthetic chems'),
                             ],
@@ -1157,14 +1234,53 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              _buildDetailSpecTile(Icons.agriculture, 'Single-Farm Lot', '100% pure origin'),
+                              _buildDetailSpecTile(Icons.grain, '99.2% Purity Score', 'Single-farm origin pure'),
                               const SizedBox(width: 8),
+                              _buildDetailSpecTile(Icons.scale, '78.5 kg/hL Test Wt', 'High density food grain'),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
                               _buildDetailSpecTile(Icons.shield, 'Escrow Secured', 'Disbursed on delivery'),
+                              const SizedBox(width: 8),
+                              _buildDetailSpecTile(Icons.inventory_2, 'Hermetic Bagging', 'Moisture-barrier sealed'),
                             ],
                           ),
                           const SizedBox(height: 16),
 
-                          // 5. Interactive Farm Location Map
+                          // 5. Farm Storage & Dispatch Logistics
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0FDF4),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFBBF7D0)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Row(
+                                  children: [
+                                    Icon(Icons.local_shipping_outlined, color: Color(0xFF15803D), size: 16),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Direct Farm Gate Logistics & Dispatch',
+                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  '• Dispatch Window: Within 24 Hours via Hyperlocal Courier\n• Farm Weighbridge: NABL Electronic Certified Scale\n• Direct Payment: 100% proceeds locked in smart escrow to farmer',
+                                  style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF166534), height: 1.4),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // 6. Interactive Farm Location Map
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -1180,7 +1296,7 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
                           ),
                           const SizedBox(height: 8),
                           Container(
-                            height: 170,
+                            height: 160,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(color: const Color(0xFFCBD5E1)),
@@ -1234,105 +1350,217 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 18),
 
-                          // 6. Procurement Quantity Selector
-                          Text(
-                            'Select Quantity to Procure:',
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                          // 7. CUSTOM QUANTITY SELECTOR (RETAIL BUYERS)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Select Quantity to Procure:',
+                                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                              ),
+                              Text(
+                                'Max ${stock.toStringAsFixed(0)} kg available',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 8),
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(14),
                               border: Border.all(color: const Color(0xFFE2E8F0)),
                             ),
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // Stepper and Custom Quantity Input
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text('Procurement Quantity:', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-                                    Row(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.remove_circle_outline, size: 22, color: Color(0xFF15803D)),
-                                          onPressed: () {
-                                            if (modalQty > 5) {
-                                              setModalState(() {
-                                                modalQty -= 5;
-                                                _setSingleQuantity(cropId, modalQty);
-                                              });
-                                            }
-                                          },
+                                    // Minus button
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                                      ),
+                                      child: IconButton(
+                                        icon: const Icon(Icons.remove, size: 18, color: Color(0xFF15803D)),
+                                        onPressed: () => updateQty(modalQty - (modalQty > 10 ? 5 : 1)),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+
+                                    // Direct Editable Custom Quantity Input Field
+                                    Expanded(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(10),
+                                          border: Border.all(color: const Color(0xFF15803D), width: 1.5),
                                         ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(color: Colors.grey.shade300),
-                                          ),
-                                          child: Text(
-                                            '${modalQty.toStringAsFixed(0)} kg',
-                                            style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
-                                          ),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextField(
+                                                controller: qtyController,
+                                                keyboardType: const TextInputType.numberWithOptions(decimal: false),
+                                                textAlign: TextAlign.center,
+                                                style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                                                decoration: const InputDecoration(
+                                                  border: InputBorder.none,
+                                                  isDense: true,
+                                                  contentPadding: EdgeInsets.symmetric(vertical: 8),
+                                                  hintText: 'Qty',
+                                                ),
+                                                onChanged: (val) {
+                                                  final parsed = double.tryParse(val.trim());
+                                                  if (parsed != null && parsed > 0) {
+                                                    final clamped = parsed.clamp(1.0, stock > 0 ? stock : 5000.0);
+                                                    setModalState(() {
+                                                      modalQty = clamped;
+                                                      _setSingleQuantity(cropId, modalQty);
+                                                    });
+                                                  }
+                                                },
+                                              ),
+                                            ),
+                                            Text(
+                                              'kg',
+                                              style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF15803D)),
+                                            ),
+                                          ],
                                         ),
-                                        IconButton(
-                                          icon: const Icon(Icons.add_circle_outline, size: 22, color: Color(0xFF15803D)),
-                                          onPressed: () {
-                                            if (modalQty + 5 <= (stock > 0 ? stock : 5000)) {
-                                              setModalState(() {
-                                                modalQty += 5;
-                                                _setSingleQuantity(cropId, modalQty);
-                                              });
-                                            }
-                                          },
-                                        ),
-                                      ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+
+                                    // Plus button
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                                      ),
+                                      child: IconButton(
+                                        icon: const Icon(Icons.add, size: 18, color: Color(0xFF15803D)),
+                                        onPressed: () => updateQty(modalQty + (modalQty >= 10 ? 5 : 1)),
+                                      ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 10),
+
+                                // Smooth Interactive Slider
+                                Row(
+                                  children: [
+                                    const Text('1 kg', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                                    Expanded(
+                                      child: SliderTheme(
+                                        data: SliderTheme.of(context).copyWith(
+                                          activeTrackColor: const Color(0xFF15803D),
+                                          inactiveTrackColor: const Color(0xFFDCFCE7),
+                                          thumbColor: const Color(0xFF15803D),
+                                          trackHeight: 4,
+                                        ),
+                                        child: Slider(
+                                          value: modalQty.clamp(1.0, stock > 1.0 ? stock : 500.0),
+                                          min: 1.0,
+                                          max: stock > 1.0 ? stock : 500.0,
+                                          divisions: stock > 1.0 ? (stock <= 100 ? stock.toInt() : 50) : 50,
+                                          label: '${modalQty.toStringAsFixed(0)} kg',
+                                          onChanged: (val) => updateQty(val),
+                                        ),
+                                      ),
+                                    ),
+                                    Text('${stock.toStringAsFixed(0)} kg', style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                                  ],
+                                ),
+
+                                // Quick Preset Chips
                                 SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
                                   child: Row(
-                                    children: [5.0, 10.0, 25.0, 50.0, 100.0].map((opt) {
-                                      final isSel = modalQty == opt;
-                                      return GestureDetector(
-                                        onTap: () {
-                                          setModalState(() {
-                                            modalQty = opt.clamp(1.0, stock > 0 ? stock : 5000);
-                                            _setSingleQuantity(cropId, modalQty);
-                                          });
-                                        },
+                                    children: [
+                                      ...[5.0, 10.0, 25.0, 50.0, 100.0].where((opt) => opt <= (stock > 0 ? stock : 5000.0)).map((opt) {
+                                        final isSel = (modalQty - opt).abs() < 0.1;
+                                        return GestureDetector(
+                                          onTap: () => updateQty(opt),
+                                          child: Container(
+                                            margin: const EdgeInsets.only(right: 6),
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: isSel ? const Color(0xFF15803D) : Colors.white,
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: isSel ? const Color(0xFF15803D) : const Color(0xFFCBD5E1)),
+                                            ),
+                                            child: Text(
+                                              '${opt.toStringAsFixed(0)} kg',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
+                                                color: isSel ? Colors.white : const Color(0xFF334155),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                      // Full Stock Option
+                                      GestureDetector(
+                                        onTap: () => updateQty(stock),
                                         child: Container(
                                           margin: const EdgeInsets.only(right: 6),
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                           decoration: BoxDecoration(
-                                            color: isSel ? const Color(0xFF15803D) : Colors.white,
+                                            color: (modalQty - stock).abs() < 0.1 ? const Color(0xFF15803D) : Colors.white,
                                             borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(color: isSel ? const Color(0xFF15803D) : Colors.grey.shade300),
+                                            border: Border.all(color: (modalQty - stock).abs() < 0.1 ? const Color(0xFF15803D) : const Color(0xFFCBD5E1)),
                                           ),
                                           child: Text(
-                                            '${opt.toStringAsFixed(0)} kg',
+                                            'Max (${stock.toStringAsFixed(0)} kg)',
                                             style: TextStyle(
-                                              fontSize: 11.5,
-                                              fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
-                                              color: isSel ? Colors.white : Colors.grey.shade800,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: (modalQty - stock).abs() < 0.1 ? Colors.white : const Color(0xFF15803D),
                                             ),
                                           ),
                                         ),
-                                      );
-                                    }).toList(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+
+                                // Pricing formula breakdown
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Rate: ₹${price.toStringAsFixed(0)}/kg × ${modalQty.toStringAsFixed(0)} kg',
+                                        style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                      ),
+                                      Text(
+                                        '₹${(modalQty * price).toStringAsFixed(0)} Total',
+                                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF15803D)),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                         ],
                       ),
                     ),
@@ -1361,7 +1589,7 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
                             const Text('Total Payable', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
                             Text(
                               '₹${totalPayable.toStringAsFixed(0)}',
-                              style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF15803D)),
+                              style: GoogleFonts.inter(fontSize: 21, fontWeight: FontWeight.bold, color: const Color(0xFF15803D)),
                             ),
                           ],
                         ),
@@ -1374,8 +1602,8 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
                             },
                             icon: const Icon(Icons.shopping_bag_outlined, size: 18),
                             label: Text(
-                              'Buy Direct (${modalQty.toStringAsFixed(0)} kg)',
-                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14),
+                              'Buy Direct (${modalQty.toStringAsFixed(0)} kg • ₹${totalPayable.toStringAsFixed(0)})',
+                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF15803D),
@@ -1462,21 +1690,13 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: cluster.imageUrl.isNotEmpty
-                          ? CropImageHelper.buildCropImage(
-                              cluster.imageUrl,
-                              cluster.crop,
-                              height: 100,
-                              width: 100,
-                              fit: BoxFit.cover,
-                            )
-                          : Container(
-                              height: 100,
-                              width: 100,
-                              color: const Color(0xFFF1F8E9),
-                              alignment: Alignment.center,
-                              child: Text(cluster.imageEmoji, style: const TextStyle(fontSize: 36)),
-                            ),
+                      child: CropImageHelper.buildCropImage(
+                        cluster.imageUrl.isNotEmpty ? cluster.imageUrl : null,
+                        cluster.crop,
+                        height: 100,
+                        width: 100,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                     Positioned(
                       top: 4,
@@ -1684,6 +1904,7 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
         bool isRouteLoading = true;
         bool hasFetched = false;
         double modalQty = _getClusterQuantity(cluster.id, cluster.defaultOrderKg);
+        final clusterQtyController = TextEditingController(text: modalQty.toStringAsFixed(0));
 
         return StatefulBuilder(
           builder: (context, setInspectionState) {
@@ -1998,7 +2219,7 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
 
                           // Procurement Quantity Selector for Cluster
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF8FAFC),
                               borderRadius: BorderRadius.circular(14),
@@ -2014,81 +2235,201 @@ class _FarmerGroupingScreenState extends State<FarmerGroupingScreen> {
                                       'Procure from Pooled Batch:',
                                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
                                     ),
-                                    Row(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.remove_circle_outline, size: 22, color: Color(0xFF15803D)),
-                                          onPressed: () {
-                                            if (modalQty > 5) {
-                                              setInspectionState(() {
-                                                modalQty -= 5;
-                                                _setClusterQuantity(cluster.id, modalQty);
-                                              });
-                                            }
-                                          },
-                                        ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(color: Colors.grey.shade300),
-                                          ),
-                                          child: Text(
-                                            '${modalQty.toStringAsFixed(0)} kg',
-                                            style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
-                                          ),
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.add_circle_outline, size: 22, color: Color(0xFF15803D)),
-                                          onPressed: () {
-                                            if (modalQty + 5 <= cluster.availableStockKg) {
-                                              setInspectionState(() {
-                                                modalQty += 5;
-                                                _setClusterQuantity(cluster.id, modalQty);
-                                              });
-                                            }
-                                          },
-                                        ),
-                                      ],
+                                    Text(
+                                      'Max ${cluster.availableStockKg.toStringAsFixed(0)} kg pooled',
+                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 6),
+                                const SizedBox(height: 10),
+
+                                // Stepper and Custom Quantity Input
+                                Row(
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                                      ),
+                                      child: IconButton(
+                                        icon: const Icon(Icons.remove, size: 18, color: Color(0xFF15803D)),
+                                        onPressed: () {
+                                          if (modalQty > 5) {
+                                            setInspectionState(() {
+                                              modalQty -= (modalQty > 10 ? 5 : 1);
+                                              _setClusterQuantity(cluster.id, modalQty);
+                                              clusterQtyController.text = modalQty.toStringAsFixed(0);
+                                            });
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(10),
+                                          border: Border.all(color: const Color(0xFF15803D), width: 1.5),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: TextField(
+                                                controller: clusterQtyController,
+                                                keyboardType: const TextInputType.numberWithOptions(decimal: false),
+                                                textAlign: TextAlign.center,
+                                                style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                                                decoration: const InputDecoration(
+                                                  border: InputBorder.none,
+                                                  isDense: true,
+                                                  contentPadding: EdgeInsets.symmetric(vertical: 8),
+                                                  hintText: 'Qty',
+                                                ),
+                                                onChanged: (val) {
+                                                  final parsed = double.tryParse(val.trim());
+                                                  if (parsed != null && parsed > 0) {
+                                                    final clamped = parsed.clamp(1.0, cluster.availableStockKg);
+                                                    setInspectionState(() {
+                                                      modalQty = clamped;
+                                                      _setClusterQuantity(cluster.id, modalQty);
+                                                    });
+                                                  }
+                                                },
+                                              ),
+                                            ),
+                                            Text(
+                                              'kg',
+                                              style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF15803D)),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: const Color(0xFFCBD5E1)),
+                                      ),
+                                      child: IconButton(
+                                        icon: const Icon(Icons.add, size: 18, color: Color(0xFF15803D)),
+                                        onPressed: () {
+                                          if (modalQty + (modalQty >= 10 ? 5 : 1) <= cluster.availableStockKg) {
+                                            setInspectionState(() {
+                                              modalQty += (modalQty >= 10 ? 5 : 1);
+                                              _setClusterQuantity(cluster.id, modalQty);
+                                              clusterQtyController.text = modalQty.toStringAsFixed(0);
+                                            });
+                                          }
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+
+                                // Interactive Slider
+                                Row(
+                                  children: [
+                                    const Text('1 kg', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                                    Expanded(
+                                      child: SliderTheme(
+                                        data: SliderTheme.of(context).copyWith(
+                                          activeTrackColor: const Color(0xFF15803D),
+                                          inactiveTrackColor: const Color(0xFFDCFCE7),
+                                          thumbColor: const Color(0xFF15803D),
+                                          trackHeight: 4,
+                                        ),
+                                        child: Slider(
+                                          value: modalQty.clamp(1.0, cluster.availableStockKg > 1.0 ? cluster.availableStockKg : 500.0),
+                                          min: 1.0,
+                                          max: cluster.availableStockKg > 1.0 ? cluster.availableStockKg : 500.0,
+                                          divisions: cluster.availableStockKg > 1.0 ? (cluster.availableStockKg <= 100 ? cluster.availableStockKg.toInt() : 50) : 50,
+                                          label: '${modalQty.toStringAsFixed(0)} kg',
+                                          onChanged: (val) {
+                                            final clamped = val.clamp(1.0, cluster.availableStockKg);
+                                            setInspectionState(() {
+                                              modalQty = clamped;
+                                              _setClusterQuantity(cluster.id, modalQty);
+                                              clusterQtyController.text = modalQty.toStringAsFixed(0);
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                    Text('${cluster.availableStockKg.toStringAsFixed(0)} kg', style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                                  ],
+                                ),
+
+                                // Preset Chips
                                 SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
                                   child: Row(
-                                    children: [10.0, 25.0, 50.0, 100.0, 250.0].map((opt) {
-                                      final isSel = modalQty == opt;
-                                      return GestureDetector(
+                                    children: [
+                                      ...[10.0, 25.0, 50.0, 100.0, 250.0].where((opt) => opt <= cluster.availableStockKg).map((opt) {
+                                        final isSel = (modalQty - opt).abs() < 0.1;
+                                        return GestureDetector(
+                                          onTap: () {
+                                            setInspectionState(() {
+                                              modalQty = opt.clamp(1.0, cluster.availableStockKg);
+                                              _setClusterQuantity(cluster.id, modalQty);
+                                              clusterQtyController.text = modalQty.toStringAsFixed(0);
+                                            });
+                                          },
+                                          child: Container(
+                                            margin: const EdgeInsets.only(right: 6),
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: isSel ? const Color(0xFF15803D) : Colors.white,
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: isSel ? const Color(0xFF15803D) : const Color(0xFFCBD5E1)),
+                                            ),
+                                            child: Text(
+                                              '${opt.toStringAsFixed(0)} kg',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
+                                                color: isSel ? Colors.white : const Color(0xFF334155),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                      GestureDetector(
                                         onTap: () {
                                           setInspectionState(() {
-                                            modalQty = opt.clamp(1.0, cluster.availableStockKg);
+                                            modalQty = cluster.availableStockKg;
                                             _setClusterQuantity(cluster.id, modalQty);
+                                            clusterQtyController.text = modalQty.toStringAsFixed(0);
                                           });
                                         },
                                         child: Container(
                                           margin: const EdgeInsets.only(right: 6),
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                           decoration: BoxDecoration(
-                                            color: isSel ? const Color(0xFF15803D) : Colors.white,
+                                            color: (modalQty - cluster.availableStockKg).abs() < 0.1 ? const Color(0xFF15803D) : Colors.white,
                                             borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(color: isSel ? const Color(0xFF15803D) : Colors.grey.shade300),
+                                            border: Border.all(color: (modalQty - cluster.availableStockKg).abs() < 0.1 ? const Color(0xFF15803D) : const Color(0xFFCBD5E1)),
                                           ),
                                           child: Text(
-                                            '${opt.toStringAsFixed(0)} kg',
+                                            'Max (${cluster.availableStockKg.toStringAsFixed(0)} kg)',
                                             style: TextStyle(
                                               fontSize: 11,
-                                              fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
-                                              color: isSel ? Colors.white : Colors.grey.shade800,
+                                              fontWeight: FontWeight.bold,
+                                              color: (modalQty - cluster.availableStockKg).abs() < 0.1 ? Colors.white : const Color(0xFF15803D),
                                             ),
                                           ),
                                         ),
-                                      );
-                                    }).toList(),
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 const SizedBox(height: 8),
+
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [

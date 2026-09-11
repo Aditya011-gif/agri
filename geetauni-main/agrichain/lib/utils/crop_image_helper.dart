@@ -33,7 +33,9 @@ class CropImageHelper {
       return 'https://images.unsplash.com/photo-1585992629285-a7b2bc21271f?w=800&auto=format&fit=crop&q=80';
     } else if (name.contains('vegetable') || name.contains('sabzi') || name.contains('chilli') || name.contains('garlic') || name.contains('ginger')) {
       return 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&auto=format&fit=crop&q=80';
-    } else if (name.contains('fruit') || name.contains('mango') || name.contains('apple') || name.contains('banana') || name.contains('orange') || name.contains('guava')) {
+    } else if (name.contains('mango') || name.contains('aam')) {
+      return 'https://images.unsplash.com/photo-1553279768-865429fa0078?w=800&auto=format&fit=crop&q=80';
+    } else if (name.contains('fruit') || name.contains('apple') || name.contains('banana') || name.contains('orange') || name.contains('guava')) {
       return 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=800&auto=format&fit=crop&q=80';
     }
 
