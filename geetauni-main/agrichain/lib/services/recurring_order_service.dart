@@ -360,18 +360,32 @@ class RecurringOrderService {
   }
 
   /// Stream recurring orders for a Bulk Buyer
-  Stream<List<RecurringOrderModel>> streamBuyerOrders(String buyerId) {
+  Stream<List<RecurringOrderModel>> streamBuyerOrders(String buyerId) async* {
     ensureInitialSeed();
-    return _streamController.stream.map((list) {
+    yield _inMemoryOrders.where((o) => o.buyerId == buyerId || buyerId.isEmpty).toList();
+    yield* _streamController.stream.map((list) {
       return list.where((o) => o.buyerId == buyerId || buyerId.isEmpty).toList();
     });
   }
 
   /// Stream recurring orders for an FPO
-  Stream<List<RecurringOrderModel>> streamFpoOrders(String fpoId) {
+  Stream<List<RecurringOrderModel>> streamFpoOrders(String fpoId) async* {
     ensureInitialSeed();
-    return _streamController.stream.map((list) {
-      return list.where((o) => o.fpoId == fpoId || fpoId.isEmpty || o.fpoId == 'fpo_karnal_01').toList();
+    yield _inMemoryOrders.where((o) =>
+      o.fpoId == fpoId ||
+      fpoId.isEmpty ||
+      o.fpoId == 'fpo_karnal_01' ||
+      o.fpoName.toLowerCase().contains('karnal') ||
+      fpoId.toLowerCase().contains('karnal')
+    ).toList();
+    yield* _streamController.stream.map((list) {
+      return list.where((o) =>
+        o.fpoId == fpoId ||
+        fpoId.isEmpty ||
+        o.fpoId == 'fpo_karnal_01' ||
+        o.fpoName.toLowerCase().contains('karnal') ||
+        fpoId.toLowerCase().contains('karnal')
+      ).toList();
     });
   }
 

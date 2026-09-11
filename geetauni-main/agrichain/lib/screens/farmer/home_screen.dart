@@ -3,8 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../widgets/custom_app_bar.dart';
-import '../../widgets/language_switcher.dart';
 import '../../services/database_service.dart';
+import '../../utils/translation_helper.dart';
+import '../../widgets/language_switcher.dart';
 import 'add_crop_screen.dart';
 import 'demand_forecasting_screen.dart';
 import 'farmer_orders_screen.dart';
@@ -46,8 +47,8 @@ class _HomeScreenState extends State<HomeScreen> {
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           CustomAppBar(
-            title: 'Farm Command Center',
-            subtitle: 'Real-time Agricultural Trading & AI Advisory',
+            title: context.tr('Farm Command Center', 'किसान डैशबोर्ड'),
+            subtitle: context.tr('Real-time Agricultural Trading & AI Advisory', 'लाइव फसल व्यापार व AI कृषि सलाह'),
             actions: const [
               Padding(
                 padding: EdgeInsets.only(right: 8),
@@ -72,13 +73,13 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 22),
 
             // 4. Bento Grid of Smart AI & Management Tools
-            _buildSectionHeader('Smart Farm Tools', 'AI Forecasting & Orders'),
+            _buildSectionHeader(context.tr('Smart Farm Tools', 'स्मार्ट कृषि टूल्स'), context.tr('AI Forecasting & Orders', 'AI भाव अनुमान व ऑर्डर')),
             const SizedBox(height: 12),
             _buildBentoGrid(farmerId),
             const SizedBox(height: 22),
 
             // 5. Live Mandi Market Ticker (Stock Ticker Style)
-            _buildSectionHeader('Market Pulse', 'Karnal APMC Benchmark'),
+            _buildSectionHeader(context.tr('Market Pulse', 'मंडी भाव पल्स'), context.tr('Karnal APMC Benchmark', 'करनाल APMC बेंचमार्क')),
             const SizedBox(height: 12),
             _buildLiveMandiTicker(),
             const SizedBox(height: 22),
@@ -161,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Flexible(
                       child: Text(
-                        'Namaste, $name',
+                        '${context.tr('Namaste', 'नमस्ते')}, $name',
                         style: GoogleFonts.outfit(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -200,7 +201,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const Icon(Icons.wb_sunny_outlined, size: 11, color: Color(0xFFD97706)),
                           const SizedBox(width: 3),
                           Text(
-                            '31°C • Rabi Sowing',
+                            context.tr('31°C • Rabi Sowing', '31°C • रबी बुवाई'),
                             style: GoogleFonts.inter(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -294,7 +295,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'ESTIMATED FARM PORTFOLIO',
+                            context.tr('ESTIMATED FARM PORTFOLIO', 'अनुमानित कुल कृषि आय'),
                             style: GoogleFonts.inter(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -317,7 +318,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const Icon(Icons.shield_outlined, color: Color(0xFF6EE7B7), size: 13),
                             const SizedBox(width: 4),
                             Text(
-                              'ESCROW SECURED',
+                              context.tr('ESCROW SECURED', 'एस्क्रो सुरक्षित'),
                               style: GoogleFonts.inter(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w800,
@@ -373,11 +374,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildHeroMetric('Active Crops', '${activeListings > 0 ? activeListings : 6} Lots', Icons.eco_outlined),
+                        _buildHeroMetric(context.tr('Active Crops', 'सक्रिय फसलें'), '${activeListings > 0 ? activeListings : 6} Lots', Icons.eco_outlined),
                         _buildMetricDivider(),
-                        _buildHeroMetric('Available Qty', '${totalHarvestKg > 0 ? totalHarvestKg.toStringAsFixed(0) : '329'} kg', Icons.inventory_2_outlined),
+                        _buildHeroMetric(context.tr('Available Qty', 'उपलब्ध मात्रा'), '${totalHarvestKg > 0 ? totalHarvestKg.toStringAsFixed(0) : '329'} kg', Icons.inventory_2_outlined),
                         _buildMetricDivider(),
-                        _buildHeroMetric('Payment Status', 'Instant UPI', Icons.flash_on_outlined),
+                        _buildHeroMetric(context.tr('Payment Status', 'भुगतान'), context.tr('Instant UPI', 'सीधा बैंक UPI'), Icons.flash_on_outlined),
                       ],
                     ),
                   ),
@@ -477,7 +478,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '🌾 नई फसल बेचें / Sell Your Crop',
+                        context.tr('🌾 Sell Your Crop (नई फसल बेचें)', '🌾 नई फसल बेचें (Sell Crop)'),
                         style: GoogleFonts.outfit(
                           fontSize: 16,
                           fontWeight: FontWeight.w900,
@@ -486,7 +487,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       Text(
-                        'AI Quality Scan • Live Direct Mandi Listing',
+                        context.tr('AI Quality Scan • Live Direct Mandi Listing', 'AI गुणवत्ता जांच • सीधा मंडी लिस्टिंग'),
                         style: GoogleFonts.inter(
                           fontSize: 11,
                           color: Colors.white.withValues(alpha: 0.85),
@@ -523,12 +524,12 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Row(
               children: [
-                // Card 1: AI Demand & Price Forecast
+                // Card 1: Mandi Bhav Bhavishyavani (फसल भाव भविष्यवाणी)
                 Expanded(
                   child: _buildBentoCard(
-                    title: 'AI Price Forecast',
-                    subtitle: '7–14d Quantiles',
-                    badgeText: 'P50/P90 ML',
+                    title: context.tr('AI Price Forecast', 'मंडी भाव भविष्यवाणी'),
+                    subtitle: context.tr('7–14 Day Mandi Trends', 'फसल भाव अनुमान • 7–14 दिन'),
+                    badgeText: context.tr('Mandi Bhav', 'भाव अनुमान'),
                     icon: Icons.auto_graph,
                     accentColor: const Color(0xFF10B981),
                     gradientColors: [const Color(0xFF064E3B), const Color(0xFF047857)],
@@ -544,9 +545,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Card 2: Orders & Smart Contracts
                 Expanded(
                   child: _buildBentoCard(
-                    title: 'Orders & Escrow',
-                    subtitle: 'Dual-Signed PDFs',
-                    badgeText: activeOrders > 0 ? '$activeOrders NEW' : 'PROTECTED',
+                    title: context.tr('Orders & Escrow', 'ऑर्डर व एस्क्रो'),
+                    subtitle: context.tr('Dual-Signed PDFs', 'डिजिटल अनुबंध'),
+                    badgeText: activeOrders > 0 ? '$activeOrders NEW' : context.tr('PROTECTED', 'सुरक्षित'),
                     icon: Icons.receipt_long_outlined,
                     accentColor: const Color(0xFFF59E0B),
                     gradientColors: [const Color(0xFF1E293B), const Color(0xFF0F172A)],
@@ -782,7 +783,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildSectionHeader('Your Active Harvest', 'Live on Buyer Marketplace'),
+            _buildSectionHeader(context.tr('Your Active Harvest', 'आपकी सक्रिय फसलें'), context.tr('Live on Buyer Marketplace', 'मंडी में बिक्री हेतु उपलब्ध')),
             TextButton(
               onPressed: () {
                 if (widget.onNavigateTab != null) {
@@ -790,7 +791,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
               },
               child: Text(
-                'View All',
+                context.tr('View All', 'सभी देखें'),
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,

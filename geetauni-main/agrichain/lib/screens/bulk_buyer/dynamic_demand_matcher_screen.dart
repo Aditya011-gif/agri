@@ -8,6 +8,8 @@ import '../../theme/app_theme.dart';
 import '../../providers/app_state.dart';
 import 'package:latlong2/latlong.dart';
 import '../../widgets/optimized_logistics_route_widget.dart';
+import '../../utils/translation_helper.dart';
+import '../../widgets/language_switcher.dart';
 
 class DynamicDemandMatcherScreen extends StatefulWidget {
   final String? initialCommodity;
@@ -302,7 +304,7 @@ class _DynamicDemandMatcherScreenState extends State<DynamicDemandMatcherScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Intelligent Dynamic Matcher',
+              context.tr('Smart Crop Lot Matcher', 'स्मार्ट किसान लॉट मिलाप'),
               style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -310,7 +312,7 @@ class _DynamicDemandMatcherScreenState extends State<DynamicDemandMatcherScreen>
               ),
             ),
             Text(
-              'स्मार्ट लॉट मैचिंग • Smallholder Pooling',
+              context.tr('Smallholder Aggregation & Multi-FPO Pool', 'किसान लॉट समूहन व एफपीओ पूल'),
               style: GoogleFonts.inter(
                 fontSize: 11,
                 color: Colors.grey.shade600,
@@ -318,6 +320,12 @@ class _DynamicDemandMatcherScreenState extends State<DynamicDemandMatcherScreen>
             ),
           ],
         ),
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 8.0),
+            child: Center(child: LanguageSwitcherPill(isDark: false)),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

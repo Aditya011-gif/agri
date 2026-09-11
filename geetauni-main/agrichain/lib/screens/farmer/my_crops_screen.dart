@@ -6,6 +6,8 @@ import '../../theme/app_theme.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../services/database_service.dart';
 import '../../utils/crop_image_helper.dart';
+import '../../utils/translation_helper.dart';
+import '../../widgets/language_switcher.dart';
 import '../../services/smart_contract_pdf_service.dart';
 import 'add_crop_screen.dart';
 
@@ -56,8 +58,14 @@ class _MyCropsScreenState extends State<MyCropsScreen>
       backgroundColor: AppTheme.backgroundGreen,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          const CustomAppBar(
-            title: 'My Crops & Orders',
+          CustomAppBar(
+            title: context.tr('My Crops & Orders', 'मेरी फसलें और लिस्टिंग'),
+            actions: const [
+              Padding(
+                padding: EdgeInsets.only(right: 8),
+                child: Center(child: LanguageSwitcherPill(isDark: true)),
+              ),
+            ],
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -82,9 +90,9 @@ class _MyCropsScreenState extends State<MyCropsScreen>
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                       ),
-                      tabs: const [
-                        Tab(text: 'Active Listings'),
-                        Tab(text: 'Completed Sales'),
+                      tabs: [
+                        Tab(text: context.tr('Active Listings', 'सक्रिय लिस्टिंग')),
+                        Tab(text: context.tr('Completed Sales', 'पूर्ण बिक्री')),
                       ],
                     ),
                   ),
@@ -110,9 +118,9 @@ class _MyCropsScreenState extends State<MyCropsScreen>
         },
         backgroundColor: const Color(0xFF2E7D32),
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          'Sell Crop',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        label: Text(
+          context.tr('Sell Crop', 'फसल बेचें'),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -151,9 +159,9 @@ class _MyCropsScreenState extends State<MyCropsScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Manage Your Produce Inventory',
-                  style: TextStyle(
+                Text(
+                  context.tr('Manage Your Produce Inventory', 'अपनी फसल उपज व स्टॉक प्रबंधित करें'),
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
                     color: Colors.white,
@@ -161,7 +169,10 @@ class _MyCropsScreenState extends State<MyCropsScreen>
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Live stock is automatically synced with direct retail buyers in real time.',
+                  context.tr(
+                    'Live stock is automatically synced with direct retail buyers in real time.',
+                    'लाइव स्टॉक सीधे खुदरा खरीदारों के साथ रीयल-टाइम में सिंक होता है।',
+                  ),
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.white.withValues(alpha: 0.9),
@@ -222,8 +233,10 @@ class _MyCropsScreenState extends State<MyCropsScreen>
                   const SizedBox(height: 12),
                   Text(
                     filterType == 'active'
-                        ? 'No Active Crop Listings'
-                        : (filterType == 'sold' ? 'No Sold Harvests' : 'No Expired Crops'),
+                        ? context.tr('No Active Crop Listings', 'कोई सक्रिय फसल लिस्टिंग नहीं')
+                        : (filterType == 'sold'
+                            ? context.tr('No Sold Harvests', 'कोई बेची गई उपज नहीं')
+                            : context.tr('No Expired Crops', 'कोई समाप्त फसल नहीं')),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -233,8 +246,14 @@ class _MyCropsScreenState extends State<MyCropsScreen>
                   const SizedBox(height: 6),
                   Text(
                     filterType == 'active'
-                        ? 'List your harvested crops to start selling to Retail Buyers & FPOs.'
-                        : 'Your crop history for this category will appear here.',
+                        ? context.tr(
+                            'List your harvested crops to start selling to Retail Buyers & FPOs.',
+                            'खुदरा खरीदारों और एफपीओ को बेचने के लिए अपनी फसल सूचीबद्ध करें।',
+                          )
+                        : context.tr(
+                            'Your crop history for this category will appear here.',
+                            'इस श्रेणी के लिए आपका फसल इतिहास यहां दिखाई देगा।',
+                          ),
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                   ),
@@ -248,7 +267,7 @@ class _MyCropsScreenState extends State<MyCropsScreen>
                         );
                       },
                       icon: const Icon(Icons.add, size: 16),
-                      label: const Text('Add First Crop'),
+                      label: Text(context.tr('Add First Crop', 'पहली फसल जोड़ें')),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF2E7D32),
                         foregroundColor: Colors.white,

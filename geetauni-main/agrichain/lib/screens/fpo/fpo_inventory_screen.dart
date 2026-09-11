@@ -1,13 +1,13 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/custom_app_bar.dart';
+import '../../widgets/language_switcher.dart';
+import '../../utils/translation_helper.dart';
 import '../../models/fpo_inventory_model.dart';
 import '../../services/fpo_inventory_service.dart';
-import '../../services/gemini_crop_assay_service.dart';
 import '../../utils/crop_image_helper.dart';
 import '../../widgets/fpo_lot_details_modal.dart';
 import 'fpo_add_crop_screen.dart';
@@ -21,63 +21,17 @@ class FpoInventoryScreen extends StatefulWidget {
   State<FpoInventoryScreen> createState() => _FpoInventoryScreenState();
 }
 
-class _FpoInventoryScreenState extends State<FpoInventoryScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _FpoInventoryScreenState extends State<FpoInventoryScreen> {
   final FpoInventoryService _inventoryService = FpoInventoryService();
-  final GeminiCropAssayService _assayService = GeminiCropAssayService();
-
-  // AI Quality Assaying interactive state
-  String _selectedCropForAssay = 'Sharbati Wheat';
-  String _selectedVarietyForAssay = 'Grade A (PBW-502)';
-  bool _isAssaying = false;
-  GeminiCropAssayResult? _assayResult;
-  String? _lastAssayedCrop;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    // Pre-populate with realistic AI assay result for Wheat
-    _assayResult = _assayService.simulateMockAssay('Wheat', 'Sharbati Grade A');
-    _lastAssayedCrop = 'Sharbati Wheat';
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     super.dispose();
-  }
-
-  void _runAiQualityAssay(String cropName, String variety) async {
-    setState(() {
-      _selectedCropForAssay = cropName;
-      _selectedVarietyForAssay = variety;
-      _isAssaying = true;
-    });
-
-    try {
-      final result = await _assayService.analyzeCropSample(
-        imageBytes: Uint8List(0),
-        cropCategory: cropName,
-        cropVariety: variety,
-      );
-      if (mounted) {
-        setState(() {
-          _assayResult = result;
-          _lastAssayedCrop = cropName;
-          _isAssaying = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _assayResult = _assayService.simulateMockAssay(cropName, variety);
-          _lastAssayedCrop = cropName;
-          _isAssaying = false;
-        });
-      }
-    }
   }
 
   @override
@@ -90,8 +44,14 @@ class _FpoInventoryScreenState extends State<FpoInventoryScreen>
       backgroundColor: AppTheme.backgroundGreen,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          const CustomAppBar(
-            title: 'Crops & Warehouse Stock',
+          CustomAppBar(
+            title: context.tr('Crops & Warehouse Stock', 'फसलें और गोदाम स्टॉक'),
+            actions: const [
+              Padding(
+                padding: EdgeInsets.only(right: 8),
+                child: Center(child: LanguageSwitcherPill(isDark: true)),
+              ),
+            ],
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -99,47 +59,12 @@ class _FpoInventoryScreenState extends State<FpoInventoryScreen>
               child: Column(
                 children: [
                   _buildWarehouseHeaderCard(fpoId),
-                  const SizedBox(height: 14),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: AppTheme.softShadow,
-                    ),
-                    child: TabBar(
-                      controller: _tabController,
-                      labelColor: const Color(0xFF1B5E20),
-                      unselectedLabelColor: AppTheme.textSecondary,
-                      indicatorColor: const Color(0xFF1B5E20),
-                      indicatorWeight: 3,
-                      labelStyle: GoogleFonts.outfit(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                      tabs: const [
-                        Tab(
-                          icon: Icon(Icons.inventory_2_outlined, size: 18),
-                          text: 'Warehouse Crops',
-                        ),
-                        Tab(
-                          icon: Icon(Icons.auto_awesome, size: 18),
-                          text: 'AI Quality Analysis',
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),
           ),
         ],
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _buildCropsInventoryTab(fpoId),
-            _buildAiQualityAssayingTab(),
-          ],
-        ),
+        body: _buildCropsInventoryTab(fpoId),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
@@ -150,9 +75,9 @@ class _FpoInventoryScreenState extends State<FpoInventoryScreen>
         },
         backgroundColor: const Color(0xFF2E7D32),
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          'Add Bulk Crop Lot',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        label: Text(
+          context.tr('Add Bulk Crop Lot', 'थोक फसल लॉट जोड़ें'),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -209,7 +134,7 @@ class _FpoInventoryScreenState extends State<FpoInventoryScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Central Silo Complex',
+                            context.tr('Central Silo Complex', 'केंद्रीय साइलो कॉम्प्लेक्स'),
                             style: GoogleFonts.outfit(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
@@ -218,8 +143,8 @@ class _FpoInventoryScreenState extends State<FpoInventoryScreen>
                           ),
                           Text(
                             totalStockQtl > 0
-                                ? '${totalStockQtl.toStringAsFixed(0)} Qtl Active Warehouse Stock'
-                                : '0 Qtl Deposited • Ready for Inflow',
+                                ? '${totalStockQtl.toStringAsFixed(0)} Qtl ${context.tr('Active Warehouse Stock', 'सक्रिय गोदाम स्टॉक')}'
+                                : context.tr('0 Qtl Deposited • Ready for Inflow', '0 क्विंटल जमा • भंडारण हेतु तैयार'),
                             style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textSecondary),
                           ),
                         ],
@@ -236,7 +161,7 @@ class _FpoInventoryScreenState extends State<FpoInventoryScreen>
                       ),
                     ),
                     child: Text(
-                      '$utilizationPct% Utilized',
+                      '$utilizationPct% ${context.tr('Utilized', 'प्रयुक्त')}',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
@@ -274,15 +199,15 @@ class _FpoInventoryScreenState extends State<FpoInventoryScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _buildLegendDot(
-                    'Available: ${availableQtl.toStringAsFixed(0)} Qtl',
+                    '${context.tr('Available', 'उपलब्ध')}: ${availableQtl.toStringAsFixed(0)} Qtl',
                     const Color(0xFF2E7D32),
                   ),
                   _buildLegendDot(
-                    'Locked: ${reservedQtl.toStringAsFixed(0)} Qtl',
+                    '${context.tr('Locked', 'आरक्षित')}: ${reservedQtl.toStringAsFixed(0)} Qtl',
                     const Color(0xFFF59E0B),
                   ),
                   _buildLegendDot(
-                    totalStockQtl > 0 ? 'Allocated' : 'Ready for Deposits',
+                    totalStockQtl > 0 ? context.tr('Allocated', 'आवंटित') : context.tr('Ready for Deposits', 'जमा हेतु तैयार'),
                     const Color(0xFF94A3B8),
                   ),
                 ],
@@ -329,19 +254,22 @@ class _FpoInventoryScreenState extends State<FpoInventoryScreen>
                     color: AppTheme.textSecondary.withValues(alpha: 0.4),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'No Warehouse Crops Deposited Yet',
-                    style: TextStyle(
+                  Text(
+                    context.tr('No Warehouse Crops Deposited Yet', 'अभी तक कोई गोदाम फसल जमा नहीं की गई'),
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: AppTheme.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Tap "+ Add Bulk Crop Lot" below to record inventory and list lots for bulk buyers.',
+                  Text(
+                    context.tr(
+                      'Tap "+ Add Bulk Crop Lot" below to record inventory and list lots for bulk buyers.',
+                      'थोक खरीदारों के लिए इन्वेंटरी रिकॉर्ड करने और लॉट सूचीबद्ध करने के लिए नीचे "+ थोक फसल लॉट जोड़ें" पर टैप करें।',
+                    ),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 13,
                       color: AppTheme.textSecondary,
                     ),
@@ -598,40 +526,22 @@ class _FpoInventoryScreenState extends State<FpoInventoryScreen>
                 const SizedBox(height: 14),
 
                 // Action Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _showLotDetailsModal(item),
-                        icon: const Icon(Icons.info_outline, size: 16),
-                        label: const Text('Lot Details', style: TextStyle(fontSize: 12)),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF0F172A),
-                          side: const BorderSide(color: Color(0xFFCBD5E1)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                        ),
-                      ),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _showLotDetailsModal(item),
+                    icon: const Icon(Icons.verified_outlined, size: 16, color: Color(0xFF15803D)),
+                    label: const Text(
+                      'View Lot Details & Quality Passport',
+                      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          // Switch to AI Quality tab with this crop pre-selected
-                          _tabController.animateTo(1);
-                          _runAiQualityAssay(item.cropName, item.variety);
-                        },
-                        icon: const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
-                        label: const Text('AI Assaying', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2E7D32),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                        ),
-                      ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFF86EFAC)),
+                      backgroundColor: const Color(0xFFF0FDF4),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -642,390 +552,6 @@ class _FpoInventoryScreenState extends State<FpoInventoryScreen>
   ),
 );
 }
-
-  /// Tab 2: AI Crop Quality Analysis (Matching Farmer App)
-  Widget _buildAiQualityAssayingTab() {
-    final crops = [
-      {'name': 'Sharbati Wheat', 'variety': 'Grade A (PBW-502)', 'silo': 'Silo #1'},
-      {'name': 'Basmati Rice 1121', 'variety': 'Super Fine Paddy', 'silo': 'Silo #2'},
-      {'name': 'Yellow Mustard', 'variety': 'High Oil 42% Pusa', 'silo': 'Silo #3'},
-    ];
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Banner
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: AppTheme.softShadow,
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.auto_awesome, color: Color(0xFF69F0AE), size: 26),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'AI Grain Assaying & Lab QC',
-                        style: GoogleFonts.outfit(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Instant physical parameters inspection powered by Gemini Vision AI before dispatch to Institutional Buyers.',
-                        style: TextStyle(color: Colors.white70, fontSize: 11),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-
-          // Select Lot to Inspect
-          Text(
-            'Select Warehouse Lot to Test',
-            style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-          ),
-          const SizedBox(height: 8),
-
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: crops.map((c) {
-                final isSelected = _selectedCropForAssay == c['name'];
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text('${c['name']} (${c['silo']})'),
-                    selected: isSelected,
-                    selectedColor: const Color(0xFF2E7D32),
-                    backgroundColor: Colors.white,
-                    labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : const Color(0xFF334155),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                    onSelected: (val) {
-                      if (val) {
-                        _runAiQualityAssay(c['name']!, c['variety']!);
-                      }
-                    },
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Sample Image Preview Card
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: AppTheme.softShadow,
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      CropImageHelper.buildCropImage(
-                        '',
-                        _selectedCropForAssay,
-                        height: 160,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      ),
-                      if (_isAssaying)
-                        Container(
-                          height: 160,
-                          width: double.infinity,
-                          color: Colors.black.withValues(alpha: 0.6),
-                          child: const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              CircularProgressIndicator(color: Color(0xFF69F0AE)),
-                              SizedBox(height: 10),
-                              Text(
-                                'Gemini AI Vision Assaying in Progress...',
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _selectedCropForAssay,
-                          style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          _selectedVarietyForAssay,
-                          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                        ),
-                      ],
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: _isAssaying
-                          ? null
-                          : () => _runAiQualityAssay(_selectedCropForAssay, _selectedVarietyForAssay),
-                      icon: const Icon(Icons.refresh, size: 16),
-                      label: const Text('Re-scan Sample', style: TextStyle(fontSize: 12)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2E7D32),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-
-          // AI Assaying Results
-          if (_assayResult != null) ...[
-            Text(
-              'AI Physical Assaying Report',
-              style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-            ),
-            const SizedBox(height: 10),
-
-            // Grade banner
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFDCFCE7),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFBBF7D0)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Color(0xFF15803D), size: 24),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${_assayResult!.agmarkGrade} • Certified',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF15803D)),
-                        ),
-                        Text(
-                          'Meets BIS / FSSAI & Institutional Buyer procurement specifications.',
-                          style: TextStyle(fontSize: 11, color: Colors.green.shade800),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // 4 Assay Parameter Tiles
-            Row(
-              children: [
-                Expanded(
-                  child: _buildAssayParameterTile(
-                    'Moisture',
-                    '${_assayResult!.moisturePercentage.toStringAsFixed(1)}%',
-                    'Optimal (<= 12%)',
-                    Icons.water_drop_outlined,
-                    const Color(0xFF0284C7),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildAssayParameterTile(
-                    'Purity Level',
-                    '${_assayResult!.purityScore.toStringAsFixed(1)}%',
-                    'Clean (> 98%)',
-                    Icons.verified_outlined,
-                    const Color(0xFF16A34A),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildAssayParameterTile(
-                    'Broken Grains',
-                    '${_assayResult!.brokenGrainPercentage.toStringAsFixed(1)}%',
-                    'Grade A (<= 2%)',
-                    Icons.grain,
-                    const Color(0xFFD97706),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _buildAssayParameterTile(
-                    'Foreign Matter',
-                    '${_assayResult!.foreignMatterPercentage.toStringAsFixed(1)}%',
-                    'Minimal (<= 0.5%)',
-                    Icons.filter_vintage_outlined,
-                    const Color(0xFF7C3AED),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Digital Certificate Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: AppTheme.softShadow,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.fingerprint, color: Color(0xFF2E7D32), size: 18),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Digital Certificate of Analysis',
-                            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13),
-                          ),
-                        ],
-                      ),
-                      const Text(
-                        'PASS',
-                        style: TextStyle(color: Color(0xFF15803D), fontWeight: FontWeight.bold, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Certificate ID: AGRI-QC-2026-FPO-${_lastAssayedCrop?.replaceAll(' ', '').toUpperCase()}',
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontFamily: 'monospace'),
-                  ),
-                  Text(
-                    'Inspection Timestamp: 06 Sep 2026, 12:40 PM • Valid for 30 Days',
-                    style: const TextStyle(fontSize: 10.5, color: Color(0xFF94A3B8)),
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'AI Quality Certificate attached to $_lastAssayedCrop lot! Ready for institutional buyer dispatch.',
-                            ),
-                            backgroundColor: const Color(0xFF2E7D32),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.attachment, size: 16),
-                      label: const Text('Attach Certificate to Bulk Lot'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2E7D32),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAssayParameterTile(
-    String label,
-    String value,
-    String status,
-    IconData icon,
-    Color color,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: AppTheme.softShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 14, color: color),
-              const SizedBox(width: 4),
-              Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: GoogleFonts.outfit(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
-          Text(
-            status,
-            style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _showLotDetailsModal(FpoInventoryItem item) {
     FpoLotDetailsModal.show(
@@ -1040,11 +566,6 @@ class _FpoInventoryScreenState extends State<FpoInventoryScreen>
       pricePerMt: item.pricePerMT,
       qualityGrade: item.qualityGrade,
       moistureText: '${item.moisturePct}% (Optimal)',
-      onRunAiAssay: () {
-        _tabController.animateTo(1);
-        _runAiQualityAssay(item.cropName, item.variety);
-      },
     );
   }
-
 }

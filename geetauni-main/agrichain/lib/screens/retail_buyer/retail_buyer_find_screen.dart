@@ -7,6 +7,8 @@ import '../../theme/app_theme.dart';
 import '../../providers/app_state.dart';
 import '../../services/database_service.dart';
 import '../../utils/crop_image_helper.dart';
+import '../../utils/translation_helper.dart';
+import '../../widgets/language_switcher.dart';
 import 'retail_checkout_screen.dart';
 
 class RetailBuyerFindScreen extends StatefulWidget {
@@ -41,7 +43,28 @@ class _RetailBuyerFindScreenState extends State<RetailBuyerFindScreen> {
     'Maize',
     'Chana',
     'Cotton',
+    'Soybean',
+    'Potato',
+    'Tomato',
+    'Onion',
+    'Bajra',
     'Vegetables',
+  ];
+
+  static final List<Map<String, String>> _cropCatalogDetailed = [
+    {'key': 'All', 'label': 'All Crops (सभी फसलें)', 'hindi': 'सभी', 'icon': '🌾'},
+    {'key': 'Wheat', 'label': 'Wheat (गेहूं)', 'hindi': 'गेहूं', 'icon': '🌾'},
+    {'key': 'Rice', 'label': 'Rice / Basmati (चावल)', 'hindi': 'चावल', 'icon': '🍚'},
+    {'key': 'Mustard', 'label': 'Mustard / Sarson (सरसों)', 'hindi': 'सरसों', 'icon': '🟡'},
+    {'key': 'Maize', 'label': 'Maize / Makka (मक्का)', 'hindi': 'मक्का', 'icon': '🌽'},
+    {'key': 'Chana', 'label': 'Gram / Chana (चना)', 'hindi': 'चना', 'icon': '🟤'},
+    {'key': 'Cotton', 'label': 'Cotton (कपास)', 'hindi': 'कपास', 'icon': '☁️'},
+    {'key': 'Soybean', 'label': 'Soybean (सोयाबीन)', 'hindi': 'सोयाबीन', 'icon': '🌱'},
+    {'key': 'Potato', 'label': 'Potato (आलू)', 'hindi': 'आलू', 'icon': '🥔'},
+    {'key': 'Tomato', 'label': 'Tomato (टमाटर)', 'hindi': 'टमाटर', 'icon': '🍅'},
+    {'key': 'Onion', 'label': 'Onion (प्याज़)', 'hindi': 'प्याज़', 'icon': '🧅'},
+    {'key': 'Bajra', 'label': 'Pearl Millet / Bajra (बाजरा)', 'hindi': 'बाजरा', 'icon': '🥣'},
+    {'key': 'Vegetables', 'label': 'Fresh Vegetables (हरी सब्जियां)', 'hindi': 'सब्जियां', 'icon': '🥗'},
   ];
 
   final List<String> _gradeOptions = [
@@ -101,7 +124,7 @@ class _RetailBuyerFindScreenState extends State<RetailBuyerFindScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Find Produce',
+              context.tr('Find Local Produce', 'स्थानीय फसलें खोजें'),
               style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -109,7 +132,7 @@ class _RetailBuyerFindScreenState extends State<RetailBuyerFindScreen> {
               ),
             ),
             Text(
-              'Discover & Buy Directly from Farmers',
+              context.tr('Discover & Buy Directly from Farmers', 'सीधे किसानों से खोजें और खरीदें'),
               style: GoogleFonts.inter(
                 fontSize: 11,
                 color: Colors.grey.shade600,
@@ -118,13 +141,17 @@ class _RetailBuyerFindScreenState extends State<RetailBuyerFindScreen> {
           ],
         ),
         actions: [
+          const Padding(
+            padding: EdgeInsets.only(right: 6),
+            child: Center(child: LanguageSwitcherPill(isDark: false)),
+          ),
           // View Switcher (List / Map)
           IconButton(
             icon: Icon(
               _isMapView ? Icons.view_list : Icons.map_outlined,
               color: AppTheme.primaryGreen,
             ),
-            tooltip: _isMapView ? 'Switch to List View' : 'Switch to Map View',
+            tooltip: _isMapView ? context.tr('Switch to List View', 'सूची देखें') : context.tr('Switch to Map View', 'मानचित्र देखें'),
             onPressed: () {
               setState(() {
                 _isMapView = !_isMapView;
@@ -191,13 +218,69 @@ class _RetailBuyerFindScreenState extends State<RetailBuyerFindScreen> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                // Horizontal Crop Quick Filter
+                // Dedicated Crop Selection Dropdown
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F0),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.primaryGreen.withValues(alpha: 0.35)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.eco, color: AppTheme.primaryGreen, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            isExpanded: true,
+                            value: _cropFilterOptions.contains(_selectedCrop) ? _selectedCrop : 'All',
+                            icon: const Icon(Icons.arrow_drop_down, color: AppTheme.primaryGreen),
+                            dropdownColor: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            onChanged: (newVal) {
+                              if (newVal != null) {
+                                setState(() {
+                                  _selectedCrop = newVal;
+                                });
+                              }
+                            },
+                            items: _cropCatalogDetailed.map((c) {
+                              return DropdownMenuItem<String>(
+                                value: c['key'],
+                                child: Row(
+                                  children: [
+                                    Text(c['icon'] ?? '🌾', style: const TextStyle(fontSize: 15)),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        c['label'] ?? c['key']!,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFF1E293B),
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Horizontal Crop Quick Filter Chips
                 SizedBox(
-                  height: 34,
+                  height: 32,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: _cropFilterOptions.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    separatorBuilder: (_, __) => const SizedBox(width: 6),
                     itemBuilder: (context, index) {
                       final crop = _cropFilterOptions[index];
                       final isSelected = _selectedCrop == crop;
@@ -214,12 +297,12 @@ class _RetailBuyerFindScreenState extends State<RetailBuyerFindScreen> {
                         labelStyle: GoogleFonts.inter(
                           color: isSelected ? Colors.white : AppTheme.darkGrey,
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                          fontSize: 12,
+                          fontSize: 11.5,
                         ),
                         side: BorderSide(
                           color: isSelected ? AppTheme.primaryGreen : Colors.grey.shade300,
                         ),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       );
                     },
                   ),

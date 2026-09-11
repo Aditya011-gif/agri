@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
-import '../../theme/app_theme.dart';
+import '../../utils/translation_helper.dart';
+import '../../widgets/language_switcher.dart';
 
 /// Screen 10: Farmer Passbook & Payouts (Direct UPI & Tax-Free Agri Income Slip)
 class FarmerPayoutHistoryScreen extends StatefulWidget {
@@ -17,8 +18,11 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
     {
       'id': 'TXN-90281-UPI',
       'crop': 'Basmati Paddy 1121',
+      'cropHi': 'बासमती धान 1121',
       'lotSize': '45 Quintals (2.25 MT)',
+      'lotSizeHi': '45 क्विंटल (2.25 मी. टन)',
       'buyer': 'AgroFoods Milling India Pvt Ltd',
+      'buyerHi': 'एग्रोफूड्स मिलिंग इंडिया प्रा. लि.',
       'date': '28 Aug 2026, 04:30 PM',
       'amount': 158500.0,
       'status': 'CREDITED',
@@ -30,8 +34,11 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
     {
       'id': 'TXN-88190-UPI',
       'crop': 'Sharbati Wheat (Grade A)',
+      'cropHi': 'शरबती गेहूं (ग्रेड ए)',
       'lotSize': '30 Quintals (1.5 MT)',
+      'lotSizeHi': '30 क्विंटल (1.5 मी. टन)',
       'buyer': 'Karnal Farmers Producer Co.',
+      'buyerHi': 'करनाल फार्मर्स प्रोड्यूसर कं.',
       'date': '19 Aug 2026, 11:15 AM',
       'amount': 84200.0,
       'status': 'CREDITED',
@@ -43,8 +50,11 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
     {
       'id': 'TXN-84102-ESCROW',
       'crop': 'Hybrid Red Onion',
+      'cropHi': 'हाइब्रिड लाल प्याज',
       'lotSize': '20 Quintals (1.0 MT)',
+      'lotSizeHi': '20 क्विंटल (1.0 मी. टन)',
       'buyer': 'FreshMart Retail Hypermarket',
+      'buyerHi': 'फ्रेशमार्ट रिटेल हाइपरमार्केट',
       'date': '12 Aug 2026, 06:45 PM',
       'amount': 54000.0,
       'status': 'CREDITED',
@@ -59,8 +69,10 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
   Widget build(BuildContext context) {
     final appState = Provider.of<AppState>(context);
     final user = appState.currentUser;
-    final farmerName = user?.name.isNotEmpty == true ? user!.name : 'Ramesh Kumar (Kisaan)';
-    final location = user?.location ?? 'Karnal, Haryana';
+    final farmerName = user?.name.isNotEmpty == true
+        ? user!.name
+        : context.tr('Ramesh Kumar (Kisaan)', 'रमेश कुमार (किसान)');
+    final location = user?.location ?? context.tr('Karnal, Haryana', 'करनाल, हरियाणा');
 
     double totalSeasonRevenue = 0;
     for (var p in _mockPayouts) {
@@ -77,7 +89,7 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Kisaan Passbook & Payouts',
+              context.tr('Kisaan Passbook & Payouts', 'किसान पासबुक व भुगतान'),
               style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -85,7 +97,7 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
               ),
             ),
             Text(
-              'Direct UPI Bank Credits • Polygon Smart Escrow',
+              context.tr('Direct UPI Bank Credits • Polygon Smart Escrow', 'सीधा UPI बैंक भुगतान • पॉलीगॉन स्मार्ट एस्क्रो'),
               style: GoogleFonts.inter(
                 fontSize: 10,
                 color: Colors.grey.shade600,
@@ -95,11 +107,14 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
           ],
         ),
         actions: [
+          const LanguageSwitcherPill(isDark: false),
+          const SizedBox(width: 4),
           IconButton(
             icon: const Icon(Icons.picture_as_pdf, color: Color(0xFF1B5E20)),
-            tooltip: 'Download Tax-Free Income Slip',
+            tooltip: context.tr('Download Tax-Free Income Slip', 'कर-मुक्त आय पर्ची डाउनलोड करें'),
             onPressed: () => _showIncomeSlipDialog(context, farmerName, location, totalSeasonRevenue),
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: ListView(
@@ -118,7 +133,7 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Direct Settlement Ledger',
+                context.tr('Direct Settlement Ledger', 'प्रत्यक्ष भुगतान खाता (लेजर)'),
                 style: GoogleFonts.outfit(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -138,7 +153,7 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
                       const Icon(Icons.download, size: 14, color: Color(0xFF1B5E20)),
                       const SizedBox(width: 4),
                       Text(
-                        'Tax Exemption Slip',
+                        context.tr('Tax Exemption Slip', 'कर छूट पर्ची'),
                         style: GoogleFonts.inter(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -186,7 +201,7 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Total Season Sales Revenue',
+                context.tr('Total Season Sales Revenue', 'सत्र की कुल बिक्री आय'),
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   color: Colors.white70,
@@ -204,7 +219,7 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
                     const Icon(Icons.verified, color: Color(0xFF69F0AE), size: 13),
                     const SizedBox(width: 4),
                     Text(
-                      '100% Escrow Settled',
+                      context.tr('100% Escrow Settled', '100% एस्क्रो भुगतान'),
                       style: GoogleFonts.inter(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
@@ -232,9 +247,18 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildMetricCol('Settled Lots', '3 Harvests (4.75 MT)'),
-              _buildMetricCol('Avg Realization', '₹3,520 / Qtl'),
-              _buildMetricCol('Tax Liability', '₹0 (Exempted)'),
+              _buildMetricCol(
+                context.tr('Settled Lots', 'भुगतान किए गए लॉट'),
+                context.tr('3 Harvests (4.75 MT)', '3 फसलें (4.75 मी. टन)'),
+              ),
+              _buildMetricCol(
+                context.tr('Avg Realization', 'औसत प्राप्ति'),
+                context.tr('₹3,520 / Qtl', '₹3,520 / क्विंटल'),
+              ),
+              _buildMetricCol(
+                context.tr('Tax Liability', 'कर देयता'),
+                context.tr('₹0 (Exempted)', '₹0 (पूर्णतः मुक्त)'),
+              ),
             ],
           ),
         ],
@@ -282,7 +306,7 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
                 Row(
                   children: [
                     Text(
-                      'State Bank of India (SBI)',
+                      context.tr('State Bank of India (SBI)', 'भारतीय स्टेट बैंक (SBI)'),
                       style: GoogleFonts.inter(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
@@ -297,7 +321,7 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        'Penny-Drop Verified',
+                        context.tr('Penny-Drop Verified', 'पेनी-ड्रॉप सत्यापित'),
                         style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
@@ -309,7 +333,7 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'A/C: ••••••••4821 | IFSC: SBIN0001290 | Beneficiary: $farmerName',
+                  '${context.tr("A/C", "खाता")}: ••••••••4821 | IFSC: SBIN0001290 | ${context.tr("Beneficiary", "लाभार्थी")}: $farmerName',
                   style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600),
                 ),
               ],
@@ -322,6 +346,13 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
 
   Widget _buildPayoutCard(Map<String, dynamic> txn) {
     final amount = txn['amount'] as double;
+    final cropDisplayName = context.tr(txn['crop'].toString(), (txn['cropHi'] ?? txn['crop']).toString());
+    final lotDisplayName = context.tr(txn['lotSize'].toString(), (txn['lotSizeHi'] ?? txn['lotSize']).toString());
+    final buyerDisplayName = context.tr(txn['buyer'].toString(), (txn['buyerHi'] ?? txn['buyer']).toString());
+    final statusText = txn['status'] == 'CREDITED'
+        ? context.tr('CREDITED', 'खाते में जमा')
+        : txn['status'].toString();
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -348,7 +379,7 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
                   const Icon(Icons.arrow_downward, color: Color(0xFF00C853), size: 18),
                   const SizedBox(width: 6),
                   Text(
-                    txn['crop'],
+                    cropDisplayName,
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -369,7 +400,7 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Lot: ${txn['lotSize']} • Buyer: ${txn['buyer']}',
+            '${context.tr("Lot", "लॉट")}: $lotDisplayName • ${context.tr("Buyer", "खरीदार")}: $buyerDisplayName',
             style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade700),
           ),
           const SizedBox(height: 8),
@@ -379,7 +410,7 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'UTR: ${txn['utr']}',
+                '${context.tr("UTR", "यूटीआर")}: ${txn['utr']}',
                 style: GoogleFonts.jetBrainsMono(fontSize: 10, color: Colors.grey.shade600),
               ),
               Container(
@@ -389,7 +420,7 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  txn['status'],
+                  statusText,
                   style: GoogleFonts.inter(
                     fontSize: 9,
                     fontWeight: FontWeight.bold,
@@ -413,19 +444,40 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
           children: [
             const Icon(Icons.verified_user, color: Color(0xFF1B5E20)),
             const SizedBox(width: 8),
-            Text('Tax-Free Agri Income Slip', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(
+              context.tr('Tax-Free Agri Income Slip', 'कर-मुक्त कृषि आय पर्ची'),
+              style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('GOVERNMENT OF INDIA • FORM 16-AGRI (PROVISIONAL)', style: GoogleFonts.inter(fontSize: 10, color: Colors.grey)),
+            Text(
+              context.tr(
+                'GOVERNMENT OF INDIA • FORM 16-AGRI (PROVISIONAL)',
+                'भारत सरकार • फॉर्म 16-कृषि (अनंतिम)',
+              ),
+              style: GoogleFonts.inter(fontSize: 10, color: Colors.grey),
+            ),
             const SizedBox(height: 8),
-            Text('Farmer: $name', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-            Text('Location: $location', style: GoogleFonts.inter(fontSize: 12)),
+            Text(
+              '${context.tr("Farmer", "किसान")}: $name',
+              style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              '${context.tr("Location", "स्थान")}: $location',
+              style: GoogleFonts.inter(fontSize: 12),
+            ),
             const SizedBox(height: 8),
-            Text('Total Direct Credit: ₹${total.toStringAsFixed(0)}', style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: const Color(0xFF1B5E20))),
+            Text(
+              '${context.tr("Total Direct Credit", "कुल प्रत्यक्ष जमा")}: ₹${total.toStringAsFixed(0)}',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w900,
+                color: const Color(0xFF1B5E20),
+              ),
+            ),
             const SizedBox(height: 6),
             Container(
               padding: const EdgeInsets.all(8),
@@ -434,7 +486,10 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                'Statutory Exemption under Section 10(1) of the Income Tax Act, 1961. 100% Tax-Free Agricultural Proceeds.',
+                context.tr(
+                  'Statutory Exemption under Section 10(1) of the Income Tax Act, 1961. 100% Tax-Free Agricultural Proceeds.',
+                  'आयकर अधिनियम 1961 की धारा 10(1) के तहत वैधानिक छूट। 100% कर-मुक्त कृषि आय।',
+                ),
                 style: GoogleFonts.inter(fontSize: 10, color: Colors.green.shade900),
               ),
             ),
@@ -443,20 +498,25 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
+            child: Text(context.tr('Close', 'बंद करें')),
           ),
           ElevatedButton.icon(
             onPressed: () {
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Tax-Free Agriculture Income Slip PDF downloaded to device.'),
-                  backgroundColor: Color(0xFF1B5E20),
+                SnackBar(
+                  content: Text(
+                    context.tr(
+                      'Tax-Free Agriculture Income Slip PDF downloaded to device.',
+                      'कर-मुक्त कृषि आय पर्ची PDF डिवाइस पर डाउनलोड हो गई।',
+                    ),
+                  ),
+                  backgroundColor: const Color(0xFF1B5E20),
                 ),
               );
             },
             icon: const Icon(Icons.download, size: 16),
-            label: const Text('Download Official PDF'),
+            label: Text(context.tr('Download Official PDF', 'आधिकारिक PDF डाउनलोड करें')),
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20)),
           ),
         ],

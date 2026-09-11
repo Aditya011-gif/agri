@@ -161,4 +161,27 @@ class TranslationHelper {
   static String formatINR(double amount) {
     return '₹${amount.toStringAsFixed(amount.truncateToDouble() == amount ? 0 : 2)}';
   }
+
+  /// Direct bilingual string helper
+  static String tr(BuildContext context, String en, String hi) {
+    try {
+      return Localizations.localeOf(context).languageCode == 'hi' ? hi : en;
+    } catch (_) {
+      return en;
+    }
+  }
+}
+
+/// Extension on BuildContext for quick and elegant localization access:
+/// Example: `Text(context.tr('My Orders', 'मेरे ऑर्डर'))`
+extension LocalizationExtension on BuildContext {
+  bool get isHindi {
+    try {
+      return Localizations.localeOf(this).languageCode == 'hi';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  String tr(String en, String hi) => isHindi ? hi : en;
 }

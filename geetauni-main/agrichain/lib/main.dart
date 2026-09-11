@@ -386,117 +386,131 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     const FpoProfileScreen(),
   ];
 
-  List<BottomNavigationBarItem> _getFpoNavItems(AppLocalizations? l10n) => [
-    BottomNavigationBarItem(
-      icon: const Icon(Icons.home_outlined),
-      activeIcon: const Icon(Icons.home),
-      label: l10n?.navHome ?? 'Home',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.inventory_2_outlined),
-      activeIcon: Icon(Icons.inventory_2),
-      label: 'Inventory',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.shopping_bag_outlined),
-      activeIcon: Icon(Icons.shopping_bag),
-      label: 'Orders',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.account_balance_wallet_outlined),
-      activeIcon: Icon(Icons.account_balance_wallet),
-      label: 'Earnings',
-    ),
-    BottomNavigationBarItem(
-      icon: const Icon(Icons.person_outline),
-      activeIcon: const Icon(Icons.person),
-      label: l10n?.navProfile ?? 'Profile',
-    ),
-  ];
+  bool _isHi(AppLocalizations? l10n) => l10n?.localeName == 'hi';
 
-  List<BottomNavigationBarItem> _getFarmerNavItems(AppLocalizations? l10n) => [
-    BottomNavigationBarItem(
-      icon: const Icon(Icons.home_outlined),
-      activeIcon: const Icon(Icons.home),
-      label: l10n?.navHome ?? 'Home',
-    ),
-    BottomNavigationBarItem(
-      icon: const Icon(Icons.agriculture_outlined),
-      activeIcon: const Icon(Icons.agriculture),
-      label: l10n?.navMyCrops ?? 'My Crops',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.shopping_bag_outlined),
-      activeIcon: Icon(Icons.shopping_bag),
-      label: 'Orders',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.receipt_long_outlined),
-      activeIcon: Icon(Icons.receipt_long),
-      label: 'Passbook',
-    ),
-    BottomNavigationBarItem(
-      icon: const Icon(Icons.person_outline),
-      activeIcon: const Icon(Icons.person),
-      label: l10n?.navProfile ?? 'Profile',
-    ),
-  ];
+  List<BottomNavigationBarItem> _getFpoNavItems(AppLocalizations? l10n) {
+    final isHi = _isHi(l10n);
+    return [
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.home_outlined),
+        activeIcon: const Icon(Icons.home),
+        label: isHi ? 'मुख्य पृष्ठ' : (l10n?.navHome ?? 'Home'),
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.inventory_2_outlined),
+        activeIcon: const Icon(Icons.inventory_2),
+        label: isHi ? 'गोदाम स्टॉक' : 'Inventory',
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.shopping_bag_outlined),
+        activeIcon: const Icon(Icons.shopping_bag),
+        label: isHi ? 'ऑर्डर' : 'Orders',
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.account_balance_wallet_outlined),
+        activeIcon: const Icon(Icons.account_balance_wallet),
+        label: isHi ? 'आय / पेआउट' : 'Earnings',
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.person_outline),
+        activeIcon: const Icon(Icons.person),
+        label: isHi ? 'प्रोफ़ाइल' : (l10n?.navProfile ?? 'Profile'),
+      ),
+    ];
+  }
 
-  List<BottomNavigationBarItem> _getBulkBuyerNavItems(AppLocalizations? l10n) => [
-    BottomNavigationBarItem(
-      icon: const Icon(Icons.home_outlined),
-      activeIcon: const Icon(Icons.home),
-      label: l10n?.navHome ?? 'Home',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.hub_outlined),
-      activeIcon: Icon(Icons.hub),
-      label: 'Supply',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.assignment_outlined),
-      activeIcon: Icon(Icons.assignment),
-      label: 'RFQs',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.inventory_2_outlined),
-      activeIcon: Icon(Icons.inventory_2),
-      label: 'Orders',
-    ),
-    BottomNavigationBarItem(
-      icon: const Icon(Icons.person_outline),
-      activeIcon: const Icon(Icons.person),
-      label: l10n?.navProfile ?? 'Profile',
-    ),
-  ];
+  List<BottomNavigationBarItem> _getFarmerNavItems(AppLocalizations? l10n) {
+    final isHi = _isHi(l10n);
+    return [
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.home_outlined),
+        activeIcon: const Icon(Icons.home),
+        label: isHi ? 'मुख्य पृष्ठ' : (l10n?.navHome ?? 'Home'),
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.agriculture_outlined),
+        activeIcon: const Icon(Icons.agriculture),
+        label: isHi ? 'मेरी फसलें' : (l10n?.navMyCrops ?? 'My Crops'),
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.shopping_bag_outlined),
+        activeIcon: const Icon(Icons.shopping_bag),
+        label: isHi ? 'ऑर्डर' : 'Orders',
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.receipt_long_outlined),
+        activeIcon: const Icon(Icons.receipt_long),
+        label: isHi ? 'पासबुक' : 'Passbook',
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.person_outline),
+        activeIcon: const Icon(Icons.person),
+        label: isHi ? 'प्रोफ़ाइल' : (l10n?.navProfile ?? 'Profile'),
+      ),
+    ];
+  }
 
-  List<BottomNavigationBarItem> _getRetailBuyerNavItems(AppLocalizations? l10n) => [
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.home_outlined),
-      activeIcon: Icon(Icons.home),
-      label: 'Fresh Shop',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.hub_outlined),
-      activeIcon: Icon(Icons.hub),
-      label: '7km Clusters',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.shopping_bag_outlined),
-      activeIcon: Icon(Icons.shopping_bag),
-      label: 'Orders',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.favorite_border),
-      activeIcon: Icon(Icons.favorite),
-      label: 'Saved',
-    ),
-    const BottomNavigationBarItem(
-      icon: Icon(Icons.person_outline),
-      activeIcon: Icon(Icons.person),
-      label: 'Profile',
-    ),
-  ];
+  List<BottomNavigationBarItem> _getBulkBuyerNavItems(AppLocalizations? l10n) {
+    final isHi = _isHi(l10n);
+    return [
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.home_outlined),
+        activeIcon: const Icon(Icons.home),
+        label: isHi ? 'मुख्य पृष्ठ' : (l10n?.navHome ?? 'Home'),
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.hub_outlined),
+        activeIcon: const Icon(Icons.hub),
+        label: isHi ? 'आपूर्ति' : 'Supply',
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.assignment_outlined),
+        activeIcon: const Icon(Icons.assignment),
+        label: isHi ? 'मांगें (RFQs)' : 'RFQs',
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.inventory_2_outlined),
+        activeIcon: const Icon(Icons.inventory_2),
+        label: isHi ? 'ऑर्डर' : 'Orders',
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.person_outline),
+        activeIcon: const Icon(Icons.person),
+        label: isHi ? 'प्रोफ़ाइल' : (l10n?.navProfile ?? 'Profile'),
+      ),
+    ];
+  }
+
+  List<BottomNavigationBarItem> _getRetailBuyerNavItems(AppLocalizations? l10n) {
+    final isHi = _isHi(l10n);
+    return [
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.home_outlined),
+        activeIcon: const Icon(Icons.home),
+        label: isHi ? 'मंडी बाज़ार' : 'Fresh Shop',
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.hub_outlined),
+        activeIcon: const Icon(Icons.hub),
+        label: isHi ? '7km क्लस्टर' : '7km Clusters',
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.shopping_bag_outlined),
+        activeIcon: const Icon(Icons.shopping_bag),
+        label: isHi ? 'खरीदारी' : 'Orders',
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.favorite_border),
+        activeIcon: const Icon(Icons.favorite),
+        label: isHi ? 'पसंदीदा' : 'Saved',
+      ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.person_outline),
+        activeIcon: const Icon(Icons.person),
+        label: isHi ? 'प्रोफ़ाइल' : 'Profile',
+      ),
+    ];
+  }
 
   @override
   void initState() {

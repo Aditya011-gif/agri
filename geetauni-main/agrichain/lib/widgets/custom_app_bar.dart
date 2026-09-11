@@ -30,7 +30,7 @@ class CustomAppBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final effectiveExpandedHeight =
-        expandedHeight ?? (subtitle != null ? 140.0 : 120.0);
+        expandedHeight ?? (subtitle != null ? 152.0 : 125.0);
 
     return SliverAppBar(
       expandedHeight: effectiveExpandedHeight,
@@ -52,14 +52,14 @@ class CustomAppBar extends StatelessWidget {
             ]
           : null,
       elevation: showElevation ? 4 : 0,
-      shadowColor: AppTheme.primaryGreen.withOpacity(0.3),
+      shadowColor: AppTheme.primaryGreen.withValues(alpha: 0.3),
       systemOverlayStyle: SystemUiOverlayStyle.light,
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: centerTitle,
         titlePadding: EdgeInsets.only(
           left: showBackButton || leading != null ? 56 : 20,
           right: actions != null ? 16 : 20,
-          bottom: 16,
+          bottom: 10,
         ),
         title: Column(
           mainAxisSize: MainAxisSize.min,
@@ -90,7 +90,7 @@ class CustomAppBar extends StatelessWidget {
               Text(
                 subtitle!,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   fontWeight: FontWeight.w400,
                   fontSize: 14,
                   letterSpacing: 0.2,
@@ -108,7 +108,7 @@ class CustomAppBar extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [
                 backgroundColor ?? AppTheme.primaryGreen,
-                (backgroundColor ?? AppTheme.primaryGreen).withOpacity(0.8),
+                (backgroundColor ?? AppTheme.primaryGreen).withValues(alpha: 0.8),
                 AppTheme.lightGreen,
               ],
               stops: const [0.0, 0.6, 1.0],
@@ -126,7 +126,7 @@ class CustomAppBar extends StatelessWidget {
                     height: 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.08),
+                      color: Colors.white.withValues(alpha: 0.08),
                     ),
                   ),
                 ),
@@ -138,7 +138,7 @@ class CustomAppBar extends StatelessWidget {
                     height: 80,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.05),
+                      color: Colors.white.withValues(alpha: 0.05),
                     ),
                   ),
                 ),
@@ -150,7 +150,7 @@ class CustomAppBar extends StatelessWidget {
                     height: 100,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.06),
+                      color: Colors.white.withValues(alpha: 0.06),
                     ),
                   ),
                 ),
@@ -162,7 +162,7 @@ class CustomAppBar extends StatelessWidget {
                     width: 4,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.3),
+                      color: Colors.white.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -174,7 +174,7 @@ class CustomAppBar extends StatelessWidget {
                     width: 4,
                     height: 30,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),

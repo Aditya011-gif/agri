@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/app_state.dart';
-import '../../widgets/custom_app_bar.dart';
+import '../../utils/translation_helper.dart';
+import '../../widgets/language_switcher.dart';
 import '../login_screen.dart';
 
 class RetailBuyerProfileScreen extends StatefulWidget {
@@ -18,7 +18,6 @@ class RetailBuyerProfileScreen extends StatefulWidget {
 
 class _RetailBuyerProfileScreenState extends State<RetailBuyerProfileScreen> {
   bool _pushNotifications = true;
-  String _selectedLanguage = 'English (EN)';
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +33,7 @@ class _RetailBuyerProfileScreenState extends State<RetailBuyerProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'My Profile',
+              context.tr('My Profile', 'मेरी प्रोफ़ाइल'),
               style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -42,7 +41,7 @@ class _RetailBuyerProfileScreenState extends State<RetailBuyerProfileScreen> {
               ),
             ),
             Text(
-              'Personal Details & Settings',
+              context.tr('Personal Details & Settings', 'व्यक्तिगत विवरण और सेटिंग्स'),
               style: GoogleFonts.inter(
                 fontSize: 11,
                 color: Colors.grey.shade600,
@@ -50,6 +49,10 @@ class _RetailBuyerProfileScreenState extends State<RetailBuyerProfileScreen> {
             ),
           ],
         ),
+        actions: const [
+          LanguageSwitcherPill(isDark: false),
+          SizedBox(width: 8),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -94,7 +97,7 @@ class _RetailBuyerProfileScreenState extends State<RetailBuyerProfileScreen> {
                         Row(
                           children: [
                             Text(
-                              user?.name ?? 'Retail Buyer',
+                              user?.name ?? context.tr('Retail Buyer', 'खुदरा खरीदार'),
                               style: GoogleFonts.inter(
                                 fontSize: 17,
                                 fontWeight: FontWeight.bold,
@@ -118,7 +121,7 @@ class _RetailBuyerProfileScreenState extends State<RetailBuyerProfileScreen> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            'Verified Retail Customer',
+                            context.tr('Verified Retail Customer', 'सत्यापित खुदरा ग्राहक'),
                             style: GoogleFonts.inter(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -145,29 +148,29 @@ class _RetailBuyerProfileScreenState extends State<RetailBuyerProfileScreen> {
                 children: [
                   _buildProfileTile(
                     icon: Icons.person_outline,
-                    title: 'My Details',
-                    subtitle: 'Name, Phone number, Email address',
+                    title: context.tr('My Details', 'मेरा विवरण'),
+                    subtitle: context.tr('Name, Phone number, Email address', 'नाम, फ़ोन नंबर, ईमेल पता'),
                     onTap: () => _showDetailsModal(context, user?.name, user?.email, user?.phone),
                   ),
                   _buildDivider(),
                   _buildProfileTile(
                     icon: Icons.location_on_outlined,
-                    title: 'My Delivery Address',
-                    subtitle: 'Flat 402, Green Avenue, Delhi NCR',
+                    title: context.tr('My Delivery Address', 'मेरा डिलीवरी पता'),
+                    subtitle: context.tr('Flat 402, Green Avenue, Delhi NCR', 'फ्लैट 402, ग्रीन एवेन्यू, दिल्ली एनसीआर'),
                     onTap: () => _showAddressModal(context),
                   ),
                   _buildDivider(),
                   _buildProfileTile(
                     icon: Icons.payment_outlined,
-                    title: 'Payment & UPI',
-                    subtitle: 'Google Pay, PhonePe, Cards, Net Banking',
+                    title: context.tr('Payment & UPI', 'भुगतान और यूपीआई'),
+                    subtitle: context.tr('Google Pay, PhonePe, Cards, Net Banking', 'गूगल पे, फोनपे, कार्ड, नेट बैंकिंग'),
                     onTap: () => _showPaymentModal(context),
                   ),
                   _buildDivider(),
                   _buildProfileTile(
                     icon: Icons.shopping_bag_outlined,
-                    title: 'My Orders',
-                    subtitle: 'View recent purchases and delivery status',
+                    title: context.tr('My Orders', 'मेरे ऑर्डर'),
+                    subtitle: context.tr('View recent purchases and delivery status', 'हालिया खरीदारी और डिलीवरी स्थिति देखें'),
                     onTap: () => widget.onNavigateTab?.call(2),
                   ),
                 ],
@@ -187,39 +190,53 @@ class _RetailBuyerProfileScreenState extends State<RetailBuyerProfileScreen> {
                   SwitchListTile(
                     secondary: const Icon(Icons.notifications_outlined, color: AppTheme.primaryGreen),
                     title: Text(
-                      'Notifications',
+                      context.tr('Notifications', 'सूचनाएं'),
                       style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14),
                     ),
                     subtitle: Text(
-                      'Harvest alerts and order tracking updates',
+                      context.tr('Harvest alerts and order tracking updates', 'फसल अलर्ट और ऑर्डर ट्रैकिंग अपडेट'),
                       style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
                     ),
                     value: _pushNotifications,
-                    activeColor: AppTheme.primaryGreen,
+                    activeThumbColor: AppTheme.primaryGreen,
                     onChanged: (val) => setState(() => _pushNotifications = val),
                   ),
                   _buildDivider(),
-                  _buildProfileTile(
-                    icon: Icons.language,
-                    title: 'Language',
-                    subtitle: _selectedLanguage,
-                    onTap: () => _showLanguageModal(context),
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.language, color: AppTheme.primaryGreen, size: 20),
+                    ),
+                    title: Text(
+                      context.tr('Language / भाषा', 'भाषा / Language'),
+                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.darkGreen),
+                    ),
+                    subtitle: Text(
+                      context.isHindi ? 'हिंदी (Hindi)' : 'English (EN)',
+                      style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
+                    ),
+                    trailing: const LanguageSwitcherPill(isDark: false),
+                    onTap: () => LanguageSelectorSheet.show(context),
                   ),
                   _buildDivider(),
                   _buildProfileTile(
                     icon: Icons.headset_mic_outlined,
-                    title: 'Help & Customer Support',
-                    subtitle: '24x7 Customer Helpline, FAQs, Dispute Resolution',
+                    title: context.tr('Help & Customer Support', 'मदद और ग्राहक सहायता'),
+                    subtitle: context.tr('24x7 Customer Helpline, FAQs, Dispute Resolution', '24x7 ग्राहक हेल्पलाइन, प्रश्न, विवाद समाधान'),
                     onTap: () => _showHelpModal(context),
                   ),
                   _buildDivider(),
                   _buildProfileTile(
                     icon: Icons.security_outlined,
-                    title: 'Privacy & Terms',
-                    subtitle: 'AgriChain Direct Buyer Guarantee',
+                    title: context.tr('Privacy & Terms', 'गोपनीयता और शर्तें'),
+                    subtitle: context.tr('AgriChain Direct Buyer Guarantee', 'एग्रीचेन प्रत्यक्ष खरीदार गारंटी'),
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('AgriChain Buyer Protection is 100% active.')),
+                        SnackBar(content: Text(context.tr('AgriChain Buyer Protection is 100% active.', 'एग्रीचेन खरीदार सुरक्षा 100% सक्रिय है।'))),
                       );
                     },
                   ),
@@ -245,7 +262,7 @@ class _RetailBuyerProfileScreenState extends State<RetailBuyerProfileScreen> {
                 },
                 icon: const Icon(Icons.logout, color: Colors.red),
                 label: Text(
-                  'Sign Out',
+                  context.tr('Sign Out', 'लॉग आउट'),
                   style: GoogleFonts.inter(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -312,12 +329,12 @@ class _RetailBuyerProfileScreenState extends State<RetailBuyerProfileScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('My Details', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(context.tr('My Details', 'मेरा विवरण'), style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
-                _buildDetailRow('Full Name', name ?? 'Retail Buyer'),
-                _buildDetailRow('Email', email ?? 'buyer@agrichain.com'),
-                _buildDetailRow('Phone', phone ?? '+91 98765 00000'),
-                _buildDetailRow('Account Type', 'Direct Retail Customer'),
+                _buildDetailRow(context.tr('Full Name', 'पूरा नाम'), name ?? context.tr('Retail Buyer', 'खुदरा खरीदार')),
+                _buildDetailRow(context.tr('Email', 'ईमेल'), email ?? 'buyer@agrichain.com'),
+                _buildDetailRow(context.tr('Phone', 'फ़ोन'), phone ?? '+91 98765 00000'),
+                _buildDetailRow(context.tr('Account Type', 'खाता प्रकार'), context.tr('Direct Retail Customer', 'प्रत्यक्ष खुदरा ग्राहक')),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
@@ -327,7 +344,7 @@ class _RetailBuyerProfileScreenState extends State<RetailBuyerProfileScreen> {
                       backgroundColor: AppTheme.primaryGreen,
                       foregroundColor: Colors.white,
                     ),
-                    child: const Text('Close'),
+                    child: Text(context.tr('Close', 'बंद करें')),
                   ),
                 ),
               ],
@@ -366,7 +383,7 @@ class _RetailBuyerProfileScreenState extends State<RetailBuyerProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('My Delivery Address', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(context.tr('My Delivery Address', 'मेरा डिलीवरी पता'), style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 14),
               Container(
                 padding: const EdgeInsets.all(14),
@@ -383,7 +400,7 @@ class _RetailBuyerProfileScreenState extends State<RetailBuyerProfileScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Home (Primary)', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                          Text(context.tr('Home (Primary)', 'घर (प्राथमिक)'), style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
                           Text(
                             'Flat 402, Green Avenue, Sector 18, Delhi NCR - 110085',
                             style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade700),
@@ -403,7 +420,7 @@ class _RetailBuyerProfileScreenState extends State<RetailBuyerProfileScreen> {
                     backgroundColor: AppTheme.primaryGreen,
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Done'),
+                  child: Text(context.tr('Done', 'पूर्ण')),
                 ),
               ),
             ],
@@ -428,17 +445,17 @@ class _RetailBuyerProfileScreenState extends State<RetailBuyerProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Payment Methods', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(context.tr('Payment Methods', 'भुगतान के तरीके'), style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 14),
               ListTile(
                 leading: const Icon(Icons.account_balance_wallet, color: AppTheme.primaryGreen),
-                title: const Text('UPI ID (Google Pay / PhonePe)'),
+                title: Text(context.tr('UPI ID (Google Pay / PhonePe)', 'यूपीआई आईडी (गूगल पे / फोनपे)')),
                 subtitle: const Text('user@okhdfcbank'),
                 trailing: const Icon(Icons.check_circle, color: AppTheme.primaryGreen),
               ),
               ListTile(
                 leading: const Icon(Icons.credit_card, color: Colors.grey),
-                title: const Text('HDFC Bank Visa Card'),
+                title: Text(context.tr('HDFC Bank Visa Card', 'एचडीएफसी बैंक वीज़ा कार्ड')),
                 subtitle: const Text('•••• •••• •••• 4092'),
               ),
               const SizedBox(height: 20),
@@ -450,46 +467,9 @@ class _RetailBuyerProfileScreenState extends State<RetailBuyerProfileScreen> {
                     backgroundColor: AppTheme.primaryGreen,
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Done'),
+                  child: Text(context.tr('Done', 'पूर्ण')),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showLanguageModal(BuildContext context) {
-    final languages = ['English (EN)', 'हिंदी (Hindi)', 'ਪੰਜਾਬੀ (Punjabi)', 'मराठी (Marathi)', 'ગુજરાતી (Gujarati)'];
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Select Language', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              ...languages.map((lang) {
-                return RadioListTile<String>(
-                  title: Text(lang),
-                  value: lang,
-                  groupValue: _selectedLanguage,
-                  activeColor: AppTheme.primaryGreen,
-                  onChanged: (val) {
-                    setState(() => _selectedLanguage = val!);
-                    Navigator.pop(ctx);
-                  },
-                );
-              }),
             ],
           ),
         ),
@@ -512,21 +492,21 @@ class _RetailBuyerProfileScreenState extends State<RetailBuyerProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Customer Support', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(context.tr('Customer Support', 'ग्राहक सहायता'), style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               ListTile(
                 leading: const Icon(Icons.phone, color: AppTheme.primaryGreen),
-                title: const Text('Toll Free Helpline'),
+                title: Text(context.tr('Toll Free Helpline', 'टोल फ्री हेल्पलाइन')),
                 subtitle: const Text('1800-200-FARM (9 AM - 8 PM)'),
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Calling toll-free helpline...')),
+                    SnackBar(content: Text(context.tr('Calling toll-free helpline...', 'टोल-फ्री हेल्पलाइन पर कॉल किया जा रहा है...'))),
                   );
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.email, color: AppTheme.primaryGreen),
-                title: const Text('Email Support'),
+                title: Text(context.tr('Email Support', 'ईमेल सहायता')),
                 subtitle: const Text('support@agrichain.in'),
               ),
               const SizedBox(height: 16),
@@ -538,7 +518,7 @@ class _RetailBuyerProfileScreenState extends State<RetailBuyerProfileScreen> {
                     backgroundColor: AppTheme.primaryGreen,
                     foregroundColor: Colors.white,
                   ),
-                  child: const Text('Close'),
+                  child: Text(context.tr('Close', 'बंद करें')),
                 ),
               ),
             ],

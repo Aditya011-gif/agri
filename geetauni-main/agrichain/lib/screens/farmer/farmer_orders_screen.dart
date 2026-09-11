@@ -7,6 +7,8 @@ import '../../widgets/custom_app_bar.dart';
 import '../../services/database_service.dart';
 import '../../services/smart_contract_pdf_service.dart';
 import '../../utils/crop_image_helper.dart';
+import '../../utils/translation_helper.dart';
+import '../../widgets/language_switcher.dart';
 import '../../widgets/crop_tracking_map_sheet.dart';
 
 class FarmerOrdersScreen extends StatefulWidget {
@@ -50,9 +52,15 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
       backgroundColor: AppTheme.backgroundGreen,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          const CustomAppBar(
-            title: 'My Orders & Demands',
-            subtitle: 'Buyer Orders & Escrow Settlements',
+          CustomAppBar(
+            title: context.tr('My Orders & Demands', 'मेरे ऑर्डर और मांगें'),
+            subtitle: context.tr('Buyer Orders & Escrow Settlements', 'खरीदार ऑर्डर और एस्क्रो भुगतान'),
+            actions: const [
+              Padding(
+                padding: EdgeInsets.only(right: 8),
+                child: Center(child: LanguageSwitcherPill(isDark: true)),
+              ),
+            ],
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -73,18 +81,18 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                   ),
-                  tabs: const [
+                  tabs: [
                     Tab(
-                      icon: Icon(Icons.shopping_bag_outlined, size: 18),
-                      text: 'Retail (खुदरा)',
+                      icon: const Icon(Icons.shopping_bag_outlined, size: 18),
+                      text: context.tr('Retail Orders', 'खुदरा ऑर्डर'),
                     ),
                     Tab(
-                      icon: Icon(Icons.business_outlined, size: 18),
-                      text: 'FPO (एफपीओ)',
+                      icon: const Icon(Icons.business_outlined, size: 18),
+                      text: context.tr('FPO Orders', 'एफपीओ खरीद'),
                     ),
                     Tab(
-                      icon: Icon(Icons.hub_outlined, size: 18),
-                      text: 'Buyer Demands (मांगें)',
+                      icon: const Icon(Icons.hub_outlined, size: 18),
+                      text: context.tr('Buyer Demands', 'खरीदार मांगें'),
                     ),
                   ],
                 ),
@@ -125,14 +133,17 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                   Icon(Icons.shopping_bag_outlined, size: 64, color: AppTheme.textSecondary.withValues(alpha: 0.35)),
                   const SizedBox(height: 14),
                   Text(
-                    'No Retail Orders Yet',
+                    context.tr('No Retail Orders Yet', 'अभी तक कोई खुदरा ऑर्डर नहीं'),
                     style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'When retail buyers order your crops on the AgriChain marketplace, their orders with locked escrow will appear here in real time for fulfillment.',
+                  Text(
+                    context.tr(
+                      'When retail buyers order your crops on the AgriChain marketplace, their orders with locked escrow will appear here in real time for fulfillment.',
+                      'जब खुदरा खरीदार आपकी फसलों का ऑर्डर देंगे, तो उनके एस्क्रो-सुरक्षित ऑर्डर यहां रीयल-टाइम में दिखाई देंगे।',
+                    ),
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+                    style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
                   ),
                 ],
               ),
@@ -197,7 +208,7 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                             const Icon(Icons.receipt_long, size: 16, color: Color(0xFF2E7D32)),
                             const SizedBox(width: 6),
                             Text(
-                              'Order #$orderId • $dateStr',
+                              '${context.tr('Order', 'ऑर्डर')} #$orderId • $dateStr',
                               style: GoogleFonts.outfit(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
@@ -218,10 +229,10 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                           ),
                           child: Text(
                             isDelivered
-                                ? 'DELIVERED & SETTLED'
+                                ? context.tr('DELIVERED & SETTLED', 'वितरित व भुगतान संपन्न')
                                 : isInTransit
-                                    ? 'IN TRANSIT'
-                                    : 'PENDING DISPATCH',
+                                    ? context.tr('IN TRANSIT', 'मार्ग में')
+                                    : context.tr('PENDING DISPATCH', 'प्रेषण लंबित'),
                             style: TextStyle(
                               color: isDelivered
                                   ? const Color(0xFF15803D)
@@ -339,7 +350,7 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                                   const Icon(Icons.person, size: 14, color: Color(0xFF2563EB)),
                                   const SizedBox(width: 6),
                                   Text(
-                                    'Buyer: $buyerName',
+                                    '${context.tr('Buyer', 'खरीदार')}: $buyerName',
                                     style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
                                   ),
                                   const Spacer(),
@@ -394,8 +405,14 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                               Expanded(
                                 child: Text(
                                   isDelivered
-                                      ? 'Polygon Escrow: ₹${total.toStringAsFixed(0)} Settled to Bank ($escrowStatus)'
-                                      : 'Polygon Escrow: ₹${total.toStringAsFixed(0)} Locked (Tx: ${txHash.length > 12 ? "${txHash.substring(0, 10)}..." : txHash})',
+                                      ? context.tr(
+                                          'Polygon Escrow: ₹${total.toStringAsFixed(0)} Settled to Bank ($escrowStatus)',
+                                          'पॉलीगॉन एस्क्रो: ₹${total.toStringAsFixed(0)} बैंक में जमा ($escrowStatus)',
+                                        )
+                                      : context.tr(
+                                          'Polygon Escrow: ₹${total.toStringAsFixed(0)} Locked (Tx: ${txHash.length > 12 ? "${txHash.substring(0, 10)}..." : txHash})',
+                                          'पॉलीगॉन एस्क्रो: ₹${total.toStringAsFixed(0)} सुरक्षित लॉक (Tx: ${txHash.length > 12 ? "${txHash.substring(0, 10)}..." : txHash})',
+                                        ),
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
@@ -420,9 +437,9 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                               );
                             },
                             icon: const Icon(Icons.picture_as_pdf, color: Color(0xFF1B5E20), size: 18),
-                            label: const Text(
-                              '📄 View Signed Smart Contract (PDF)',
-                              style: TextStyle(
+                            label: Text(
+                              context.tr('📄 View Signed Smart Contract (PDF)', '📄 हस्ताक्षरित स्मार्ट अनुबंध देखें (PDF)'),
+                              style: const TextStyle(
                                 color: Color(0xFF1B5E20),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
@@ -447,9 +464,9 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                           child: OutlinedButton.icon(
                             onPressed: () => CropTrackingMapSheet.show(context, order),
                             icon: const Icon(Icons.map_outlined, color: Color(0xFF1D4ED8), size: 18),
-                            label: const Text(
-                              '🗺️ Track Live Route & Delivery Map',
-                              style: TextStyle(
+                            label: Text(
+                              context.tr('🗺️ Track Live Route & Delivery Map', '🗺️ लाइव रूट और डिलीवरी मैप ट्रैक करें'),
+                              style: const TextStyle(
                                 color: Color(0xFF1D4ED8),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
@@ -479,17 +496,17 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                                       await _dbService.updateRetailOrderStatus(orderId, 'in_transit');
                                       if (context.mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('🚚 Order marked In Transit. Buyer notified!'),
-                                            backgroundColor: Color(0xFF2563EB),
+                                          SnackBar(
+                                            content: Text(context.tr('🚚 Order marked In Transit. Buyer notified!', '🚚 ऑर्डर मार्ग में चिह्नित। खरीदार को सूचित किया गया!')),
+                                            backgroundColor: const Color(0xFF2563EB),
                                           ),
                                         );
                                       }
                                     },
                                     icon: const Icon(Icons.local_shipping, size: 16, color: Color(0xFF2563EB)),
-                                    label: const Text(
-                                      'Mark In Transit',
-                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
+                                    label: Text(
+                                      context.tr('Mark In Transit', 'मार्ग में चिह्नित करें'),
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
                                     ),
                                     style: OutlinedButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -503,9 +520,9 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                                 child: ElevatedButton.icon(
                                   onPressed: () => _showFarmerOtpClaimDialog(context, order),
                                   icon: const Icon(Icons.pin, size: 16, color: Colors.white),
-                                  label: const Text(
-                                    'Claim Escrow (OTP)',
-                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                                  label: Text(
+                                    context.tr('Claim Escrow (OTP)', 'एस्क्रो प्राप्त करें (OTP)'),
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
                                   ),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF2E7D32),
@@ -524,14 +541,14 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                               color: const Color(0xFFDCFCE7),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.check_circle, color: Color(0xFF15803D), size: 16),
-                                SizedBox(width: 6),
+                                const Icon(Icons.check_circle, color: Color(0xFF15803D), size: 16),
+                                const SizedBox(width: 6),
                                 Text(
-                                  'Delivery Handshake Complete • Escrow Payout Credited',
-                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                                  context.tr('Delivery Handshake Complete • Escrow Payout Credited', 'डिलीवरी हैंडशेक पूर्ण • एस्क्रो भुगतान बैंक में जमा'),
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
                                 ),
                               ],
                             ),
@@ -573,10 +590,10 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
               child: const Icon(Icons.pin, color: Color(0xFF15803D), size: 22),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
-                'Release Escrow Payout',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                context.tr('Release Escrow Payout', 'एस्क्रो भुगतान प्राप्त करें'),
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -585,9 +602,12 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Ask the buyer for their 6-digit Delivery Handshake OTP shown on their AgriChain receipt upon handover.',
-              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+            Text(
+              context.tr(
+                'Ask the buyer for their 6-digit Delivery Handshake OTP shown on their AgriChain receipt upon handover.',
+                'हैंडओवर पर खरीदार की एग्रीचेन रसीद पर प्रदर्शित 6-अंकीय डिलीवरी हैंडशेक ओटीपी मांगें।',
+              ),
+              style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -627,7 +647,7 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                     const Icon(Icons.info_outline, size: 14, color: Color(0xFF2563EB)),
                     const SizedBox(width: 6),
                     Text(
-                      'Demo test OTP: $expectedOtp',
+                      '${context.tr('Demo test OTP', 'डेमो टेस्ट ओटीपी')}: $expectedOtp',
                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
                     ),
                   ],
@@ -647,7 +667,7 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                   const Icon(Icons.currency_rupee, color: Color(0xFF15803D), size: 18),
                   const SizedBox(width: 6),
                   Text(
-                    'Payout Amount: ₹${total.toStringAsFixed(0)}',
+                    '${context.tr('Payout Amount', 'भुगतान राशि')}: ₹${total.toStringAsFixed(0)}',
                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
                   ),
                 ],
@@ -658,15 +678,15 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+            child: Text(context.tr('Cancel', 'रद्द करें'), style: const TextStyle(color: AppTheme.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () async {
               final entered = otpController.text.trim();
               if (expectedOtp.isNotEmpty && entered != expectedOtp) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('❌ Incorrect OTP! Please verify with buyer.'),
+                  SnackBar(
+                    content: Text(context.tr('❌ Incorrect OTP! Please verify with buyer.', '❌ गलत ओटीपी! कृपया खरीदार से पुष्टि करें।')),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -689,11 +709,11 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                   context: context,
                   builder: (ctx) => AlertDialog(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-                    title: const Row(
+                    title: Row(
                       children: [
-                        Icon(Icons.check_circle, color: Color(0xFF2E7D32), size: 30),
-                        SizedBox(width: 10),
-                        Text('Escrow Released!'),
+                        const Icon(Icons.check_circle, color: Color(0xFF2E7D32), size: 30),
+                        const SizedBox(width: 10),
+                        Text(context.tr('Escrow Released!', 'एस्क्रो जारी!')),
                       ],
                     ),
                     content: Column(
@@ -701,12 +721,15 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '🎉 Doorstep Handshake Verified via OTP!',
+                          context.tr('🎉 Doorstep Handshake Verified via OTP!', '🎉 ओटीपी द्वारा डिलीवरी हैंडशेक सत्यापित!'),
                           style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: const Color(0xFF15803D)),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '₹${total.toStringAsFixed(0)} INR has been automatically released from the Polygon PoS Smart Escrow lock directly to your verified bank account.',
+                          context.tr(
+                            '₹${total.toStringAsFixed(0)} INR has been automatically released from the Polygon PoS Smart Escrow lock directly to your verified bank account.',
+                            '₹${total.toStringAsFixed(0)} पॉलीगॉन पीओएस स्मार्ट एस्क्रो लॉक से सीधे आपके सत्यापित बैंक खाते में जमा कर दिया गया है।',
+                          ),
                           style: const TextStyle(fontSize: 13, height: 1.4),
                         ),
                         const SizedBox(height: 12),
@@ -731,7 +754,7 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                           backgroundColor: const Color(0xFF2E7D32),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-                        child: const Text('Done', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        child: Text(context.tr('Done', 'पूर्ण'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -742,7 +765,7 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
               backgroundColor: const Color(0xFF2E7D32),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Verify & Release', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(context.tr('Verify & Release', 'सत्यापित करें और प्राप्त करें'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -770,15 +793,18 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                 children: [
                   Icon(Icons.business_outlined, size: 60, color: AppTheme.textSecondary.withValues(alpha: 0.4)),
                   const SizedBox(height: 12),
-                  const Text(
-                    'No FPO Procurement Orders',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                  Text(
+                    context.tr('No FPO Procurement Orders', 'कोई एफपीओ खरीद ऑर्डर नहीं'),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'When an FPO procures directly from your listings or accepts your procurement offer, the orders and weighbridge slips will be listed here.',
+                  Text(
+                    context.tr(
+                      'When an FPO procures directly from your listings or accepts your procurement offer, the orders and weighbridge slips will be listed here.',
+                      'जब कोई एफपीओ आपकी लिस्टिंग से सीधे खरीद करेगा या आपका प्रस्ताव स्वीकार करेगा, तो आदेश और तौल पर्ची यहां दिखाई देगी।',
+                    ),
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                    style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                   ),
                 ],
               ),
@@ -841,9 +867,9 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                           color: const Color(0xFFDCFCE7),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
-                          'PROCURED & PAID',
-                          style: TextStyle(
+                        child: Text(
+                          context.tr('PROCURED & PAID', 'खरीद व भुगतान संपन्न'),
+                          style: const TextStyle(
                             color: Color(0xFF15803D),
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -862,7 +888,7 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Weighbridge Slip: $slipNumber', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+                        Text('${context.tr('Weighbridge Slip', 'धर्मकांटा पर्ची')}: $slipNumber', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
                         Text(paymentMethod, style: const TextStyle(fontSize: 11, color: Color(0xFF2563EB), fontWeight: FontWeight.w600)),
                       ],
                     ),
@@ -871,8 +897,8 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Volume: $qty kg @ ₹$price', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                      Text('Total Payout: ₹${total.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF2E7D32))),
+                      Text('${context.tr('Volume', 'मात्रा')}: $qty kg @ ₹$price', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      Text('${context.tr('Total Payout', 'कुल भुगतान')}: ₹${total.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF2E7D32))),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -886,9 +912,9 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                         );
                       },
                       icon: const Icon(Icons.picture_as_pdf, color: Color(0xFF1B5E20), size: 16),
-                      label: const Text(
-                        '📄 View FPO Procurement Smart Contract (PDF)',
-                        style: TextStyle(
+                      label: Text(
+                        context.tr('📄 View FPO Procurement Smart Contract (PDF)', '📄 एफपीओ खरीद स्मार्ट अनुबंध देखें (PDF)'),
+                        style: const TextStyle(
                           color: Color(0xFF1B5E20),
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
@@ -903,7 +929,7 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text('Completed on: $dateStr', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                  Text('${context.tr('Completed on', 'पूर्ण हुआ')}: $dateStr', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                 ],
               ),
             );
@@ -937,7 +963,7 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'No Active Bulk Demands Right Now',
+                    context.tr('No Active Bulk Demands Right Now', 'फिलहाल कोई सक्रिय थोक मांग नहीं है'),
                     style: GoogleFonts.outfit(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -945,10 +971,13 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'When bulk buyers and millers post large procurement orders, they will appear here so you can commit your harvested lot at fair guaranteed prices.',
+                  Text(
+                    context.tr(
+                      'When bulk buyers and millers post large procurement orders, they will appear here so you can commit your harvested lot at fair guaranteed prices.',
+                      'जब थोक खरीदार और मिल मालिक खरीद ऑर्डर पोस्ट करेंगे, तो वे यहां दिखाई देंगे ताकि आप गारंटीकृत उचित मूल्य पर फसल दे सकें।',
+                    ),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 13,
                       color: AppTheme.textSecondary,
                     ),
@@ -1024,9 +1053,9 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                     color: const Color(0xFFDCFCE7),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text(
-                    'VERIFIED BUYER',
-                    style: TextStyle(
+                  child: Text(
+                    context.tr('VERIFIED BUYER', 'सत्यापित खरीदार'),
+                    style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF15803D),
@@ -1057,7 +1086,7 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                           ),
                         ),
                         Text(
-                          'Required: ${qtyQtl.toStringAsFixed(0)} Qtl (${(qtyQtl * 100).toStringAsFixed(0)} kg) • $grade',
+                          '${context.tr('Required', 'आवश्यक')}: ${qtyQtl.toStringAsFixed(0)} Qtl (${(qtyQtl * 100).toStringAsFixed(0)} kg) • $grade',
                           style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                         ),
                       ],
@@ -1088,7 +1117,7 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        'Delivery Terminal: $location',
+                        '${context.tr('Delivery Terminal', 'वितरण केंद्र')}: $location',
                         style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1102,7 +1131,7 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                   child: ElevatedButton.icon(
                     onPressed: () => _showFarmerParticipateModal(rfqId, farmerId, farmerName, crop, pricePerKg),
                     icon: const Icon(Icons.add_shopping_cart, size: 16),
-                    label: const Text('Participate in Order / Supply Lot (लॉट से माल दें)'),
+                    label: Text(context.tr('Participate in Order / Supply Lot (लॉट से माल दें)', 'ऑर्डर में भाग लें / फसल लॉट दें')),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryGreen,
                       foregroundColor: Colors.white,
@@ -1140,22 +1169,25 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Supply $crop Lot', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  '${context.tr('Supply', 'आपूर्ति करें')} $crop ${context.tr('Lot', 'लॉट')}',
+                  style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
               ],
             ),
             const SizedBox(height: 6),
             Text(
-              'Buyer Guaranteed Rate: ₹${pricePerKg.toStringAsFixed(2)} / kg',
+              '${context.tr('Buyer Guaranteed Rate', 'खरीदार गारंटीकृत दर')}: ₹${pricePerKg.toStringAsFixed(2)} / kg',
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
             ),
             const SizedBox(height: 14),
             TextField(
               controller: qtyCtrl,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Quantity to contribute (kg)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.tr('Quantity to contribute (kg)', 'योगदान मात्रा (किग्रा)'),
+                border: const OutlineInputBorder(),
                 suffixText: 'kg',
               ),
             ),
@@ -1184,12 +1216,20 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         backgroundColor: const Color(0xFF1B5E20),
-                        content: Text('Committed $qty kg of $crop! Total: ₹${totalEarnings.toStringAsFixed(0)}'),
+                        content: Text(
+                          context.tr(
+                            'Committed $qty kg of $crop! Total: ₹${totalEarnings.toStringAsFixed(0)}',
+                            '$crop का $qty किग्रा समर्पित! कुल: ₹${totalEarnings.toStringAsFixed(0)}',
+                          ),
+                        ),
                       ),
                     );
                   }
                 },
-                child: const Text('Confirm Lot Contribution (स्वीकारें)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                child: Text(
+                  context.tr('Confirm Lot Contribution (स्वीकारें)', 'लॉट योगदान की पुष्टि करें (स्वीकारें)'),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],

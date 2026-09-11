@@ -5,6 +5,8 @@ import '../../theme/app_theme.dart';
 import '../../providers/app_state.dart';
 import '../../services/database_service.dart';
 import '../../utils/crop_image_helper.dart';
+import '../../utils/translation_helper.dart';
+import '../../widgets/language_switcher.dart';
 import 'retail_checkout_screen.dart';
 
 class RetailBuyerHomeScreen extends StatefulWidget {
@@ -25,9 +27,29 @@ class _RetailBuyerHomeScreenState extends State<RetailBuyerHomeScreen> {
     'Wheat',
     'Rice',
     'Mustard',
+    'Maize',
+    'Chana',
+    'Cotton',
+    'Soybean',
+    'Potato',
     'Vegetables',
     'Fruits',
     'Pulses',
+  ];
+
+  static final List<Map<String, String>> _cropDropdownCatalog = [
+    {'key': 'All', 'label': 'All Crops (सभी फसलें)', 'icon': '🌾'},
+    {'key': 'Wheat', 'label': 'Wheat (गेहूं)', 'icon': '🌾'},
+    {'key': 'Rice', 'label': 'Rice / Basmati (चावल)', 'icon': '🍚'},
+    {'key': 'Mustard', 'label': 'Mustard / Sarson (सरसों)', 'icon': '🟡'},
+    {'key': 'Maize', 'label': 'Maize / Makka (मक्का)', 'icon': '🌽'},
+    {'key': 'Chana', 'label': 'Gram / Chana (चना)', 'icon': '🟤'},
+    {'key': 'Cotton', 'label': 'Cotton (कपास)', 'icon': '☁️'},
+    {'key': 'Soybean', 'label': 'Soybean (सोयाबीन)', 'icon': '🌱'},
+    {'key': 'Potato', 'label': 'Potato (आलू)', 'icon': '🥔'},
+    {'key': 'Vegetables', 'label': 'Vegetables (सब्जियां)', 'icon': '🥗'},
+    {'key': 'Fruits', 'label': 'Fruits (फल)', 'icon': '🍎'},
+    {'key': 'Pulses', 'label': 'Pulses (दालें)', 'icon': '🥣'},
   ];
 
   @override
@@ -62,7 +84,7 @@ class _RetailBuyerHomeScreenState extends State<RetailBuyerHomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'AgriChain Retail',
+              context.tr('AgriChain Retail', 'एग्रीचेन खुदरा बाजार'),
               style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -70,7 +92,7 @@ class _RetailBuyerHomeScreenState extends State<RetailBuyerHomeScreen> {
               ),
             ),
             Text(
-              'Buy Fresh Directly from Local Farmers',
+              context.tr('Buy Fresh Directly from Local Farmers', 'सीधे स्थानीय किसानों से ताजी फसल खरीदें'),
               style: GoogleFonts.inter(
                 fontSize: 11,
                 color: Colors.grey.shade600,
@@ -79,9 +101,13 @@ class _RetailBuyerHomeScreenState extends State<RetailBuyerHomeScreen> {
           ],
         ),
         actions: [
+          const Padding(
+            padding: EdgeInsets.only(right: 6),
+            child: Center(child: LanguageSwitcherPill(isDark: false)),
+          ),
           IconButton(
             icon: const Icon(Icons.favorite_border, color: AppTheme.darkGreen),
-            tooltip: 'Saved Wishlist',
+            tooltip: context.tr('Saved Wishlist', 'पसंदीदा सूची'),
             onPressed: () {
               if (widget.onNavigateTab != null) {
                 widget.onNavigateTab!(3); // Navigate to Saved Tab
@@ -90,7 +116,7 @@ class _RetailBuyerHomeScreenState extends State<RetailBuyerHomeScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.shopping_bag_outlined, color: AppTheme.darkGreen),
-            tooltip: 'My Orders',
+            tooltip: context.tr('My Orders', 'मेरे ऑर्डर'),
             onPressed: () {
               if (widget.onNavigateTab != null) {
                 widget.onNavigateTab!(2); // Navigate to Orders Tab
@@ -322,37 +348,111 @@ class _RetailBuyerHomeScreenState extends State<RetailBuyerHomeScreen> {
   }
 
   Widget _buildCategorySelector() {
-    return SizedBox(
-      height: 38,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final cat = _categories[index];
-          final isSelected = _selectedCategory == cat;
-          return ChoiceChip(
-            label: Text(cat),
-            selected: isSelected,
-            onSelected: (selected) {
-              setState(() {
-                _selectedCategory = cat;
-              });
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.tune, size: 16, color: AppTheme.primaryGreen),
+                const SizedBox(width: 6),
+                Text(
+                  'Select Crop / फसल चयन',
+                  style: GoogleFonts.outfit(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.darkGreen,
+                  ),
+                ),
+              ],
+            ),
+            Container(
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppTheme.primaryGreen.withValues(alpha: 0.35)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _categories.contains(_selectedCategory) ? _selectedCategory : 'All',
+                  icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: AppTheme.primaryGreen),
+                  dropdownColor: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  style: GoogleFonts.inter(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.darkGreen,
+                  ),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        _selectedCategory = val;
+                      });
+                    }
+                  },
+                  items: _cropDropdownCatalog.map((item) {
+                    return DropdownMenuItem<String>(
+                      value: item['key'],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(item['icon'] ?? '🌾', style: const TextStyle(fontSize: 13)),
+                          const SizedBox(width: 6),
+                          Text(item['label'] ?? item['key']!),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 38,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _categories.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final cat = _categories[index];
+              final isSelected = _selectedCategory == cat;
+              return ChoiceChip(
+                label: Text(cat),
+                selected: isSelected,
+                onSelected: (selected) {
+                  setState(() {
+                    _selectedCategory = cat;
+                  });
+                },
+                selectedColor: AppTheme.primaryGreen,
+                backgroundColor: Colors.white,
+                labelStyle: GoogleFonts.inter(
+                  color: isSelected ? Colors.white : AppTheme.darkGrey,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: 13,
+                ),
+                side: BorderSide(
+                  color: isSelected ? AppTheme.primaryGreen : Colors.grey.shade300,
+                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              );
             },
-            selectedColor: AppTheme.primaryGreen,
-            backgroundColor: Colors.white,
-            labelStyle: GoogleFonts.inter(
-              color: isSelected ? Colors.white : AppTheme.darkGrey,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              fontSize: 13,
-            ),
-            side: BorderSide(
-              color: isSelected ? AppTheme.primaryGreen : Colors.grey.shade300,
-            ),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          );
-        },
-      ),
+          ),
+        ),
+      ],
     );
   }
 

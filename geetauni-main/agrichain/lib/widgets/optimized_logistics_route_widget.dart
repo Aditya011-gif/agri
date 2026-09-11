@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
+import '../utils/translation_helper.dart';
 
 /// Interactive Logistics Comparator & 3-Route Map Optimization Component.
 ///
@@ -177,49 +178,177 @@ class _OptimizedLogisticsRouteWidgetState extends State<OptimizedLogisticsRouteW
         lower.contains('capsicum');
   }
 
+  static final List<Map<String, dynamic>> _realRoutesData = [
+    {
+      'id': 'route_nh44',
+      'name': 'Route 1: NH-44 Express Corridor (Grand Trunk Road)',
+      'nameHi': 'रूट 1: NH-44 जीटी रोड एक्सप्रेसवे (डायरेक्ट कॉरिडोर)',
+      'shortName': 'NH-44 GT Road (AI Optimal)',
+      'via': 'Via Gharaunda, Panipat Elevated & Murthal',
+      'distanceKm': 128,
+      'duration': '2h 45m',
+      'roadQuality': '6-Lane Access-Controlled Asphalt (IRI < 1.9)',
+      'vibration': '0.12g (Minimal Produce Damage)',
+      'color': const Color(0xFF059669),
+      'badge': 'सर्वोत्तम',
+      'tag': 'AI Recommended',
+      'totalToll': 300.0,
+      'tolls': [
+        {
+          'name': 'Bastara Toll Plaza (Gharaunda)',
+          'location': 'NH-44 Km 128, Karnal-Panipat Border',
+          'fee': 165.0,
+          'agency': 'NHAI',
+          'fastag': 'FASTag ETC Active',
+          'lat': 29.5412,
+          'lng': 76.9734,
+        },
+        {
+          'name': 'Panipat Elevated Toll Plaza',
+          'location': 'NH-44 Elevated Flyover, Panipat City',
+          'fee': 40.0,
+          'agency': 'L&T / NHAI',
+          'fastag': 'FASTag ETC Active',
+          'lat': 29.3909,
+          'lng': 76.9635,
+        },
+        {
+          'name': 'Murthal Toll Plaza (Sonipat)',
+          'location': 'NH-44 Km 50, Murthal-Kundli Section',
+          'fee': 95.0,
+          'agency': 'NHAI',
+          'fastag': 'FASTag ETC Active',
+          'lat': 29.0251,
+          'lng': 77.0722,
+        },
+      ],
+    },
+    {
+      'id': 'route_kmp',
+      'name': 'Route 2: Western Peripheral Corridor (SH-12 & KMP Expressway)',
+      'nameHi': 'रूट 2: पश्चिमी परिधीय एक्सप्रेसवे (SH-12 व KMP बाईपास)',
+      'shortName': 'SH-12 & KMP Expressway',
+      'via': 'Via Assandh, Gohana Bypass & KMP Expressway',
+      'distanceKm': 152,
+      'duration': '3h 10m',
+      'roadQuality': '4-Lane State Hwy + 6-Lane Concrete KMP Expressway',
+      'vibration': '0.28g (Moderate Vibration)',
+      'color': const Color(0xFF2563EB),
+      'badge': 'वैकल्पिक 1',
+      'tag': 'Heavy Truck Bypass',
+      'totalToll': 255.0,
+      'tolls': [
+        {
+          'name': 'Gohana Bypass Toll Plaza',
+          'location': 'SH-12 / Rohtak-Panipat Link',
+          'fee': 65.0,
+          'agency': 'HSRDC Haryana',
+          'fastag': 'FASTag ETC Active',
+          'lat': 29.1368,
+          'lng': 76.6980,
+        },
+        {
+          'name': 'KMP Expressway Badli Toll Plaza',
+          'location': 'Western Peripheral Expressway Interchange',
+          'fee': 190.0,
+          'agency': 'HSIIDC / NHAI',
+          'fastag': 'FASTag ETC Active',
+          'lat': 28.7180,
+          'lng': 76.8402,
+        },
+      ],
+    },
+    {
+      'id': 'route_epe',
+      'name': 'Route 3: Eastern Peripheral Corridor (Yamuna Link & EPE)',
+      'nameHi': 'रूट 3: पूर्वी परिधीय एक्सप्रेसवे (यमुना तटबंध व EPE लिंक)',
+      'shortName': 'Yamuna Link & EPE Corridor',
+      'via': 'Via Indri, Shamli-Baghpat Link & Eastern Peripheral Expressway',
+      'distanceKm': 164,
+      'duration': '3h 40m',
+      'roadQuality': '2-Lane MDR + 6-Lane Access-Controlled EPE',
+      'vibration': '0.45g (High Vibration on Rural Link)',
+      'color': const Color(0xFFD97706),
+      'badge': 'वैकल्पिक 2',
+      'tag': 'Alternative Rural Link',
+      'totalToll': 245.0,
+      'tolls': [
+        {
+          'name': 'Karnal-Yamuna Bridge Toll (Tapu)',
+          'location': 'Haryana-UP Border Yamuna River Crossing',
+          'fee': 50.0,
+          'agency': 'PWD Haryana/UP',
+          'fastag': 'FASTag / Cash Hybrid',
+          'lat': 29.7020,
+          'lng': 77.1250,
+        },
+        {
+          'name': 'Baghpat Highway Toll Plaza',
+          'location': 'Delhi-Saharanpur Highway / EPE Link',
+          'fee': 85.0,
+          'agency': 'NHAI',
+          'fastag': 'FASTag ETC Active',
+          'lat': 28.9482,
+          'lng': 77.2285,
+        },
+        {
+          'name': 'Mavi Kalan EPE Toll Plaza',
+          'location': 'Eastern Peripheral Expressway (NE-II) Entry',
+          'fee': 110.0,
+          'agency': 'NHAI',
+          'fastag': 'FASTag ETC Active',
+          'lat': 28.8950,
+          'lng': 77.2910,
+        },
+      ],
+    },
+  ];
+
   List<LatLng> _getRoute1Points() {
-    // Route 1: NH-44 Express Corridor (Smooth direct asphalt)
+    // Route 1: NH-44 Grand Trunk Express Corridor through actual tolls
     final start = widget.originPos;
     final end = widget.destinationPos;
     return [
       start,
-      LatLng(start.latitude - 0.25, start.longitude + 0.05),
-      LatLng(start.latitude - 0.55, start.longitude + 0.12),
-      LatLng(start.latitude - 0.85, start.longitude + 0.18),
+      const LatLng(29.5412, 76.9734), // Bastara Toll (Gharaunda)
+      const LatLng(29.3909, 76.9635), // Panipat Elevated Toll
+      const LatLng(29.1500, 77.0100), // Samalkha
+      const LatLng(29.0251, 77.0722), // Murthal Toll (Sonipat)
       end,
     ];
   }
 
   List<LatLng> _getRoute2Points() {
-    // Route 2: SH-11 State Highway via Indri (Eastern detour)
+    // Route 2: SH-12 Assandh/Gohana -> KMP Expressway through actual tolls
     final start = widget.originPos;
     final end = widget.destinationPos;
     return [
       start,
-      LatLng(start.latitude - 0.15, start.longitude + 0.22),
-      LatLng(start.latitude - 0.45, start.longitude + 0.28),
-      LatLng(start.latitude - 0.75, start.longitude + 0.22),
+      const LatLng(29.5200, 76.6000), // Assandh
+      const LatLng(29.1368, 76.6980), // Gohana Bypass Toll
+      const LatLng(28.9000, 76.7800), // Kharkhoda KMP Entry
+      const LatLng(28.7180, 76.8402), // KMP Badli Toll
       end,
     ];
   }
 
   List<LatLng> _getRoute3Points() {
-    // Route 3: MDR-114 Rural Link Road (Western link via village roads)
+    // Route 3: Yamuna Link Indri/Baghpat -> EPE through actual tolls
     final start = widget.originPos;
     final end = widget.destinationPos;
     return [
       start,
-      LatLng(start.latitude - 0.20, start.longitude - 0.15),
-      LatLng(start.latitude - 0.50, start.longitude - 0.12),
-      LatLng(start.latitude - 0.80, start.longitude - 0.05),
+      const LatLng(29.8800, 77.0600), // Indri
+      const LatLng(29.7020, 77.1250), // Tapu Yamuna River Toll
+      const LatLng(28.9482, 77.2285), // Baghpat Highway Toll
+      const LatLng(28.8950, 77.2910), // Mavi Kalan EPE Toll
       end,
     ];
   }
 
   @override
   Widget build(BuildContext context) {
-    final optimalCarrier = _carriers[_optimalCarrierIndex];
-
+    _isHindi = context.isHindi;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -232,7 +361,7 @@ class _OptimizedLogisticsRouteWidgetState extends State<OptimizedLogisticsRouteW
                 const Icon(Icons.local_shipping, color: Color(0xFF1B5E20), size: 18),
                 const SizedBox(width: 8),
                 Text(
-                  'Logistics Service Providers (पारदर्शिता सूची)',
+                  context.tr('Logistics Service Providers', 'परिवहन व लॉजिस्टिक्स सेवा प्रदाता'),
                   style: GoogleFonts.outfit(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -287,24 +416,20 @@ class _OptimizedLogisticsRouteWidgetState extends State<OptimizedLogisticsRouteW
 
               return InkWell(
                 onTap: () {
-                  // User cannot select manually; show informational transparency message
+                  setState(() {
+                    _optimalCarrierIndex = index;
+                  });
+                  widget.onCarrierAutoSelected?.call(carrier);
                   ScaffoldMessenger.of(context).hideCurrentSnackBar();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      backgroundColor: const Color(0xFF1E293B),
-                      duration: const Duration(seconds: 4),
+                      backgroundColor: const Color(0xFF1B5E20),
+                      duration: const Duration(seconds: 2),
                       content: Row(
                         children: [
-                          const Icon(Icons.info_outline, color: Colors.amber, size: 20),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              _isHindi
-                                  ? 'पारदर्शिता ऑडिट: कैरिएर का चयन सिस्टम द्वारा स्वचालित है (${carrier['name']} तुलना हेतु प्रदर्शित है)। सर्वोत्तम गति और फसल सुरक्षा हेतु ${optimalCarrier['name']} लॉक है।'
-                                  : 'Transparency View: Carrier selection is automated by backend algorithm. ${optimalCarrier['name']} is locked for optimum ETA and produce safety.',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ),
+                          const Icon(Icons.check_circle, color: Colors.white, size: 18),
+                          const SizedBox(width: 8),
+                          Text('${carrier['name']} selected for freight booking!'),
                         ],
                       ),
                     ),
@@ -354,7 +479,7 @@ class _OptimizedLogisticsRouteWidgetState extends State<OptimizedLogisticsRouteW
                           ),
                           if (isAutoSelected)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: const Color(0xFF1B5E20),
                                 borderRadius: BorderRadius.circular(4),
@@ -362,17 +487,17 @@ class _OptimizedLogisticsRouteWidgetState extends State<OptimizedLogisticsRouteW
                               child: const Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.lock, size: 9, color: Colors.white),
+                                  Icon(Icons.check, size: 10, color: Colors.white),
                                   SizedBox(width: 2),
                                   Text(
-                                    'SELECTED',
+                                    'CHOSEN',
                                     style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.white),
                                   ),
                                 ],
                               ),
                             )
                           else
-                            const Icon(Icons.visibility_outlined, size: 14, color: Colors.grey),
+                            const Icon(Icons.touch_app_outlined, size: 14, color: Colors.grey),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -476,31 +601,20 @@ class _OptimizedLogisticsRouteWidgetState extends State<OptimizedLogisticsRouteW
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children: [
-              _buildRouteChip(
-                index: 0,
-                label: 'Route 1: NH-44 Express (AI Optimal)',
-                subLabel: '610 km • 20h • 0.12g Vibration',
-                badge: 'सर्वोत्तम',
-                color: const Color(0xFF059669),
-              ),
-              const SizedBox(width: 8),
-              _buildRouteChip(
-                index: 1,
-                label: 'Route 2: SH-11 State Hwy (Alt A)',
-                subLabel: '635 km • 24h • 0.38g Vibration',
-                badge: 'वैकल्पिक 1',
-                color: const Color(0xFF2563EB),
-              ),
-              const SizedBox(width: 8),
-              _buildRouteChip(
-                index: 2,
-                label: 'Route 3: MDR-114 Rural Link (Alt B)',
-                subLabel: '590 km • 27h • 0.72g Vibration (High Shock)',
-                badge: 'वैकल्पिक 2',
-                color: const Color(0xFFD97706),
-              ),
-            ],
+            children: List.generate(_realRoutesData.length, (i) {
+              final r = _realRoutesData[i];
+              final tolls = r['tolls'] as List;
+              return Padding(
+                padding: EdgeInsets.only(right: i < _realRoutesData.length - 1 ? 8.0 : 0),
+                child: _buildRouteChip(
+                  index: i,
+                  label: r['shortName'] as String,
+                  subLabel: '${r['distanceKm']} km • ${r['duration']} • ${tolls.length} Tolls (₹${(r['totalToll'] as double).toStringAsFixed(0)})',
+                  badge: r['badge'] as String,
+                  color: r['color'] as Color,
+                ),
+              );
+            }),
           ),
         ),
         const SizedBox(height: 12),
@@ -565,7 +679,7 @@ class _OptimizedLogisticsRouteWidgetState extends State<OptimizedLogisticsRouteW
                       ],
                     ),
 
-                    // Origin & Destination Waypoint Markers
+                    // Origin, Destination & Toll Markers
                     MarkerLayer(
                       markers: [
                         // Origin Pin
@@ -598,6 +712,26 @@ class _OptimizedLogisticsRouteWidgetState extends State<OptimizedLogisticsRouteW
                             child: const Icon(Icons.location_on, color: Colors.white, size: 20),
                           ),
                         ),
+                        // Toll Markers for active route
+                        ...((_realRoutesData[_selectedRouteIndex]['tolls'] as List).map((toll) {
+                          return Marker(
+                            point: LatLng(toll['lat'] as double, toll['lng'] as double),
+                            width: 32,
+                            height: 32,
+                            child: Tooltip(
+                              message: '${toll['name']} (₹${(toll['fee'] as double).toStringAsFixed(0)})',
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFD97706),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                                ),
+                                child: const Icon(Icons.toll, color: Colors.white, size: 16),
+                              ),
+                            ),
+                          );
+                        })),
                       ],
                     ),
                   ],
@@ -623,6 +757,23 @@ class _OptimizedLogisticsRouteWidgetState extends State<OptimizedLogisticsRouteW
                         _buildLegendItem('Route 2 (State Hwy)', const Color(0xFF2563EB)),
                         const SizedBox(height: 3),
                         _buildLegendItem('Route 3 (Rural Link)', const Color(0xFFD97706)),
+                        const SizedBox(height: 3),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: const BoxDecoration(color: Color(0xFFD97706), shape: BoxShape.circle),
+                              child: const Icon(Icons.toll, size: 8, color: Colors.white),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              'Toll Plaza (टोल)',
+                              style: GoogleFonts.inter(fontSize: 9.5, fontWeight: FontWeight.w600, color: Colors.grey.shade800),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -631,6 +782,10 @@ class _OptimizedLogisticsRouteWidgetState extends State<OptimizedLogisticsRouteW
             ),
           ),
         ),
+        const SizedBox(height: 14),
+
+        // 4.5. INTERACTIVE TOLLS CROSSED CARD
+        _buildTollsCrossedCard(),
         const SizedBox(height: 14),
 
         // 5. BILINGUAL AI JUSTIFICATION CARD
@@ -720,6 +875,250 @@ class _OptimizedLogisticsRouteWidgetState extends State<OptimizedLogisticsRouteW
           style: GoogleFonts.inter(fontSize: 9.5, fontWeight: FontWeight.w600, color: Colors.grey.shade800),
         ),
       ],
+    );
+  }
+
+  Widget _buildTollsCrossedCard() {
+    final route = _realRoutesData[_selectedRouteIndex];
+    final tolls = (route['tolls'] as List<dynamic>?) ?? [];
+    final totalToll = (route['totalToll'] as num?)?.toDouble() ?? 0.0;
+    final routeColor = route['color'] as Color? ?? const Color(0xFF15803D);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.amber.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.amber.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.toll, color: Color(0xFFD97706), size: 18),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isHindi ? 'रास्ते के टोल प्लाजा व FASTag' : 'Tolls Crossed & FASTag Summary',
+                        style: GoogleFonts.outfit(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF0F172A),
+                        ),
+                      ),
+                      Text(
+                        _isHindi ? '${route['nameHi']} (${tolls.length} टोल)' : '${route['shortName']} (${tolls.length} Plazas)',
+                        style: GoogleFonts.inter(fontSize: 10.5, color: Colors.grey.shade600),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFBEB),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.account_balance_wallet, size: 12, color: Color(0xFFD97706)),
+                    const SizedBox(width: 4),
+                    Text(
+                      '₹${totalToll.toStringAsFixed(0)} Toll',
+                      style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w800, color: const Color(0xFFB45309)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: Color(0xFFF3F4F6)),
+          const SizedBox(height: 12),
+
+          // Toll List
+          ...List.generate(tolls.length, (idx) {
+            final t = tolls[idx] as Map<String, dynamic>;
+            final fee = (t['fee'] as num?)?.toDouble() ?? 0.0;
+            final isLast = idx == tolls.length - 1;
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Step Indicator
+                  Column(
+                    children: [
+                      Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: routeColor.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: routeColor, width: 1.5),
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${idx + 1}',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.bold,
+                              color: routeColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (!isLast)
+                        Container(
+                          width: 2,
+                          height: 34,
+                          color: Colors.grey.shade200,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(width: 10),
+
+                  // Toll details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                t['name'] ?? '',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF1E293B),
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '₹${fee.toStringAsFixed(0)}',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF0F172A),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          t['location'] ?? '',
+                          style: GoogleFonts.inter(fontSize: 10.5, color: Colors.grey.shade600),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEFF6FF),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                t['agency'] ?? 'NHAI',
+                                style: GoogleFonts.inter(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF1D4ED8),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFECFDF5),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.check_circle, size: 9, color: Color(0xFF059669)),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    t['fastag'] ?? 'FASTag ETC',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF059669),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+
+          const SizedBox(height: 12),
+          // FASTag settlement footer
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.security, size: 14, color: Color(0xFF059669)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    _isHindi
+                        ? '100% ऑटोमेटेड FASTag इलेक्ट्रॉनिक टोल भुगतान • ट्रिप वॉलेट से कुल ₹${totalToll.toStringAsFixed(0)} का सीधा डिडक्शन'
+                        : '100% Automated FASTag Deduction • ₹${totalToll.toStringAsFixed(0)} auto-debited via Agrichain Fleet Escrow',
+                    style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF475569), fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

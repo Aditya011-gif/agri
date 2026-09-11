@@ -5,6 +5,8 @@ import '../../models/buyer_plant_model.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/custom_app_bar.dart';
+import '../../utils/translation_helper.dart';
+import '../../widgets/language_switcher.dart';
 import '../login_screen.dart';
 
 class BulkBuyerProfileScreen extends StatefulWidget {
@@ -39,7 +41,7 @@ class _BulkBuyerProfileScreenState extends State<BulkBuyerProfileScreen> {
     if (mounted) {
       setState(() => _plants = updated);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Primary delivery plant updated successfully!')),
+        SnackBar(content: Text(context.tr('Primary delivery plant updated successfully!', 'प्राथमिक डिलीवरी संयंत्र सफलतापूर्वक अपडेट किया गया!'))),
       );
     }
   }
@@ -56,8 +58,9 @@ class _BulkBuyerProfileScreenState extends State<BulkBuyerProfileScreen> {
       backgroundColor: AppTheme.background,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          const CustomAppBar(
-            title: 'Company & KYC Profile',
+          CustomAppBar(
+            title: context.tr('Company & KYC Profile', 'कंपनी और केवाईसी प्रोफ़ाइल'),
+            actions: const [LanguageSwitcherPill(isDark: true)],
           ),
         ],
         body: ListView(
@@ -69,40 +72,43 @@ class _BulkBuyerProfileScreenState extends State<BulkBuyerProfileScreen> {
             const SizedBox(height: 16),
 
             // Statutory GSTIN & Corporate KYC
-            _buildSectionHeader('Statutory & Corporate KYC'),
+            _buildSectionHeader(context.tr('Statutory & Corporate KYC', 'वैधानिक और कॉर्पोरेट केवाईसी')),
             _buildInfoCard([
               _buildInfoRow('GSTIN', '06AAACA0000A1Z5', isVerified: true),
               _buildInfoRow('PAN', 'AAACA0000A', isVerified: true),
               _buildInfoRow('CIN', 'U01100MH2018PTC304912', isVerified: true),
-              _buildInfoRow('Enterprise Type', 'Large Corporate / Agro Processor'),
+              _buildInfoRow(
+                context.tr('Enterprise Type', 'उद्यम प्रकार'),
+                context.tr('Large Corporate / Agro Processor', 'बड़ा कॉर्पोरेट / कृषि प्रसंस्करणकर्ता'),
+              ),
             ]),
 
             const SizedBox(height: 16),
 
             // Statutory Licenses & Certifications
-            _buildSectionHeader('Mandatory Licenses & Documents'),
+            _buildSectionHeader(context.tr('Mandatory Licenses & Documents', 'अनिवार्य लाइसेंस और दस्तावेज़')),
             _buildInfoCard([
-              _buildDocRow('FSSAI Central License', 'Lic #10019022009182', 'Valid till Dec 2028', true),
-              _buildDocRow('APEDA Export Registration', 'Reg #APEDA/RCMC/7781', 'Active', true),
-              _buildDocRow('State Mandi Trading License', 'Lic #MND/PUN/8821', 'Active', true),
+              _buildDocRow('FSSAI Central License', 'Lic #10019022009182', context.tr('Valid till Dec 2028', 'दिसंबर 2028 तक वैध'), true),
+              _buildDocRow('APEDA Export Registration', 'Reg #APEDA/RCMC/7781', context.tr('Active', 'सक्रिय'), true),
+              _buildDocRow('State Mandi Trading License', 'Lic #MND/PUN/8821', context.tr('Active', 'सक्रिय'), true),
             ]),
 
             const SizedBox(height: 16),
 
             // Corporate Escrow & Virtual Payment Account
-            _buildSectionHeader('Corporate Escrow & Payments'),
+            _buildSectionHeader(context.tr('Corporate Escrow & Payments', 'कॉर्पोरेट एस्क्रो और भुगतान')),
             _buildEscrowAccountCard(),
 
             const SizedBox(height: 16),
 
             // Saved Delivery Locations / Processing Plants
-            _buildSectionHeader('Saved Delivery Plants & Silos'),
+            _buildSectionHeader(context.tr('Saved Delivery Plants & Silos', 'सहेजे गए डिलीवरी संयंत्र व साइलो')),
             _buildSavedPlantsCard(),
 
             const SizedBox(height: 16),
 
             // Team & User Roles
-            _buildSectionHeader('Procurement Team & Authorizations'),
+            _buildSectionHeader(context.tr('Procurement Team & Authorizations', 'खरीद टीम और अनुमतियाँ')),
             _buildTeamCard(),
 
             const SizedBox(height: 24),
@@ -173,9 +179,9 @@ class _BulkBuyerProfileScreenState extends State<BulkBuyerProfileScreen> {
                     color: const Color(0xFFE8F5E9),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text(
-                    'Milling Capacity: 12,000 Qtl / Day',
-                    style: TextStyle(
+                  child: Text(
+                    '${context.tr('Milling Capacity', 'मिलिंग क्षमता')}: 12,000 ${context.tr('Qtl', 'क्विंटल')} / ${context.tr('Day', 'दिन')}',
+                    style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF2E7D32),
@@ -291,10 +297,10 @@ class _BulkBuyerProfileScreenState extends State<BulkBuyerProfileScreen> {
             children: [
               const Icon(Icons.account_balance, color: Color(0xFF1565C0), size: 20),
               const SizedBox(width: 8),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Dedicated Institutional Escrow Account',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  context.tr('Dedicated Institutional Escrow Account', 'समर्पित संस्थागत एस्क्रो खाता'),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
               ),
               Container(
@@ -303,18 +309,18 @@ class _BulkBuyerProfileScreenState extends State<BulkBuyerProfileScreen> {
                   color: const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text(
-                  'Active',
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
+                child: Text(
+                  context.tr('Active', 'सक्रिय'),
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
                 ),
               ),
             ],
           ),
           const Divider(height: 20),
-          _buildInfoRow('Virtual Account No (VAN)', 'AGRI990184920'),
-          _buildInfoRow('IFSC Code', 'UTIB0000001 (Axis Bank)'),
-          _buildInfoRow('Available Escrow Credit', '₹2.50 Crore'),
-          _buildInfoRow('Settlement Mode', 'Instant RTGS on Weighbridge Pass'),
+          _buildInfoRow(context.tr('Virtual Account No (VAN)', 'वर्चुअल खाता संख्या (VAN)'), 'AGRI990184920'),
+          _buildInfoRow(context.tr('IFSC Code', 'आईएफएससी कोड'), 'UTIB0000001 (Axis Bank)'),
+          _buildInfoRow(context.tr('Available Escrow Credit', 'उपलब्ध एस्क्रो क्रेडिट'), '₹2.50 ${context.tr('Crore', 'करोड़')}'),
+          _buildInfoRow(context.tr('Settlement Mode', 'निपटान मोड'), context.tr('Instant RTGS on Weighbridge Pass', 'वेब्रिज पास पर तत्काल आरटीजीएस')),
         ],
       ),
     );
@@ -393,9 +399,9 @@ class _BulkBuyerProfileScreenState extends State<BulkBuyerProfileScreen> {
                             color: const Color(0xFFE3F2FD),
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text(
-                            'Primary Delivery Hub',
-                            style: TextStyle(fontSize: 9.5, color: Color(0xFF1565C0), fontWeight: FontWeight.bold),
+                          child: Text(
+                            context.tr('Primary Delivery Hub', 'प्राथमिक डिलीवरी हब'),
+                            style: const TextStyle(fontSize: 9.5, color: Color(0xFF1565C0), fontWeight: FontWeight.bold),
                           ),
                         )
                       else
@@ -406,7 +412,7 @@ class _BulkBuyerProfileScreenState extends State<BulkBuyerProfileScreen> {
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                          child: const Text('Set Primary', style: TextStyle(fontSize: 10, color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
+                          child: Text(context.tr('Set Primary', 'प्राथमिक बनाएं'), style: const TextStyle(fontSize: 10, color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
                         ),
                     ],
                   ),
@@ -461,11 +467,11 @@ class _BulkBuyerProfileScreenState extends State<BulkBuyerProfileScreen> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          _buildTeamMemberRow('Vikram Mehta', 'VP — Global Procurement', 'Full Access (PO & Escrow)'),
+          _buildTeamMemberRow('Vikram Mehta', context.tr('VP — Global Procurement', 'उपाध्यक्ष — वैश्विक खरीद'), context.tr('Full Access (PO & Escrow)', 'पूर्ण पहुँच (पीओ व एस्क्रो)')),
           const Divider(height: 16),
-          _buildTeamMemberRow('Sunil Rao', 'Chief Quality Inspector', 'Lab Clearance & Inspection'),
+          _buildTeamMemberRow('Sunil Rao', context.tr('Chief Quality Inspector', 'मुख्य गुणवत्ता निरीक्षक'), context.tr('Lab Clearance & Inspection', 'प्रयोगशाला क्लीयरेंस व निरीक्षण')),
           const Divider(height: 16),
-          _buildTeamMemberRow('Pooja Nair', 'Senior Accounts Manager', 'Tax Invoices & Reconciliation'),
+          _buildTeamMemberRow('Pooja Nair', context.tr('Senior Accounts Manager', 'वरिष्ठ लेखा प्रबंधक'), context.tr('Tax Invoices & Reconciliation', 'कर चालान और मिलान')),
         ],
       ),
     );
@@ -510,7 +516,7 @@ class _BulkBuyerProfileScreenState extends State<BulkBuyerProfileScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.support_agent, color: Color(0xFF2E7D32)),
-                title: const Text('24x7 Institutional Key Account Manager', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                title: Text(context.tr('24x7 Institutional Key Account Manager', '24x7 संस्थागत प्रमुख खाता प्रबंधक'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                 subtitle: const Text('+91 8000 442 990 • support@agrichain.in', style: TextStyle(fontSize: 11)),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {},
@@ -518,7 +524,7 @@ class _BulkBuyerProfileScreenState extends State<BulkBuyerProfileScreen> {
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.security, color: Color(0xFF1565C0)),
-                title: const Text('Enterprise Security & 2FA', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                title: Text(context.tr('Enterprise Security & 2FA', 'एंटरप्राइज सुरक्षा और 2FA'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {},
               ),
@@ -540,7 +546,7 @@ class _BulkBuyerProfileScreenState extends State<BulkBuyerProfileScreen> {
               }
             },
             icon: const Icon(Icons.logout, color: Colors.redAccent),
-            label: const Text('Sign Out of Corporate Account', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            label: Text(context.tr('Sign Out of Corporate Account', 'कॉर्पोरेट खाते से साइन आउट करें'), style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: Colors.redAccent),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

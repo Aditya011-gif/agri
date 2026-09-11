@@ -7,6 +7,10 @@ import '../../services/smart_contract_service.dart';
 import '../../services/smart_contract_pdf_service.dart';
 import '../../utils/crop_image_helper.dart';
 import '../../widgets/crop_tracking_map_sheet.dart';
+import '../../models/firestore_models.dart';
+import '../../utils/translation_helper.dart';
+import '../../widgets/language_switcher.dart';
+import 'rating_screen.dart';
 
 class RetailBuyerOrdersScreen extends StatefulWidget {
   const RetailBuyerOrdersScreen({super.key});
@@ -43,7 +47,7 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'My Purchases',
+              context.tr('My Purchases', 'मेरी खरीदारी'),
               style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -51,7 +55,7 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
               ),
             ),
             Text(
-              'Track Your Direct-from-Farmer Orders',
+              context.tr('Track Your Direct-from-Farmer Orders', 'किसानों से सीधे ऑर्डर ट्रैक करें'),
               style: GoogleFonts.inter(
                 fontSize: 11,
                 color: Colors.grey.shade600,
@@ -59,6 +63,10 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
             ),
           ],
         ),
+        actions: const [
+          LanguageSwitcherPill(isDark: false),
+          SizedBox(width: 8),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppTheme.primaryGreen,
@@ -67,11 +75,11 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
           indicatorWeight: 3,
           labelStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
           unselectedLabelStyle: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 13),
-          tabs: const [
-            Tab(text: 'Active'),
-            Tab(text: 'In Transit'),
-            Tab(text: 'Delivered'),
-            Tab(text: 'All Orders'),
+          tabs: [
+            Tab(text: context.tr('Active', 'सक्रिय')),
+            Tab(text: context.tr('In Transit', 'मार्ग में')),
+            Tab(text: context.tr('Delivered', 'वितरित')),
+            Tab(text: context.tr('All Orders', 'सभी ऑर्डर')),
           ],
         ),
       ),
@@ -107,12 +115,12 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
             Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey.shade400),
             const SizedBox(height: 12),
             Text(
-              'No orders in this tab',
+              context.tr('No orders in this tab', 'इस टैब में कोई ऑर्डर नहीं है'),
               style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
             ),
             const SizedBox(height: 4),
             Text(
-              'Your direct farmer purchases will appear here',
+              context.tr('Your direct farmer purchases will appear here', 'आपकी सीधी किसान खरीदारी यहाँ दिखाई देगी'),
               style: GoogleFonts.inter(fontSize: 13, color: Colors.grey.shade600),
             ),
           ],
@@ -131,13 +139,13 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
         final isInTransit = status == 'in_transit';
 
         Color statusColor = Colors.orange;
-        String statusLabel = 'Order Placed';
+        String statusLabel = context.tr('Order Placed', 'ऑर्डर दर्ज');
         if (isInTransit) {
           statusColor = Colors.blue;
-          statusLabel = 'In Transit';
+          statusLabel = context.tr('In Transit', 'मार्ग में');
         } else if (isDelivered) {
           statusColor = Colors.green;
-          statusLabel = 'Delivered';
+          statusLabel = context.tr('Delivered', 'वितरित');
         }
 
         final qty = (order['quantity'] as num?)?.toDouble() ?? 1.0;
@@ -229,12 +237,12 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Qty: $qty $unit • Total: ₹${total.toStringAsFixed(0)}',
+                          '${context.tr('Qty', 'मात्रा')}: $qty $unit • ${context.tr('Total', 'कुल')}: ₹${total.toStringAsFixed(0)}',
                           style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.primaryGreen),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Farmer: ${order['farmerName'] ?? 'Rajesh Kumar'} (${order['farmerDistance'] ?? 'Local'})',
+                          '${context.tr('Farmer', 'किसान')}: ${order['farmerName'] ?? 'Rajesh Kumar'} (${order['farmerDistance'] ?? context.tr('Local', 'स्थानीय')})',
                           style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
                         ),
                       ],
@@ -257,7 +265,7 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
                       const Icon(Icons.key, color: Color(0xFF69F0AE), size: 14),
                       const SizedBox(width: 8),
                       Text(
-                        'Delivery OTP: ',
+                        '${context.tr('Delivery OTP', 'डिलीवरी ओटीपी')}: ',
                         style: GoogleFonts.inter(fontSize: 11, color: Colors.white70),
                       ),
                       Text(
@@ -274,7 +282,7 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
                         onTap: () {
                           Clipboard.setData(ClipboardData(text: order['deliveryOtp'] as String));
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('📋 Delivery OTP copied!')),
+                            SnackBar(content: Text(context.tr('📋 Delivery OTP copied!', '📋 डिलीवरी ओटीपी कॉपी हो गया!'))),
                           );
                         },
                         child: const Icon(Icons.copy, color: Colors.white70, size: 14),
@@ -292,7 +300,7 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
                     const Icon(Icons.shield_outlined, color: Color(0xFF15803D), size: 12),
                     const SizedBox(width: 4),
                     Text(
-                      'Smart Escrow Anchored on Polygon (Gasless)',
+                      context.tr('Smart Escrow Anchored on Polygon (Gasless)', 'स्मार्ट एस्क्रो पॉलीगॉन पर सुरक्षित (गैस-मुक्त)'),
                       style: GoogleFonts.inter(fontSize: 10.5, fontWeight: FontWeight.w600, color: const Color(0xFF15803D)),
                     ),
                   ],
@@ -315,7 +323,7 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
                   },
                   icon: const Icon(Icons.picture_as_pdf, size: 16, color: Color(0xFF15803D)),
                   label: Text(
-                    'View Signed Smart Contract (PDF)',
+                    context.tr('View Signed Smart Contract (PDF)', 'हस्ताक्षरित अनुबंध देखें (PDF)'),
                     style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF15803D)),
                   ),
                   style: OutlinedButton.styleFrom(
@@ -336,7 +344,7 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
                       onPressed: () => _showTrackingDetails(context, order),
                       icon: const Icon(Icons.timeline, size: 16),
                       label: Text(
-                        'Track Order',
+                        context.tr('Track Order', 'ऑर्डर ट्रैक करें'),
                         style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
                       ),
                       style: OutlinedButton.styleFrom(
@@ -352,13 +360,24 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('⭐ Rating & Review submitted to farmer!')),
+                          final farmerId = (order['farmerId'] ?? '').toString();
+                          final farmerName = (order['farmerName'] ?? 'Verified Farmer').toString();
+                          final orderId = (order['id'] ?? '').toString();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => GiveRatingScreen(
+                                toUserId: farmerId.isNotEmpty ? farmerId : 'farmer_demo',
+                                toUserName: farmerName,
+                                ratingType: RatingType.seller,
+                                transactionId: orderId,
+                              ),
+                            ),
                           );
                         },
                         icon: const Icon(Icons.star, size: 16),
                         label: Text(
-                          'Rate Farmer',
+                          context.tr('Rate Farmer', 'रेटिंग दें'),
                           style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold),
                         ),
                         style: ElevatedButton.styleFrom(
@@ -376,7 +395,7 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
                         onPressed: () => _showConfirmDeliveryOtpDialog(context, order),
                         icon: const Icon(Icons.verified, size: 16),
                         label: Text(
-                          'Release Escrow',
+                          context.tr('Release Escrow', 'एस्क्रो जारी करें'),
                           style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold),
                         ),
                         style: ElevatedButton.styleFrom(
@@ -431,12 +450,15 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Confirm Delivery & Release Escrow',
+                    context.tr('Confirm Delivery & Release Escrow', 'डिलीवरी पुष्टि करें और एस्क्रो जारी करें'),
                     style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Enter your 6-digit Delivery Verification OTP to confirm quality and disburse ₹${(order['totalAmount'] as num?)?.toStringAsFixed(0) ?? '0'} from Smart Escrow to ${order['farmerName']}.',
+                    context.tr(
+                      'Enter your 6-digit Delivery Verification OTP to confirm quality and disburse ₹${(order['totalAmount'] as num?)?.toStringAsFixed(0) ?? '0'} from Smart Escrow to ${order['farmerName']}.',
+                      'गुणवत्ता पुष्टि करने और स्मार्ट एस्क्रो से ₹${(order['totalAmount'] as num?)?.toStringAsFixed(0) ?? '0'} सीधे ${order['farmerName']} को जारी करने के लिए 6-अंकीय ओटीपी दर्ज करें।',
+                    ),
                     style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600, height: 1.35),
                   ),
                   const SizedBox(height: 16),
@@ -452,7 +474,7 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
                       },
                       icon: const Icon(Icons.auto_awesome, size: 14, color: AppTheme.primaryGreen),
                       label: Text(
-                        'Auto-Fill My OTP ($expectedOtp)',
+                        context.tr('Auto-Fill My OTP ($expectedOtp)', 'ओटीपी स्वतः भरें ($expectedOtp)'),
                         style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
                       ),
                     ),
@@ -485,8 +507,8 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
                               final enteredOtp = otpController.text.trim();
                               if (enteredOtp != expectedOtp) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('❌ Incorrect OTP. Please verify your 6-digit code.'),
+                                  SnackBar(
+                                    content: Text(context.tr('❌ Incorrect OTP. Please verify your 6-digit code.', '❌ गलत ओटीपी। कृपया अपना 6-अंकीय कोड सत्यापित करें।')),
                                     backgroundColor: Colors.red,
                                   ),
                                 );
@@ -518,7 +540,10 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
                                 Navigator.pop(ctx);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('✅ Escrow Released! ₹${(order['totalAmount'] as num?)?.toStringAsFixed(0)} settled to ${order['farmerName']} on Polygon block #${releaseRes['blockNumber']}'),
+                                    content: Text(context.tr(
+                                      '✅ Escrow Released! ₹${(order['totalAmount'] as num?)?.toStringAsFixed(0)} settled to ${order['farmerName']} on Polygon block #${releaseRes['blockNumber']}',
+                                      '✅ एस्क्रो जारी! ₹${(order['totalAmount'] as num?)?.toStringAsFixed(0)} पॉलीगॉन ब्लॉक #${releaseRes['blockNumber']} पर ${order['farmerName']} को वितरित',
+                                    )),
                                     backgroundColor: AppTheme.primaryGreen,
                                     duration: const Duration(seconds: 4),
                                   ),
@@ -536,7 +561,7 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
                               height: 22,
                               child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                             )
-                          : Text('Verify & Release Payment', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14)),
+                          : Text(context.tr('Verify & Release Payment', 'सत्यापित करें और भुगतान जारी करें'), style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14)),
                     ),
                   ),
                 ],

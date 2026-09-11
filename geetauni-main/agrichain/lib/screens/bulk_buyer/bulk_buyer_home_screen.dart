@@ -9,6 +9,7 @@ import '../../services/multi_fpo_cluster_service.dart';
 import '../../models/fpo_inventory_model.dart';
 import '../../models/multi_fpo_cluster_model.dart';
 import '../../utils/crop_image_helper.dart';
+import '../../utils/translation_helper.dart';
 import '../../widgets/language_switcher.dart';
 import 'escrow_checkout_screen.dart';
 import '../../widgets/fpo_lot_details_modal.dart';
@@ -45,6 +46,29 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
     'Cotton',
     'Spices',
   ];
+
+  String _getCategoryLabel(BuildContext context, String cat) {
+    switch (cat) {
+      case 'All':
+        return context.tr('All', 'सभी');
+      case 'Wheat':
+        return context.tr('Wheat', 'गेहूँ');
+      case 'Rice / Paddy':
+        return context.tr('Rice / Paddy', 'चावल / धान');
+      case 'Mustard / Oilseeds':
+        return context.tr('Mustard / Oilseeds', 'सरसों / तिलहन');
+      case 'Maize / Corn':
+        return context.tr('Maize / Corn', 'मक्का');
+      case 'Pulses / Dal':
+        return context.tr('Pulses / Dal', 'दालें');
+      case 'Cotton':
+        return context.tr('Cotton', 'कपास');
+      case 'Spices':
+        return context.tr('Spices', 'मसाले');
+      default:
+        return cat;
+    }
+  }
 
   @override
   void initState() {
@@ -213,8 +237,8 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
 
                       // 4. Live Wholesale Lots Carousel (Exclusively Real FPO Database)
                       _buildSectionHeader(
-                        title: 'Live FPO Warehouse Lots 🌾',
-                        subtitle: 'Real cooperative inventory verified from database',
+                        title: context.tr('Live FPO Warehouse Lots 🌾', 'लाइव एफपीओ वेयरहाउस लॉट 🌾'),
+                        subtitle: context.tr('Real cooperative inventory verified from database', 'डेटाबेस से सत्यापित वास्तविक सहकारी इन्वेंट्री'),
                         onSeeAll: () => widget.onNavigateTab?.call(1),
                       ),
                       const SizedBox(height: 12),
@@ -223,8 +247,8 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
 
                       // 5. Hyperlocal 7-10 km Sourcing Clusters (Generated dynamically by MultiFpoClusterEngine)
                       _buildSectionHeader(
-                        title: 'Hyperlocal 7-10 km Sourcing Clusters 📍',
-                        subtitle: 'Dynamically aggregated multi-FPO pools verified for travel time & co-storage',
+                        title: context.tr('Hyperlocal 7-10 km Sourcing Clusters 📍', 'हाइपरलोकल 7-10 किमी सोर्सिंग क्लस्टर 📍'),
+                        subtitle: context.tr('Dynamically aggregated multi-FPO pools verified for travel time & co-storage', 'पारगमन समय और भंडारण के लिए सत्यापित मल्टी-एफपीओ समूह'),
                         onSeeAll: () => widget.onNavigateTab?.call(1),
                       ),
                       const SizedBox(height: 12),
@@ -233,8 +257,8 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
 
                       // 6. Active Commodity Market Benchmarks
                       _buildSectionHeader(
-                        title: 'Active Commodity Benchmarks 🔥',
-                        subtitle: 'Real-time wholesale GT-belt APMC & FPO mandi rates',
+                        title: context.tr('Active Commodity Benchmarks 🔥', 'सक्रिय जिंस बेंचमार्क भाव 🔥'),
+                        subtitle: context.tr('Real-time wholesale GT-belt APMC & FPO mandi rates', 'रीयल-टाइम थोक मंडी और एफपीओ भाव'),
                         onSeeAll: () => widget.onNavigateTab?.call(1),
                       ),
                       const SizedBox(height: 12),
@@ -265,7 +289,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
           Row(
             children: [
               Text(
-                'AgriChain B2B Wholesale',
+                context.tr('AgriChain B2B Wholesale', 'एग्रीचेन थोक खरीद'),
                 style: GoogleFonts.inter(
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
@@ -279,9 +303,9 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                   color: const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Text(
-                  'INSTITUTIONAL',
-                  style: TextStyle(
+                child: Text(
+                  context.tr('INSTITUTIONAL', 'संस्थागत'),
+                  style: const TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF2E7D32),
@@ -292,7 +316,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
             ],
           ),
           Text(
-            '$companyName • Verified GSTIN',
+            '$companyName • ${context.tr('Verified GSTIN', 'सत्यापित GSTIN')}',
             style: GoogleFonts.inter(
               fontSize: 11,
               color: Colors.grey.shade600,
@@ -305,17 +329,17 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
       actions: [
         IconButton(
           icon: const Icon(Icons.assignment_outlined, color: AppTheme.darkGreen),
-          tooltip: 'Active RFQs & Tenders',
+          tooltip: context.tr('Active RFQs & Tenders', 'सक्रिय मांगें व निविदाएं'),
           onPressed: () => widget.onNavigateTab?.call(2), // Tab 2 = RFQs
         ),
         IconButton(
           icon: const Icon(Icons.local_shipping_outlined, color: AppTheme.darkGreen),
-          tooltip: 'Live Orders & Shipments',
+          tooltip: context.tr('Live Orders & Shipments', 'लाइव ऑर्डर व शिपमेंट'),
           onPressed: () => widget.onNavigateTab?.call(3), // Tab 3 = Orders
         ),
         IconButton(
           icon: const Icon(Icons.person_outline, color: AppTheme.darkGreen),
-          tooltip: 'Company Profile (प्रोफाइल)',
+          tooltip: context.tr('Company Profile', 'कंपनी प्रोफ़ाइल'),
           onPressed: () {
             if (widget.onNavigateTab != null) {
               widget.onNavigateTab!(4);
@@ -360,7 +384,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
           });
         },
         decoration: InputDecoration(
-          hintText: 'Search bulk commodities, FPO silos, milling grades...',
+          hintText: context.tr('Search bulk commodities, FPO silos, milling grades...', 'थोक फसलें, एफपीओ साइलो, ग्रेड खोजें...'),
           hintStyle: GoogleFonts.inter(
             fontSize: 13,
             color: Colors.grey.shade500,
@@ -390,7 +414,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                       const Icon(Icons.tune, size: 14, color: AppTheme.primaryGreen),
                       const SizedBox(width: 4),
                       Text(
-                        'Filters',
+                        context.tr('Filters', 'फ़िल्टर'),
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -442,7 +466,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                     const Icon(Icons.auto_awesome, size: 12, color: Color(0xFF0D381E)),
                     const SizedBox(width: 4),
                     Text(
-                      'INTELLIGENT LOT AGGREGATOR',
+                      context.tr('SMART LOT AGGREGATOR', 'स्मार्ट लॉट मिलाप'),
                       style: GoogleFonts.inter(
                         color: const Color(0xFF0D381E),
                         fontSize: 10,
@@ -453,15 +477,15 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                 ),
               ),
               const Spacer(),
-              const Text(
-                'AI Engine ⚡',
-                style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+              Text(
+                context.tr('AI Engine ⚡', 'एआई इंजन ⚡'),
+                style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
               ),
             ],
           ),
           const SizedBox(height: 10),
           Text(
-            'Smart Farmer Lot Matcher (स्मार्ट लॉट मैचिंग)',
+            context.tr('Smart Crop Lot Matcher', 'स्मार्ट किसान लॉट मिलाप'),
             style: GoogleFonts.outfit(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -470,7 +494,10 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Combine small farmer lots (Farmer A: 150kg + Farmer B: 220kg + Farmer C: 130kg) into one seamless 500kg wholesale order with automated escrow.',
+            context.tr(
+              'Combine small farmer lots into one seamless wholesale order with automated escrow.',
+              'छोटे किसान लॉट को स्वचालित एस्क्रो के साथ एक सहज थोक ऑर्डर में मिलाएं।',
+            ),
             style: GoogleFonts.inter(
               fontSize: 12,
               color: Colors.white.withValues(alpha: 0.85),
@@ -488,7 +515,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
               );
             },
             icon: const Icon(Icons.hub_outlined, size: 16),
-            label: const Text('Launch Multi-Lot Matcher (लॉट मैच करें)'),
+            label: Text(context.tr('Launch Lot Matcher', 'लॉट मिलाप शुरू करें')),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF69F0AE),
               foregroundColor: const Color(0xFF0D381E),
@@ -534,7 +561,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  '100% REAL FPO DATABASE',
+                  context.tr('100% REAL FPO DATABASE', '100% वास्तविक एफपीओ डेटाबेस'),
                   style: GoogleFonts.inter(
                     color: Colors.white,
                     fontSize: 11,
@@ -550,7 +577,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  '$totalAvailable Active FPO Lots',
+                  '$totalAvailable ${context.tr('Active FPO Lots', 'सक्रिय एफपीओ लॉट')}',
                   style: GoogleFonts.inter(
                     color: const Color(0xFF0D381E),
                     fontSize: 10,
@@ -562,17 +589,20 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Direct Cooperative Silos.\nZero Intermediary Margins.',
+            context.tr('FPO Mandi Godowns & Silos\nDirect Wholesale Sourcing', 'एफपीओ मंडी गोदाम व साइलो नेटवर्क\nसीधी थोक खरीद'),
             style: GoogleFonts.outfit(
-              fontSize: 21,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
               color: Colors.white,
-              height: 1.2,
+              height: 1.25,
             ),
           ),
           const SizedBox(height: 6),
           Text(
-            'Dynamic 7-10 km Multi-FPO Cluster Engine automatically pools neighboring godowns with verified travel times and NABL lab moisture testing.',
+            context.tr(
+              'Dynamic 7-10 km Multi-FPO Cluster Engine automatically pools neighboring godowns with verified travel times and NABL lab moisture testing.',
+              'डायनामिक 7-10 किमी मल्टी-एफपीओ क्लस्टर इंजन पड़ोसी गोदामों को सत्यापित पारगमन समय के साथ स्वचालित रूप से जोड़ता है।',
+            ),
             style: GoogleFonts.inter(
               fontSize: 12,
               color: Colors.white.withValues(alpha: 0.85),
@@ -582,9 +612,9 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
           Row(
             children: [
               ElevatedButton.icon(
-                onPressed: () => widget.onNavigateTab?.call(2), // Open RFQs
+                onPressed: () => widget.onNavigateTab?.call(2), // Open Requests
                 icon: const Icon(Icons.add_circle_outline, size: 16),
-                label: const Text('+ Issue Bulk RFQ'),
+                label: Text(context.tr('Place Request', 'मांग दर्ज करें')),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: const Color(0xFF1B5E20),
@@ -598,7 +628,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
               OutlinedButton.icon(
                 onPressed: () => widget.onNavigateTab?.call(1), // Explore Clusters
                 icon: const Icon(Icons.hub_outlined, size: 16, color: Colors.white),
-                label: const Text('7-10 km Engine'),
+                label: Text(context.tr('7-10 km Engine', '7-10 किमी क्लस्टर')),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
                   side: const BorderSide(color: Colors.white54),
@@ -648,12 +678,12 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(Icons.repeat, size: 12, color: Color(0xFF34D399)),
-                    SizedBox(width: 4),
+                  children: [
+                    const Icon(Icons.repeat, size: 12, color: Color(0xFF34D399)),
+                    const SizedBox(width: 4),
                     Text(
-                      '12-WEEK RECURRING SUPPLY',
-                      style: TextStyle(
+                      context.tr('12-WEEK RECURRING SUPPLY', '12-सप्ताह नियमित आपूर्ति'),
+                      style: const TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF34D399),
@@ -664,15 +694,15 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                 ),
               ),
               const Spacer(),
-              const Text(
-                'Weekly Monday Intake',
-                style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
+              Text(
+                context.tr('Weekly Monday Intake', 'साप्ताहिक सोमवार आवक'),
+                style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
               ),
             ],
           ),
           const SizedBox(height: 10),
           Text(
-            'Institutional Supply Agreements',
+            context.tr('Institutional Supply Agreements', 'संस्थागत आपूर्ति अनुबंध'),
             style: GoogleFonts.outfit(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -681,7 +711,10 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Lock in guaranteed weekly volumes directly with vetted FPO clusters. Compare candidate FPOs on price, transit ETA & NABL grade.',
+            context.tr(
+              'Lock in guaranteed weekly volumes directly with vetted FPO clusters. Compare candidate FPOs on price, transit ETA & NABL grade.',
+              'सत्यापित एफपीओ समूहों के साथ साप्ताहिक आपूर्ति सुनिश्चित करें। भाव, पारगमन समय और ग्रेड की तुलना करें।',
+            ),
             style: GoogleFonts.inter(
               fontSize: 12,
               color: const Color(0xFFCBD5E1),
@@ -699,7 +732,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                   );
                 },
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text('+ Setup 12-W Contract'),
+                label: Text(context.tr('+ Setup 12-W Contract', '+ 12-सप्ताह अनुबंध जोड़ें')),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF10B981),
                   foregroundColor: Colors.white,
@@ -718,7 +751,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                   );
                 },
                 icon: const Icon(Icons.receipt_long_outlined, size: 16, color: Colors.white),
-                label: const Text('My Contracts'),
+                label: Text(context.tr('My Contracts', 'मेरे अनुबंध')),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
                   side: const BorderSide(color: Color(0xFF475569)),
@@ -745,7 +778,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
           final cat = _categories[index];
           final isSelected = _selectedCategory == cat;
           return ChoiceChip(
-            label: Text(cat),
+            label: Text(_getCategoryLabel(context, cat)),
             selected: isSelected,
             onSelected: (selected) {
               setState(() {
@@ -807,7 +840,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
           child: Row(
             children: [
               Text(
-                'See All',
+                context.tr('See All', 'सभी देखें'),
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -837,12 +870,15 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
             Icon(Icons.warehouse_outlined, size: 42, color: Colors.grey.shade400),
             const SizedBox(height: 10),
             Text(
-              'No FPO Warehouse Lots Listed Yet',
+              context.tr('No FPO Warehouse Lots Listed Yet', 'अभी तक कोई एफपीओ वेयरहाउस लॉट सूचीबद्ध नहीं है'),
               style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.darkGreen),
             ),
             const SizedBox(height: 4),
             Text(
-              'Real registered FPOs have not published commercial bulk lots to Firestore yet. Broadcast an RFQ to solicit direct quotes from regional cooperatives.',
+              context.tr(
+                'Real registered FPOs have not published commercial bulk lots to Firestore yet. Broadcast an RFQ to solicit direct quotes from regional cooperatives.',
+                'पंजीकृत एफपीओ ने अभी तक वाणिज्यिक लॉट प्रकाशित नहीं किए हैं। सीधे भाव पाने के लिए मांग प्रसारित करें।',
+              ),
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(fontSize: 11.5, color: Colors.grey.shade600, height: 1.3),
             ),
@@ -850,7 +886,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
             ElevatedButton.icon(
               onPressed: () => widget.onNavigateTab?.call(2), // RFQs tab
               icon: const Icon(Icons.add, size: 16),
-              label: const Text('Broadcast Bulk RFQ'),
+              label: Text(context.tr('Broadcast Bulk RFQ', 'थोक मांग प्रसारित करें')),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryGreen,
                 foregroundColor: Colors.white,
@@ -915,14 +951,14 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                             color: const Color(0xFF1B5E20),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.verified, size: 10, color: Color(0xFF69F0AE)),
-                              SizedBox(width: 2),
+                              const Icon(Icons.verified, size: 10, color: Color(0xFF69F0AE)),
+                              const SizedBox(width: 2),
                               Text(
-                                'FPO Direct Silo',
-                                style: TextStyle(
+                                context.tr('FPO Direct Silo', 'एफपीओ सीधा साइलो'),
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 9,
                                   fontWeight: FontWeight.bold,
@@ -968,7 +1004,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                   Row(
                     children: [
                       Text(
-                        '₹${lot.pricePerQtl.toStringAsFixed(0)} / Qtl',
+                        '₹${lot.pricePerQtl.toStringAsFixed(0)} ${context.tr('/ Qtl', '/ क्विंटल')}',
                         style: GoogleFonts.inter(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -977,7 +1013,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                       ),
                       const Spacer(),
                       Text(
-                        '${lot.availableQuantityQtl.toStringAsFixed(0)} Qtl left',
+                        '${lot.availableQuantityQtl.toStringAsFixed(0)} ${context.tr('Qtl left', 'क्विंटल शेष')}',
                         style: GoogleFonts.inter(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -1008,7 +1044,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            'Inspect / Buy',
+                            context.tr('Inspect / Buy', 'जांचें / खरीदें'),
                             style: GoogleFonts.inter(
                               color: Colors.white,
                               fontSize: 11,
@@ -1050,12 +1086,15 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
             ),
             const SizedBox(height: 10),
             Text(
-              '7-10 km Multi-FPO Cluster Engine Active',
+              context.tr('7-10 km Multi-FPO Cluster Engine Active', '7-10 किमी मल्टी-एफपीओ क्लस्टर इंजन सक्रिय'),
               style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.darkGreen),
             ),
             const SizedBox(height: 4),
             Text(
-              'The algorithmic engine checks all registered FPOs within a 7-10 km radius for commodity matching, travel time, and moisture compatibility (<= 1.5% variance). Requires at least 2 adjacent FPOs with published listings to combine.',
+              context.tr(
+                'The algorithmic engine checks all registered FPOs within a 7-10 km radius for commodity matching, travel time, and moisture compatibility (<= 1.5% variance). Requires at least 2 adjacent FPOs with published listings to combine.',
+                'इंजन कमोडिटी मिलान, यात्रा समय और नमी संगतता के लिए 7-10 किमी के भीतर सभी एफपीओ की जांच करता है।',
+              ),
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(fontSize: 11.5, color: Colors.grey.shade600, height: 1.3),
             ),
@@ -1063,7 +1102,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
             OutlinedButton.icon(
               onPressed: () => widget.onNavigateTab?.call(2), // Go to RFQs
               icon: const Icon(Icons.alt_route, size: 16),
-              label: const Text('Broadcast Multi-FPO Aggregation RFQ'),
+              label: Text(context.tr('Broadcast Multi-FPO Aggregation RFQ', 'मल्टी-एफपीओ एकत्रीकरण मांग प्रसारित करें')),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF1565C0),
                 side: const BorderSide(color: Color(0xFF1565C0)),
@@ -1110,7 +1149,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                         const Icon(Icons.hub, size: 12, color: Color(0xFF1565C0)),
                         const SizedBox(width: 4),
                         Text(
-                          '${cluster.totalVolumeQtl.toStringAsFixed(0)} Qtl Pooled',
+                          '${cluster.totalVolumeQtl.toStringAsFixed(0)} ${context.tr('Qtl Pooled', 'क्विंटल संयुक्त')}',
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -1128,7 +1167,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      '${cluster.participatingFpos.length} FPOs Unified',
+                      '${cluster.participatingFpos.length} ${context.tr('FPOs Unified', 'एफपीओ एकीकृत')}',
                       style: const TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
@@ -1138,7 +1177,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                   ),
                   const Spacer(),
                   Text(
-                    '₹${cluster.weightedPricePerQtl.toStringAsFixed(0)} / Qtl',
+                    '₹${cluster.weightedPricePerQtl.toStringAsFixed(0)} ${context.tr('/ Qtl', '/ क्विंटल')}',
                     style: GoogleFonts.inter(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -1157,7 +1196,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                 ),
               ),
               Text(
-                'Commodity: ${cluster.commodity} (${cluster.variety})',
+                '${context.tr('Commodity:', 'फसल:')} ${cluster.commodity} (${cluster.variety})',
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   color: Colors.grey.shade700,
@@ -1177,7 +1216,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      '${node.fpoName} (${node.availableQuantityQtl.toStringAsFixed(0)} Qtl)',
+                      '${node.fpoName} (${node.availableQuantityQtl.toStringAsFixed(0)} ${context.tr('Qtl', 'क्विंटल')})',
                       style: TextStyle(fontSize: 10, color: Colors.grey.shade700),
                     ),
                   );
@@ -1190,7 +1229,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                   const Icon(Icons.timer_outlined, size: 13, color: Color(0xFF15803D)),
                   const SizedBox(width: 4),
                   Text(
-                    'Collection Duration: ${cluster.formattedTotalDuration} (${cluster.formattedDrivingTime})',
+                    '${context.tr('Collection Duration:', 'संग्रह अवधि:')} ${cluster.formattedTotalDuration} (${cluster.formattedDrivingTime})',
                     style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade700, fontWeight: FontWeight.w500),
                   ),
                   const Spacer(),
@@ -1201,7 +1240,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      'Save ${cluster.freightSavingsPct.toStringAsFixed(0)}% Freight',
+                      '${context.tr('Save', 'बचत')} ${cluster.freightSavingsPct.toStringAsFixed(0)}% ${context.tr('Freight', 'भाड़ा')}',
                       style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
                     ),
                   ),
@@ -1212,7 +1251,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Moisture Var: ${cluster.validation.moistureVariancePct.toStringAsFixed(1)}% (Safe Co-Storage)',
+                    '${context.tr('Moisture Var:', 'नमी अंतर:')} ${cluster.validation.moistureVariancePct.toStringAsFixed(1)}% ${context.tr('(Safe Co-Storage)', '(सुरक्षित सह-भंडारण)')}',
                     style: GoogleFonts.inter(fontSize: 10.5, color: Colors.grey.shade600),
                   ),
                   InkWell(
@@ -1228,7 +1267,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                           const Icon(Icons.route, size: 12, color: Colors.white),
                           const SizedBox(width: 4),
                           Text(
-                            'Inspect Route',
+                            context.tr('Inspect Route', 'रूट जांचें'),
                             style: GoogleFonts.inter(
                               color: Colors.white,
                               fontSize: 11,
@@ -1255,10 +1294,10 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
     int maizeCount = allLots.where((c) => c.commodity.toLowerCase().contains('maize') || c.commodity.toLowerCase().contains('corn')).length;
 
     final benchmarks = [
-      {'name': 'Sharbati Wheat', 'price': '₹3,560 / Qtl', 'icon': '🌾', 'lots': '$wheatCount Silo Lots'},
-      {'name': 'Basmati Paddy 1121', 'price': '₹4,650 / Qtl', 'icon': '🍚', 'lots': '$riceCount Silo Lots'},
-      {'name': 'Yellow Mustard (Oil 42%)', 'price': '₹5,820 / Qtl', 'icon': '🌻', 'lots': '$mustardCount Silo Lots'},
-      {'name': 'Milling Yellow Maize', 'price': '₹2,280 / Qtl', 'icon': '🌽', 'lots': '$maizeCount Silo Lots'},
+      {'name': 'Sharbati Wheat', 'dispName': context.tr('Sharbati Wheat', 'शरबती गेहूँ'), 'price': '₹3,560 ${context.tr('/ Qtl', '/ क्विंटल')}', 'icon': '🌾', 'lots': '$wheatCount ${context.tr('Silo Lots', 'साइलो लॉट')}'},
+      {'name': 'Basmati Paddy 1121', 'dispName': context.tr('Basmati Paddy 1121', 'बासमती धान 1121'), 'price': '₹4,650 ${context.tr('/ Qtl', '/ क्विंटल')}', 'icon': '🍚', 'lots': '$riceCount ${context.tr('Silo Lots', 'साइलो लॉट')}'},
+      {'name': 'Yellow Mustard (Oil 42%)', 'dispName': context.tr('Yellow Mustard (Oil 42%)', 'पीली सरसों (तेल 42%)'), 'price': '₹5,820 ${context.tr('/ Qtl', '/ क्विंटल')}', 'icon': '🌻', 'lots': '$mustardCount ${context.tr('Silo Lots', 'साइलो लॉट')}'},
+      {'name': 'Milling Yellow Maize', 'dispName': context.tr('Milling Yellow Maize', 'मिलिंग पीला मक्का'), 'price': '₹2,280 ${context.tr('/ Qtl', '/ क्विंटल')}', 'icon': '🌽', 'lots': '$maizeCount ${context.tr('Silo Lots', 'साइलो लॉट')}'},
     ];
 
     return GridView.builder(
@@ -1320,7 +1359,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item['name']!,
+                      item['dispName'] ?? item['name']!,
                       style: GoogleFonts.inter(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
@@ -1384,7 +1423,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Institutional Quality & Escrow Gate',
+                      context.tr('Institutional Quality & Escrow Gate', 'संस्थागत गुणवत्ता एवं एस्क्रो सुरक्षा'),
                       style: GoogleFonts.outfit(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -1392,7 +1431,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                       ),
                     ),
                     Text(
-                      'Zero Intermediary Risk • Guaranteed Execution',
+                      context.tr('Zero Intermediary Risk • Guaranteed Execution', 'शून्य मध्यस्थ जोखिम • गारंटीकृत निष्पादन'),
                       style: GoogleFonts.inter(
                         color: Colors.white.withValues(alpha: 0.85),
                         fontSize: 11,
@@ -1406,13 +1445,29 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
           const SizedBox(height: 14),
           const Divider(color: Colors.white24, height: 1),
           const SizedBox(height: 12),
-          _buildPillarRow(Icons.lock_clock, 'Tripartite Smart Escrow', 'Buyer funds locked until weighbridge and quality testing match specifications.'),
+          _buildPillarRow(
+            Icons.lock_clock,
+            context.tr('Tripartite Smart Escrow', 'त्रिपक्षीय स्मार्ट एस्क्रो'),
+            context.tr('Buyer funds locked until weighbridge and quality testing match specifications.', 'क्रेता की राशि तब तक सुरक्षित रहती है जब तक तुलाई और गुणवत्ता जांच विनिर्देशों से मेल न खाए।'),
+          ),
           const SizedBox(height: 8),
-          _buildPillarRow(Icons.sensors, 'Fastag Weighbridge Telemetry', 'Direct sensor data integration ensures gross and tare accuracy without human tampering.'),
+          _buildPillarRow(
+            Icons.sensors,
+            context.tr('Fastag Weighbridge Telemetry', 'फ़ास्टैग धर्मकांटा टेलीमेट्री'),
+            context.tr('Direct sensor data integration ensures gross and tare accuracy without human tampering.', 'सेंसर डेटा एकीकरण बिना किसी मानवीय हस्तक्षेप के सही वजन सुनिश्चित करता है।'),
+          ),
           const SizedBox(height: 8),
-          _buildPillarRow(Icons.biotech, 'NABL Accredited Lab Assay', 'Automated moisture, broken grain, and purity certifications attached to each batch.'),
+          _buildPillarRow(
+            Icons.biotech,
+            context.tr('NABL Accredited Lab Assay', 'NABL मान्यता प्राप्त प्रयोगशाला जांच'),
+            context.tr('Automated moisture, broken grain, and purity certifications attached to each batch.', 'प्रत्येक लॉट के साथ स्वचालित नमी, टूटे दाने और शुद्धता का प्रमाण पत्र।'),
+          ),
           const SizedBox(height: 8),
-          _buildPillarRow(Icons.receipt_long, 'GSTN e-Invoice & Blockchain', 'SHA-256 batch hash permanently sealed on Polygon for seamless GST compliance.'),
+          _buildPillarRow(
+            Icons.receipt_long,
+            context.tr('GSTN e-Invoice & Blockchain', 'GSTN ई-चालान एवं ब्लॉकचेन'),
+            context.tr('SHA-256 batch hash permanently sealed on Polygon for seamless GST compliance.', 'जीएसटी अनुपालन और पारदर्शिता के लिए पॉलीगॉन पर सील किया गया बैच हैश।'),
+          ),
         ],
       ),
     );
@@ -1488,7 +1543,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                               style: GoogleFonts.outfit(fontSize: 17, fontWeight: FontWeight.bold),
                             ),
                             Text(
-                              '${cluster.totalVolumeQtl.toStringAsFixed(0)} Qtl Total • ${cluster.formattedTotalDuration}',
+                              '${cluster.totalVolumeQtl.toStringAsFixed(0)} ${context.tr('Qtl Total', 'कुल क्विंटल')} • ${cluster.formattedTotalDuration}',
                               style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
                             ),
                           ],
@@ -1509,13 +1564,13 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            Icon(Icons.verified, color: Color(0xFF15803D), size: 16),
-                            SizedBox(width: 6),
+                            const Icon(Icons.verified, color: Color(0xFF15803D), size: 16),
+                            const SizedBox(width: 6),
                             Text(
-                              'Multi-FPO Automated Validation Checks Passed',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF15803D)),
+                              context.tr('Multi-FPO Automated Validation Checks Passed', 'मल्टी-एफपीओ स्वचालित सत्यापन जांच सफल'),
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF15803D)),
                             ),
                           ],
                         ),
@@ -1537,7 +1592,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                   const SizedBox(height: 16),
 
                   // Sequential Route Stops
-                  Text('Sequential Pickup & Delivery Route', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text(context.tr('Sequential Pickup & Delivery Route', 'क्रमिक पिकअप और डिलीवरी रूट'), style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13)),
                   const SizedBox(height: 10),
                   ...cluster.routeStops.map((stop) {
                     final isDest = stop.stopType == 'destination_plant';
@@ -1563,8 +1618,8 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                                 Text(stop.address, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
                                 Text(
                                   isDest
-                                      ? 'Arrival: ~${stop.estimatedArrivalMinutes}m from dispatch'
-                                      : 'Pickup: ${stop.pickupQuantityQtl.toStringAsFixed(0)} Qtl • Loading Dwell: ${stop.dwellTimeMinutes}m',
+                                      ? '${context.tr('Arrival:', 'आगमन:')} ~${stop.estimatedArrivalMinutes}m ${context.tr('from dispatch', 'रवानगी से')}'
+                                      : '${context.tr('Pickup:', 'पिकअप:')} ${stop.pickupQuantityQtl.toStringAsFixed(0)} ${context.tr('Qtl', 'क्विंटल')} • ${context.tr('Loading Dwell:', 'लोडिंग समय:')} ${stop.dwellTimeMinutes}m',
                                   style: const TextStyle(fontSize: 10.5, color: Color(0xFF15803D), fontWeight: FontWeight.w600),
                                 ),
                               ],
@@ -1618,7 +1673,7 @@ class _BulkBuyerHomeScreenState extends State<BulkBuyerHomeScreen> {
                         elevation: 0,
                       ),
                       child: Text(
-                        'Proceed to Escrow Checkout (${cluster.totalVolumeQtl.toStringAsFixed(0)} Qtl)',
+                        '${context.tr('Proceed to Escrow Checkout', 'एस्क्रो चेकआउट पर आगे बढ़ें')} (${cluster.totalVolumeQtl.toStringAsFixed(0)} ${context.tr('Qtl', 'क्विंटल')})',
                         style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                     ),
@@ -1758,14 +1813,14 @@ class _BulkLotModalContentState extends State<_BulkLotModalContent> {
                         borderRadius: BorderRadius.circular(8),
                         boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 4)],
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.verified, size: 14, color: Color(0xFF69F0AE)),
-                          SizedBox(width: 4),
+                          const Icon(Icons.verified, size: 14, color: Color(0xFF69F0AE)),
+                          const SizedBox(width: 4),
                           Text(
-                            'FPO Direct Silo',
-                            style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                            context.tr('FPO Direct Silo', 'एफपीओ सीधा साइलो'),
+                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -1815,11 +1870,11 @@ class _BulkLotModalContentState extends State<_BulkLotModalContent> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '₹${widget.pricePerQtl.toStringAsFixed(0)} / Qtl',
+                        '₹${widget.pricePerQtl.toStringAsFixed(0)} ${context.tr('/ Qtl', '/ क्विंटल')}',
                         style: GoogleFonts.inter(fontSize: 19, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
                       ),
                       Text(
-                        '${widget.availableQtl.toStringAsFixed(0)} Qtl Available',
+                        '${widget.availableQtl.toStringAsFixed(0)} ${context.tr('Qtl Available', 'क्विंटल उपलब्ध')}',
                         style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
                       ),
                     ],
@@ -1839,13 +1894,13 @@ class _BulkLotModalContentState extends State<_BulkLotModalContent> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.biotech, color: AppTheme.primaryGreen, size: 16),
-                        SizedBox(width: 6),
+                        const Icon(Icons.biotech, color: AppTheme.primaryGreen, size: 16),
+                        const SizedBox(width: 6),
                         Text(
-                          'NABL Laboratory Certified Assays',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.darkGreen),
+                          context.tr('NABL Laboratory Certified Assays', 'NABL प्रयोगशाला प्रमाणित जांच'),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.darkGreen),
                         ),
                       ],
                     ),
@@ -1853,10 +1908,10 @@ class _BulkLotModalContentState extends State<_BulkLotModalContent> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildAssayBadge('Moisture', widget.moisture, 'Optimal'),
-                        _buildAssayBadge('Broken Grain', '1.2%', 'Grade A'),
-                        _buildAssayBadge('Foreign Matter', '0.4%', 'Pure'),
-                        _buildAssayBadge('AI Purity', '98.8%', 'Certified'),
+                        _buildAssayBadge(context.tr('Moisture', 'नमी'), widget.moisture, context.tr('Optimal', 'उत्कृष्ट')),
+                        _buildAssayBadge(context.tr('Broken Grain', 'टूटा दाना'), '1.2%', context.tr('Grade A', 'ग्रेड A')),
+                        _buildAssayBadge(context.tr('Foreign Matter', 'विदेशी पदार्थ'), '0.4%', context.tr('Pure', 'शुद्ध')),
+                        _buildAssayBadge(context.tr('AI Purity', 'एआई शुद्धता'), '98.8%', context.tr('Certified', 'प्रमाणित')),
                       ],
                     ),
                   ],
@@ -1882,7 +1937,7 @@ class _BulkLotModalContentState extends State<_BulkLotModalContent> {
                           style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          '${widget.location} • Fastag Weighbridge Station 02',
+                          '${widget.location} • ${context.tr('Fastag Weighbridge Station 02', 'फ़ास्टैग धर्मकांटा स्टेशन 02')}',
                           style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600),
                         ),
                       ],
@@ -1894,7 +1949,7 @@ class _BulkLotModalContentState extends State<_BulkLotModalContent> {
                       color: const Color(0xFFDCFCE7),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: const Text('Verified FPO', style: TextStyle(color: Color(0xFF15803D), fontSize: 10, fontWeight: FontWeight.bold)),
+                    child: Text(context.tr('Verified FPO', 'सत्यापित एफपीओ'), style: const TextStyle(color: Color(0xFF15803D), fontSize: 10, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -1902,7 +1957,7 @@ class _BulkLotModalContentState extends State<_BulkLotModalContent> {
 
               // Interactive Procurement Volume Selector (Quintals)
               Text(
-                'Procurement Volume (Quintals)',
+                context.tr('Procurement Volume (Quintals)', 'खरीद मात्रा (क्विंटल)'),
                 style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.darkGreen),
               ),
               const SizedBox(height: 8),
@@ -1931,7 +1986,7 @@ class _BulkLotModalContentState extends State<_BulkLotModalContent> {
                         Column(
                           children: [
                             Text(
-                              '${_selectedQtl.toStringAsFixed(0)} Qtl',
+                              '${_selectedQtl.toStringAsFixed(0)} ${context.tr('Qtl', 'क्विंटल')}',
                               style: GoogleFonts.outfit(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -1939,7 +1994,7 @@ class _BulkLotModalContentState extends State<_BulkLotModalContent> {
                               ),
                             ),
                             Text(
-                              '${(_selectedQtl / 10).toStringAsFixed(1)} Metric Tonnes (${(_selectedQtl / 250).toStringAsFixed(1)} FTL Trucks)',
+                              '${(_selectedQtl / 10).toStringAsFixed(1)} ${context.tr('Metric Tonnes', 'मीट्रिक टन')} (${(_selectedQtl / 250).toStringAsFixed(1)} ${context.tr('FTL Trucks', 'ट्रक')})',
                               style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600),
                             ),
                           ],
@@ -1961,10 +2016,10 @@ class _BulkLotModalContentState extends State<_BulkLotModalContent> {
                     Wrap(
                       spacing: 8,
                       children: [
-                        _buildPresetChip('250 Qtl (1 FTL)', 250),
-                        _buildPresetChip('500 Qtl (2 FTL)', 500),
-                        _buildPresetChip('1,000 Qtl (4 FTL)', 1000),
-                        _buildPresetChip('Max Stock', widget.availableQtl),
+                        _buildPresetChip('250 ${context.tr('Qtl (1 FTL)', 'क्विंटल (1 ट्रक)')}', 250),
+                        _buildPresetChip('500 ${context.tr('Qtl (2 FTL)', 'क्विंटल (2 ट्रक)')}', 500),
+                        _buildPresetChip('1,000 ${context.tr('Qtl (4 FTL)', 'क्विंटल (4 ट्रक)')}', 1000),
+                        _buildPresetChip(context.tr('Max Stock', 'अधिकतम स्टॉक'), widget.availableQtl),
                       ],
                     ),
                   ],
@@ -1982,18 +2037,18 @@ class _BulkLotModalContentState extends State<_BulkLotModalContent> {
                 ),
                 child: Column(
                   children: [
-                    _buildCostRow('Base Commodity Value', '₹${cropSubtotal.toStringAsFixed(0)}'),
+                    _buildCostRow(context.tr('Base Commodity Value', 'मूल फसल मूल्य'), '₹${cropSubtotal.toStringAsFixed(0)}'),
                     const SizedBox(height: 4),
-                    _buildCostRow('GST on Raw Commodity', '₹0 (0% Exemption)'),
+                    _buildCostRow(context.tr('GST on Raw Commodity', 'कच्चे माल पर जीएसटी'), '₹0 (${context.tr('0% Exemption', '0% छूट')})'),
                     const SizedBox(height: 4),
-                    _buildCostRow('Estimated Regional Freight', '₹${estFreight.toStringAsFixed(0)}'),
+                    _buildCostRow(context.tr('Estimated Regional Freight', 'अनुमानित क्षेत्रीय भाड़ा'), '₹${estFreight.toStringAsFixed(0)}'),
                     const SizedBox(height: 4),
-                    _buildCostRow('AgriChain Escrow Protocol (1.5%)', '₹${protocolFee.toStringAsFixed(0)}'),
+                    _buildCostRow(context.tr('AgriChain Escrow Protocol (1.5%)', 'एग्रीचेन एस्क्रो शुल्क (1.5%)'), '₹${protocolFee.toStringAsFixed(0)}'),
                     const Divider(height: 14),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Total Escrow Lock', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.darkGreen)),
+                        Text(context.tr('Total Escrow Lock', 'कुल एस्क्रो राशि'), style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.darkGreen)),
                         Text(
                           '₹${totalEscrowDeposit.toStringAsFixed(0)}',
                           style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 17, color: AppTheme.primaryGreen),
@@ -2017,7 +2072,7 @@ class _BulkLotModalContentState extends State<_BulkLotModalContent> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: Text(
-                        'Issue Custom RFQ',
+                        context.tr('Issue Custom RFQ', 'कस्टम मांग दर्ज करें'),
                         style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: const Color(0xFF1565C0), fontSize: 12),
                       ),
                     ),
@@ -2035,7 +2090,7 @@ class _BulkLotModalContentState extends State<_BulkLotModalContent> {
                         elevation: 0,
                       ),
                       child: Text(
-                        'Proceed to Escrow Checkout',
+                        context.tr('Proceed to Escrow Checkout', 'एस्क्रो चेकआउट पर आगे बढ़ें'),
                         style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                     ),

@@ -11,6 +11,7 @@ import '../../services/smart_contract_pdf_service.dart';
 import '../../theme/app_theme.dart';
 import 'b2b_contract_screen.dart';
 import 'bulk_buyer_orders_screen.dart';
+import '../contract/signed_contract_pdf_screen.dart';
 import 'package:latlong2/latlong.dart';
 import '../../widgets/optimized_logistics_route_widget.dart';
 

@@ -9,6 +9,8 @@ import '../../models/multi_fpo_cluster_model.dart';
 import '../../services/fpo_inventory_service.dart';
 import '../../services/multi_fpo_cluster_service.dart';
 import '../../services/road_routing_service.dart';
+import '../../utils/translation_helper.dart';
+import '../../widgets/language_switcher.dart';
 import 'escrow_checkout_screen.dart';
 import '../../widgets/fpo_lot_details_modal.dart';
 
@@ -52,6 +54,27 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
     'Pulses',
   ];
 
+  String _getCropLabel(BuildContext context, String crop) {
+    switch (crop) {
+      case 'All':
+        return context.tr('All', 'सभी');
+      case 'Wheat':
+        return context.tr('Wheat', 'गेहूँ');
+      case 'Basmati Paddy':
+        return context.tr('Basmati Paddy', 'बासमती धान');
+      case 'Mustard':
+        return context.tr('Mustard', 'सरसों');
+      case 'Soybean':
+        return context.tr('Soybean', 'सोयाबीन');
+      case 'Maize':
+        return context.tr('Maize', 'मक्का');
+      case 'Pulses':
+        return context.tr('Pulses', 'दालें');
+      default:
+        return crop;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -80,8 +103,14 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
       backgroundColor: const Color(0xFFF6F8F5),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          const CustomAppBar(
-            title: 'FPO Supply & Clusters',
+          CustomAppBar(
+            title: context.tr('FPO Supply & Clusters', 'एफपीओ आपूर्ति एवं क्लस्टर'),
+            actions: const [
+              Padding(
+                padding: EdgeInsets.only(right: 8.0),
+                child: LanguageSwitcherPill(isDark: true),
+              ),
+            ],
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -136,13 +165,13 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
           });
         },
         decoration: InputDecoration(
-          hintText: 'Search FPO name, commodity, district, cluster...',
+          hintText: context.tr('Search FPO name, commodity, district, cluster...', 'एफपीओ, फसल, जिला, क्लस्टर खोजें...'),
           hintStyle: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF94A3B8)),
           prefixIcon: const Icon(Icons.search, color: Color(0xFF15803D)),
           suffixIcon: IconButton(
             icon: const Icon(Icons.tune, color: Color(0xFF15803D)),
             onPressed: _showAdvancedFilterSheet,
-            tooltip: 'Filter Cluster Radius',
+            tooltip: context.tr('Filter Cluster Radius', 'क्लस्टर दायरा फ़िल्टर'),
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -165,7 +194,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: ChoiceChip(
-              label: Text(cat),
+              label: Text(_getCropLabel(context, cat)),
               selected: isSelected,
               selectedColor: const Color(0xFF15803D),
               backgroundColor: Colors.white,
@@ -216,14 +245,14 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
         indicatorColor: const Color(0xFF15803D),
         indicatorWeight: 3,
         labelStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12.5),
-        tabs: const [
+        tabs: [
           Tab(
-            icon: Icon(Icons.hub_outlined, size: 18),
-            text: 'Combined Multi-FPO Supply (7 km)',
+            icon: const Icon(Icons.hub_outlined, size: 18),
+            text: context.tr('Combined Multi-FPO Supply (7 km)', 'संयुक्त मल्टी-FPO आपूर्ति (7 किमी)'),
           ),
           Tab(
-            icon: Icon(Icons.warehouse_outlined, size: 18),
-            text: 'Single FPO Direct Lots',
+            icon: const Icon(Icons.warehouse_outlined, size: 18),
+            text: context.tr('Single FPO Direct Lots', 'प्रत्यक्ष FPO लॉट'),
           ),
         ],
       ),
@@ -310,7 +339,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Active Hyperlocal Multi-FPO Clusters',
+                  context.tr('Active Hyperlocal Multi-FPO Clusters', 'सक्रिय स्थानीय मल्टी-FPO क्लस्टर'),
                   style: GoogleFonts.outfit(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -324,7 +353,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    '${filteredClusters.length} Clusters Ready',
+                    '${filteredClusters.length} ${context.tr('Clusters Ready', 'क्लस्टर तैयार')}',
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -385,7 +414,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Multi-FPO Cluster Engine',
+                      context.tr('Multi-FPO Cluster Engine', 'मल्टी-FPO क्लस्टर इंजन'),
                       style: GoogleFonts.outfit(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -393,7 +422,10 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                       ),
                     ),
                     Text(
-                      'Auto-pools neighboring FPO godowns within 7 km to fulfill 100% of bulk demands',
+                      context.tr(
+                        'Auto-pools neighboring FPO godowns within 7 km to fulfill 100% of bulk demands',
+                        '7 किमी के भीतर पड़ोसी FPO गोदामों को जोड़कर 100% थोक मांग पूरा करता है',
+                      ),
                       style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFFB9F6CA)),
                     ),
                   ],
@@ -406,11 +438,11 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
           // 3 Clean Summary Badges
           Row(
             children: [
-              _buildBannerStat(Icons.scatter_plot, '≤ 7.0 km Radius', 'Inter-FPO Belt'),
+              _buildBannerStat(Icons.scatter_plot, context.tr('≤ 7.0 km Radius', '≤ 7.0 किमी दायरा'), context.tr('Inter-FPO Belt', 'एफपीओ बेल्ट')),
               const SizedBox(width: 8),
-              _buildBannerStat(Icons.alt_route, 'Save ~24% Freight', 'Consolidated Fleet'),
+              _buildBannerStat(Icons.alt_route, context.tr('Save ~24% Freight', '~24% माल ढुलाई बचत'), context.tr('Consolidated Fleet', 'संयुक्त फ्लीट')),
               const SizedBox(width: 8),
-              _buildBannerStat(Icons.verified, '100% Assayed', 'NABL Lab Verified'),
+              _buildBannerStat(Icons.verified, context.tr('100% Assayed', '100% जांचा हुआ'), context.tr('NABL Lab Verified', 'NABL लैब सत्यापित')),
             ],
           ),
         ],
@@ -524,7 +556,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                       const Icon(Icons.near_me, size: 12, color: Color(0xFF69F0AE)),
                       const SizedBox(width: 4),
                       Text(
-                        'Within $radiusKm km Radius',
+                        '${context.tr('Within', 'के भीतर')} $radiusKm ${context.tr('km Radius', 'किमी दायरा')}',
                         style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -548,7 +580,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                       const Icon(Icons.warehouse, size: 12, color: Colors.white),
                       const SizedBox(width: 4),
                       Text(
-                        '${targetVolumeMT.toStringAsFixed(0)} Qtl POOLED',
+                        '${targetVolumeMT.toStringAsFixed(0)} ${context.tr('Qtl POOLED', 'क्विंटल संयुक्त')}',
                         style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -573,7 +605,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                       const Icon(Icons.hub, size: 12, color: Color(0xFF69F0AE)),
                       const SizedBox(width: 4),
                       Text(
-                        '${fpos.length} Clustered FPOs • $clusterName',
+                        '${fpos.length} ${context.tr('Clustered FPOs', 'क्लस्टर एफपीओ')} • $clusterName',
                         style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -653,7 +685,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Consolidated Rate', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                          Text(context.tr('Consolidated Rate', 'संयुक्त दर'), style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
                           Row(
                             children: [
                               Text(
@@ -664,12 +696,12 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                                   color: const Color(0xFF15803D),
                                 ),
                               ),
-                              Text('/Qtl', style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF15803D))),
+                              Text(context.tr('/Qtl', '/क्विंटल'), style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF15803D))),
                             ],
                           ),
-                          const Text(
-                            'Wholesale Pooled Rate',
-                            style: TextStyle(fontSize: 9.5, color: Color(0xFF64748B)),
+                          Text(
+                            context.tr('Wholesale Pooled Rate', 'थोक संयुक्त दर'),
+                            style: const TextStyle(fontSize: 9.5, color: Color(0xFF64748B)),
                           ),
                         ],
                       ),
@@ -678,18 +710,18 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const Text('Total Pooled', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                          Text(context.tr('Total Pooled', 'कुल संयुक्त'), style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
                           Text(
-                            '${targetVolumeMT.toStringAsFixed(0)} Qtl',
+                            '${targetVolumeMT.toStringAsFixed(0)} ${context.tr('Qtl', 'क्विंटल')}',
                             style: GoogleFonts.inter(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: const Color(0xFF0F172A),
                             ),
                           ),
-                          const Text(
-                            '100% Available',
-                            style: TextStyle(fontSize: 9.5, color: Color(0xFF15803D), fontWeight: FontWeight.bold),
+                          Text(
+                            context.tr('100% Available', '100% उपलब्ध'),
+                            style: const TextStyle(fontSize: 9.5, color: Color(0xFF15803D), fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -698,9 +730,9 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          const Text('Cluster Network', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                          Text(context.tr('Cluster Network', 'क्लस्टर नेटवर्क'), style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
                           Text(
-                            '${fpos.length} FPOs',
+                            '${fpos.length} ${context.tr('FPOs', 'एफपीओ')}',
                             style: GoogleFonts.inter(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
@@ -708,7 +740,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                             ),
                           ),
                           Text(
-                            '≤ $radiusKm km radius',
+                            '≤ $radiusKm ${context.tr('km radius', 'किमी दायरा')}',
                             style: const TextStyle(fontSize: 9.5, color: Color(0xFF64748B)),
                           ),
                         ],
@@ -745,7 +777,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                       child: OutlinedButton.icon(
                         onPressed: () => _showClusterRouteInspectionSheet(context, cluster),
                         icon: const Icon(Icons.map_outlined, size: 16),
-                        label: const Text('Inspect Route', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+                        label: Text(context.tr('Inspect Route', 'रूट देखें'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF15803D),
                           side: const BorderSide(color: Color(0xFF86EFAC)),
@@ -792,7 +824,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                         },
                         icon: const Icon(Icons.check_circle_outline, size: 16),
                         label: Text(
-                          'Accept ${selectedMT.toStringAsFixed(0)} Qtl',
+                          '${context.tr('Accept', 'स्वीकारें')} ${selectedMT.toStringAsFixed(0)} ${context.tr('Qtl', 'क्विंटल')}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12.5),
@@ -841,16 +873,16 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                     return Row(
                       children: [
                         Text(
-                          '🏢 $name ($vol Qtl)',
+                          '🏢 $name ($vol ${context.tr('Qtl', 'क्विंटल')})',
                           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1B5E20)),
                         ),
                         const SizedBox(width: 4),
                         const Icon(Icons.arrow_forward, size: 11, color: Color(0xFF2E7D32)),
                         const SizedBox(width: 4),
                         if (isLast)
-                          const Text(
-                            '🏭 Plant Dock',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                          Text(
+                            context.tr('🏭 Plant Dock', '🏭 प्लांट डॉक'),
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
                           ),
                       ],
                     );
@@ -866,7 +898,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
-              '≤ $radiusKm km span',
+              '≤ $radiusKm ${context.tr('km span', 'किमी विस्तार')}',
               style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold),
             ),
           ),
@@ -881,11 +913,11 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
       spacing: 6,
       runSpacing: 4,
       children: [
-        _buildTagPill('💧 Moisture: $moisture'),
-        _buildTagPill('🌾 Purity: $purity'),
-        _buildTagPill('🔬 NABL Lab Certified'),
-        _buildTagPill('⚖️ Weighbridge Slip'),
-        _buildTagPill('🔐 DigiLocker e-Signed'),
+        _buildTagPill('💧 ${context.tr('Moisture:', 'नमी:')} $moisture'),
+        _buildTagPill('🌾 ${context.tr('Purity:', 'शुद्धता:')} $purity'),
+        _buildTagPill(context.tr('🔬 NABL Lab Certified', '🔬 NABL लैब प्रमाणित')),
+        _buildTagPill(context.tr('⚖️ Weighbridge Slip', '⚖️ धर्मकांटा पर्ची')),
+        _buildTagPill(context.tr('🔐 DigiLocker e-Signed', '🔐 डिजिलॉकर हस्ताक्षरित')),
       ],
     );
   }
@@ -933,7 +965,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                   const Icon(Icons.tune, size: 14, color: Color(0xFF15803D)),
                   const SizedBox(width: 4),
                   Text(
-                    'Order Volume Selection (Quintals)',
+                    context.tr('Order Volume Selection (Quintals)', 'मात्रा चयन (क्विंटल)'),
                     style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
                   ),
                 ],
@@ -946,9 +978,9 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                     color: const Color(0xFF15803D).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: const Text(
-                    '✏️ Enter Exact Qtl',
-                    style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                  child: Text(
+                    context.tr('✏️ Enter Exact Qtl', '✏️ सटीक क्विंटल दर्ज करें'),
+                    style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
                   ),
                 ),
               ),
@@ -976,7 +1008,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                   border: Border.all(color: const Color(0xFFCBD5E1)),
                 ),
                 child: Text(
-                  '${selectedMT.toStringAsFixed(0)} Qtl',
+                  '${selectedMT.toStringAsFixed(0)} ${context.tr('Qtl', 'क्विंटल')}',
                   style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
                 ),
               ),
@@ -992,11 +1024,11 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
               const Spacer(),
 
               // Quick preset chips
-              _buildVolumePresetChip('500 Qtl', 500.0, selectedMT, (v) => _setSelectedQuantity(clusterId, v, totalAvailableMT)),
+              _buildVolumePresetChip('500 ${context.tr('Qtl', 'क्विंटल')}', 500.0, selectedMT, (v) => _setSelectedQuantity(clusterId, v, totalAvailableMT)),
               const SizedBox(width: 4),
-              _buildVolumePresetChip('1,000 Qtl', 1000.0, selectedMT, (v) => _setSelectedQuantity(clusterId, v, totalAvailableMT)),
+              _buildVolumePresetChip('1,000 ${context.tr('Qtl', 'क्विंटल')}', 1000.0, selectedMT, (v) => _setSelectedQuantity(clusterId, v, totalAvailableMT)),
               const SizedBox(width: 4),
-              _buildVolumePresetChip('All ${totalAvailableMT.toInt()} Qtl', totalAvailableMT, selectedMT, (v) => _setSelectedQuantity(clusterId, v, totalAvailableMT)),
+              _buildVolumePresetChip('${context.tr('All', 'सभी')} ${totalAvailableMT.toInt()} ${context.tr('Qtl', 'क्विंटल')}', totalAvailableMT, selectedMT, (v) => _setSelectedQuantity(clusterId, v, totalAvailableMT)),
             ],
           ),
 
@@ -1009,11 +1041,11 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Total: ₹${calculatedTotal.toStringAsFixed(0)}',
+                '${context.tr('Total:', 'कुल:')} ₹${calculatedTotal.toStringAsFixed(0)}',
                 style: GoogleFonts.inter(fontSize: 13.5, fontWeight: FontWeight.bold, color: const Color(0xFF15803D)),
               ),
               Text(
-                'Save ~₹${estimatedSavings.toStringAsFixed(0)} on combined freight',
+                '${context.tr('Save ~₹', '~₹ बचत')} ${estimatedSavings.toStringAsFixed(0)} ${context.tr('on combined freight', 'संयुक्त ढुलाई पर')}',
                 style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: Color(0xFF166534)),
               ),
             ],
@@ -1057,7 +1089,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
           children: [
             const Icon(Icons.edit_note, color: Color(0xFF15803D)),
             const SizedBox(width: 8),
-            const Text('Enter Required Volume', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(dlgCtx.tr('Enter Required Volume', 'आवश्यक मात्रा दर्ज करें'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
         content: Column(
@@ -1065,7 +1097,10 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Specify custom quintals needed for $commodity:',
+              dlgCtx.tr(
+                'Specify custom quintals needed for $commodity:',
+                '${_getCropLabel(dlgCtx, commodity)} के लिए आवश्यक क्विंटल दर्ज करें:',
+              ),
               style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 14),
@@ -1074,8 +1109,8 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               autofocus: true,
               decoration: InputDecoration(
-                labelText: 'Order Volume (Qtl)',
-                suffixText: 'Qtl',
+                labelText: dlgCtx.tr('Order Volume (Qtl)', 'ऑर्डर मात्रा (क्विंटल)'),
+                suffixText: dlgCtx.tr('Qtl', 'क्विंटल'),
                 hintText: 'e.g. 500, 1000, 2500',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 focusedBorder: OutlineInputBorder(
@@ -1086,7 +1121,10 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
             ),
             const SizedBox(height: 10),
             Text(
-              'Total pooled volume in cluster: ${maxMT.toStringAsFixed(0)} Qtl',
+              dlgCtx.tr(
+                'Total pooled volume in cluster: ${maxMT.toStringAsFixed(0)} Qtl',
+                'क्लस्टर में कुल एकत्रित मात्रा: ${maxMT.toStringAsFixed(0)} क्विंटल',
+              ),
               style: const TextStyle(fontSize: 11, color: Color(0xFF15803D), fontWeight: FontWeight.w600),
             ),
           ],
@@ -1094,7 +1132,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dlgCtx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text(dlgCtx.tr('Cancel', 'रद्द करें'), style: const TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -1109,7 +1147,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
               backgroundColor: const Color(0xFF15803D),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Apply Qtl', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(dlgCtx.tr('Apply Qtl', 'लागू करें'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -1216,7 +1254,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Consolidated Multi-Stop Route',
+                                context.tr('Consolidated Multi-Stop Route', 'समेकित मल्टी-स्टॉप रूट'),
                                 style: GoogleFonts.outfit(
                                   fontSize: 17,
                                   fontWeight: FontWeight.bold,
@@ -1224,7 +1262,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                                 ),
                               ),
                               Text(
-                                '$clusterName • ${targetVolumeMT.toStringAsFixed(0)} Qtl Total',
+                                '$clusterName • ${targetVolumeMT.toStringAsFixed(0)} ${context.tr('Qtl Total', 'क्विंटल कुल')}',
                                 style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
                               ),
                             ],
@@ -1251,7 +1289,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Multi-FPO Dispatch GPS Map',
+                                context.tr('Multi-FPO Dispatch GPS Map', 'मल्टी-एफपीओ प्रेषण जीपीएस मैप'),
                                 style: GoogleFonts.inter(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -1260,9 +1298,9 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                               ),
                               Row(
                                 children: [
-                                  _buildMapToggle(0, '🗺️ Road', mapTypeIndex, (idx) => setInspectionState(() => mapTypeIndex = idx)),
+                                  _buildMapToggle(0, context.tr('🗺️ Road', '🗺️ सड़क'), mapTypeIndex, (idx) => setInspectionState(() => mapTypeIndex = idx)),
                                   const SizedBox(width: 4),
-                                  _buildMapToggle(1, '🛰️ Sat', mapTypeIndex, (idx) => setInspectionState(() => mapTypeIndex = idx)),
+                                  _buildMapToggle(1, context.tr('🛰️ Sat', '🛰️ उपग्रह'), mapTypeIndex, (idx) => setInspectionState(() => mapTypeIndex = idx)),
                                   const SizedBox(width: 4),
                                   _buildMapToggle(2, '🌐 OSM', mapTypeIndex, (idx) => setInspectionState(() => mapTypeIndex = idx)),
                                 ],
@@ -1271,7 +1309,10 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Optimized multi-stop pickup itinerary with geofenced FPO warehouses.',
+                            context.tr(
+                              'Optimized multi-stop pickup itinerary with geofenced FPO warehouses.',
+                              'जियोफेंस्ड एफपीओ गोदामों के साथ अनुकूलित मल्टी-स्टॉप पिकअप मार्ग।',
+                            ),
                             style: GoogleFonts.inter(fontSize: 11.5, color: Colors.grey.shade600),
                           ),
                           const SizedBox(height: 10),
@@ -1409,14 +1450,14 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                                     children: [
                                       Text(
                                         isRouteLoading
-                                            ? 'Calculating OSRM Road Corridor...'
-                                            : '${roadRoute?.distanceKm.toStringAsFixed(1) ?? (radiusKm * 1.3).toStringAsFixed(1)} km Road Corridor to Destination Plant',
+                                            ? context.tr('Calculating OSRM Road Corridor...', 'सड़क मार्ग की गणना की जा रही है...')
+                                            : '${roadRoute?.distanceKm.toStringAsFixed(1) ?? (radiusKm * 1.3).toStringAsFixed(1)} ${context.tr('km Road Corridor to Destination Plant', 'किमी गंतव्य संयंत्र तक सड़क मार्ग')}',
                                         style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF15803D)),
                                       ),
                                       Text(
                                         isRouteLoading
-                                            ? 'Connecting to road navigation network...'
-                                            : '${roadRoute?.durationMinutes ?? 45} mins estimated transit • ${fpos.length} FPO godowns consolidated',
+                                            ? context.tr('Connecting to road navigation network...', 'नेविगेशन नेटवर्क से जुड़ रहे हैं...')
+                                            : '${roadRoute?.durationMinutes ?? 45} ${context.tr('mins estimated transit', 'मिनट अनुमानित समय')} • ${fpos.length} ${context.tr('FPO godowns consolidated', 'एफपीओ गोदाम समेकित')}',
                                         style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade700),
                                       ),
                                     ],
@@ -1428,9 +1469,9 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                                     color: const Color(0xFF15803D),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: const Text(
-                                    'OSRM Road Snapped',
-                                    style: TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold),
+                                  child: Text(
+                                    context.tr('OSRM Road Snapped', 'सड़क मैप स्नैप्ड'),
+                                    style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ],
@@ -1440,7 +1481,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
 
                           // Stop-by-Stop Itinerary List
                           Text(
-                            'Sequential Pickup Stops',
+                            context.tr('Sequential Pickup Stops', 'क्रमिक पिकअप स्टॉप'),
                             style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
                           ),
                           const SizedBox(height: 10),
@@ -1451,7 +1492,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                             return _buildRouteStopTile(
                               stopNumber: i + 1,
                               title: fpo['name'].toString(),
-                              subtitle: 'Pickup ${fpo['volume']} Qtl • Weighbridge Verified • ${fpo['dist']} from hub',
+                              subtitle: '${context.tr('Pickup', 'पिकअप')} ${fpo['volume']} ${context.tr('Qtl', 'क्विंटल')} • ${context.tr('Weighbridge Verified', 'वेब्रिज सत्यापित')} • ${fpo['dist']} ${context.tr('from hub', 'हब से')}',
                               isLast: false,
                             );
                           }),
@@ -1459,7 +1500,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                           _buildRouteStopTile(
                             stopNumber: fpos.length + 1,
                             title: destPlant['name'].toString(),
-                            subtitle: 'Final Unloading & NABL Lab Moisture Verification',
+                            subtitle: context.tr('Final Unloading & NABL Lab Moisture Verification', 'अंतिम अनलोडिंग एवं एनएबीएल प्रयोगशाला नमी सत्यापन'),
                             isLast: true,
                           ),
 
@@ -1473,14 +1514,17 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: const Color(0xFFC8E6C9)),
                             ),
-                            child: const Row(
+                            child: Row(
                               children: [
-                                Icon(Icons.savings_outlined, color: Color(0xFF2E7D32), size: 22),
-                                SizedBox(width: 10),
+                                const Icon(Icons.savings_outlined, color: Color(0xFF2E7D32), size: 22),
+                                const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
-                                    'Consolidated multi-FPO routing cuts empty deadhead miles by 38% and reduces total logistics freight by ~24%.',
-                                    style: TextStyle(fontSize: 11.5, color: Color(0xFF1B5E20), fontWeight: FontWeight.w600),
+                                    context.tr(
+                                      'Consolidated multi-FPO routing cuts empty deadhead miles by 38% and reduces total logistics freight by ~24%.',
+                                      'समेकित मल्टी-एफपीओ रूटिंग खाली दूरी को 38% कम करती है और कुल लॉजिस्टिक्स भाड़े में ~24% की बचत करती है।',
+                                    ),
+                                    style: const TextStyle(fontSize: 11.5, color: Color(0xFF1B5E20), fontWeight: FontWeight.w600),
                                   ),
                                 ),
                               ],
@@ -1528,7 +1572,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                               },
                               icon: const Icon(Icons.lock_outline, size: 18),
                               label: Text(
-                                'Accept ${targetVolumeMT.toStringAsFixed(0)} Qtl & Open Escrow Lock',
+                                '${context.tr('Accept', 'स्वीकारें')} ${targetVolumeMT.toStringAsFixed(0)} ${context.tr('Qtl & Open Escrow Lock', 'क्विंटल और एस्क्रो लॉक खोलें')}',
                                 style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13.5),
                               ),
                               style: ElevatedButton.styleFrom(
@@ -1734,13 +1778,13 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                               color: const Color(0xFF15803D),
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: const Row(
+                            child: Row(
                               children: [
-                                Icon(Icons.verified, color: Colors.white, size: 12),
-                                SizedBox(width: 4),
+                                const Icon(Icons.verified, color: Colors.white, size: 12),
+                                const SizedBox(width: 4),
                                 Text(
-                                  'Verified FPO Godown',
-                                  style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                  context.tr('Verified FPO Godown', 'सत्यापित एफपीओ गोदाम'),
+                                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
@@ -1806,9 +1850,9 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Direct Lot Rate', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                                    Text(context.tr('Direct Lot Rate', 'प्रत्यक्ष लॉट दर'), style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
                                     Text(
-                                      '₹${price.toStringAsFixed(0)}/Qtl',
+                                      '₹${price.toStringAsFixed(0)}/${context.tr('Qtl', 'क्विंटल')}',
                                       style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF15803D)),
                                     ),
                                   ],
@@ -1816,9 +1860,9 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    const Text('Available Stock', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                                    Text(context.tr('Available Stock', 'उपलब्ध स्टॉक'), style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
                                     Text(
-                                      '${qty.toStringAsFixed(0)} Qtl',
+                                      '${qty.toStringAsFixed(0)} ${context.tr('Qtl', 'क्विंटल')}',
                                       style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
                                     ),
                                   ],
@@ -1826,7 +1870,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    const Text('Moisture Level', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                                    Text(context.tr('Moisture Level', 'नमी स्तर'), style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
                                     Text(
                                       moisture,
                                       style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0284C7)),
@@ -1840,7 +1884,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
 
                           // Commodity & Silo details
                           Text(
-                            '$commodity • $variety',
+                            '${_getCropLabel(context, commodity)} • $variety',
                             style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF334155)),
                           ),
                           Text(
@@ -1857,7 +1901,10 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                                 child: ElevatedButton.icon(
                                   onPressed: () => _openLotPassportModal(lot),
                                   icon: const Icon(Icons.verified_outlined, size: 15),
-                                  label: Text('Inspect Passport (${qty.toInt()} Qtl)', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                  label: Text(
+                                    '${context.tr('Inspect Passport', 'पासपोर्ट जांचें')} (${qty.toInt()} ${context.tr('Qtl', 'क्विंटल')})',
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                  ),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF15803D),
                                     foregroundColor: Colors.white,
@@ -1880,7 +1927,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                                     variety: variety,
                                   ),
                                   icon: const Icon(Icons.tune, size: 14),
-                                  label: const Text('Custom Qty', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                  label: Text(context.tr('Custom Qty', 'कस्टम मात्रा'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: const Color(0xFF15803D),
                                     side: const BorderSide(color: Color(0xFF15803D)),
@@ -1952,12 +1999,15 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
           Icon(Icons.inventory_2_outlined, size: 52, color: Colors.grey.shade400),
           const SizedBox(height: 14),
           Text(
-            'No Active FPO Supply Lots',
+            context.tr('No Active FPO Supply Lots', 'कोई सक्रिय एफपीओ लॉट नहीं'),
             style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
           ),
           const SizedBox(height: 6),
           Text(
-            'No verified FPO warehouse stock currently listed for this selection. FPOs list lots directly from their silos, or you can broadcast an institutional RFQ to invite bids.',
+            context.tr(
+              'No verified FPO warehouse stock currently listed for this selection. FPOs list lots directly from their silos, or you can broadcast an institutional RFQ to invite bids.',
+              'वर्तमान चयन के लिए कोई सत्यापित एफपीओ गोदाम स्टॉक सूचीबद्ध नहीं है। आप बोली आमंत्रित करने के लिए आरएफक्यू जारी कर सकते हैं।',
+            ),
             style: GoogleFonts.inter(fontSize: 12, color: Colors.grey.shade600),
             textAlign: TextAlign.center,
           ),
@@ -1970,7 +2020,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
               });
             },
             icon: const Icon(Icons.refresh, size: 16),
-            label: const Text('Reset Search Filters'),
+            label: Text(context.tr('Reset Search Filters', 'फ़िल्टर रीसेट करें')),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF15803D),
               foregroundColor: Colors.white,
@@ -2043,7 +2093,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Variable Order Quantity Slider',
+                      context.tr('Variable Order Quantity Slider', 'परिवर्तनीय ऑर्डर मात्रा'),
                       style: GoogleFonts.outfit(fontSize: 17, fontWeight: FontWeight.bold, color: const Color(0xFF15803D)),
                     ),
                     Container(
@@ -2052,19 +2102,24 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                         color: const Color(0xFF15803D).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Text('Available: ${availableQtl.toStringAsFixed(0)} Qtl',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D))),
+                      child: Text(
+                        '${context.tr('Available', 'उपलब्ध')}: ${availableQtl.toStringAsFixed(0)} ${context.tr('Qtl', 'क्विंटल')}',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text('$commodity • Seller: $sellerName', style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                Text(
+                  '${_getCropLabel(context, commodity)} • ${context.tr('Seller', 'विक्रेता')}: $sellerName',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                ),
                 const Divider(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Required Volume:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                    Text('${selectedQtl.toStringAsFixed(0)} Qtl',
+                    Text(context.tr('Required Volume:', 'आवश्यक मात्रा:'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text('${selectedQtl.toStringAsFixed(0)} ${context.tr('Qtl', 'क्विंटल')}',
                         style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w900, color: const Color(0xFF15803D))),
                   ],
                 ),
@@ -2074,7 +2129,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                   max: availableQtl,
                   divisions: ((availableQtl - 50.0) / 10.0).round().clamp(1, 100),
                   activeColor: const Color(0xFF15803D),
-                  label: '${selectedQtl.toStringAsFixed(0)} Qtl',
+                  label: '${selectedQtl.toStringAsFixed(0)} ${context.tr('Qtl', 'क्विंटल')}',
                   onChanged: (v) {
                     setModalState(() => selectedQtl = v);
                   },
@@ -2089,8 +2144,10 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Base Commodity Cost (@ ₹${ratePerQtl.toStringAsFixed(0)}/Qtl):',
-                          style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                      Text(
+                        '${context.tr('Base Commodity Cost', 'मूल फसल लागत')} (@ ₹${ratePerQtl.toStringAsFixed(0)}/${context.tr('Qtl', 'क्विंटल')}):',
+                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
                       Text('₹${cropTotal.toStringAsFixed(0)}',
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF15803D))),
                     ],
@@ -2121,7 +2178,10 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Proceed to 7-Carrier Freight & Escrow Lock', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(
+                      context.tr('Proceed to 7-Carrier Freight & Escrow Lock', '7-कैरियर फ्रेट और एस्क्रो लॉक के लिए आगे बढ़ें'),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ],
@@ -2177,9 +2237,9 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Advanced Supply Filters', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(context.tr('Advanced Supply Filters', 'उन्नत आपूर्ति फ़िल्टर'), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
             const Divider(height: 20),
-            const Text('Cluster Radius Limit', style: TextStyle(fontWeight: FontWeight.w600)),
+            Text(context.tr('Cluster Radius Limit', 'क्लस्टर दायरा सीमा'), style: const TextStyle(fontWeight: FontWeight.w600)),
             Slider(
               value: _maxDistanceKm,
               min: 5,
@@ -2189,14 +2249,18 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
               label: '${_maxDistanceKm.toInt()} km',
               onChanged: (v) => setState(() => _maxDistanceKm = v),
             ),
-            Center(child: Text('Current Max Distance: ${_maxDistanceKm.toInt()} km')),
+            Center(
+              child: Text(
+                '${context.tr('Current Max Distance', 'वर्तमान अधिकतम दूरी')}: ${_maxDistanceKm.toInt()} ${context.tr('km', 'किमी')}',
+              ),
+            ),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF15803D), foregroundColor: Colors.white),
-                child: const Text('Apply Filters'),
+                child: Text(context.tr('Apply Filters', 'फ़िल्टर लागू करें')),
               ),
             ),
           ],

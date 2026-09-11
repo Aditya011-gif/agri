@@ -7,6 +7,8 @@ import '../../services/smart_contract_pdf_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../utils/crop_image_helper.dart';
+import '../../utils/translation_helper.dart';
+import '../../widgets/language_switcher.dart';
 import 'fpo_order_shipment_screen.dart';
 import '../bulk_buyer/b2b_contract_screen.dart';
 
@@ -56,8 +58,14 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
           backgroundColor: AppTheme.backgroundGreen,
           body: NestedScrollView(
             headerSliverBuilder: (context, innerBoxIsScrolled) => [
-              const CustomAppBar(
-                title: 'Bulk Buyer Orders',
+              CustomAppBar(
+                title: context.tr('Bulk Buyer Orders', 'थोक खरीदार ऑर्डर'),
+                actions: const [
+                  Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: Center(child: LanguageSwitcherPill(isDark: true)),
+                  ),
+                ],
               ),
               SliverToBoxAdapter(
                 child: Padding(
@@ -85,15 +93,15 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
                           tabs: [
                             Tab(
                               icon: const Icon(Icons.groups_outlined, size: 18),
-                              text: 'Multi-FPO Pooled (${multiOrders.length})',
+                              text: '${context.tr('Multi-FPO Pooled', 'मल्टी-एफपीओ पूल्ड')} (${multiOrders.length})',
                             ),
                             Tab(
                               icon: const Icon(Icons.store_outlined, size: 18),
-                              text: 'Direct (${directOrders.length})',
+                              text: '${context.tr('Direct', 'प्रत्यक्ष')} (${directOrders.length})',
                             ),
-                            const Tab(
-                              icon: Icon(Icons.campaign_outlined, size: 18),
-                              text: 'Buyer Demands (मांगें)',
+                            Tab(
+                              icon: const Icon(Icons.campaign_outlined, size: 18),
+                              text: context.tr('Buyer Demands', 'खरीदार मांगें'),
                             ),
                           ],
                         ),
@@ -144,7 +152,7 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Active Commercial Orders',
+                    context.tr('Active Commercial Orders', 'सक्रिय वाणिज्यिक ऑर्डर'),
                     style: GoogleFonts.outfit(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -152,7 +160,10 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
                     ),
                   ),
                   Text(
-                    '$multiCount Shared Pooled • $directCount Direct Orders',
+                    context.tr(
+                      '$multiCount Shared Pooled • $directCount Direct Orders',
+                      '$multiCount साझा पूल्ड • $directCount प्रत्यक्ष ऑर्डर',
+                    ),
                     style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                   ),
                 ],
@@ -166,9 +177,9 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: const Color(0xFFBBF7D0)),
             ),
-            child: const Text(
-              'Escrow Verified',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+            child: Text(
+              context.tr('Escrow Verified', 'एस्क्रो सत्यापित'),
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
             ),
           ),
         ],
@@ -200,7 +211,7 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
               ),
               const SizedBox(height: 18),
               Text(
-                'No Multi-FPO Clusters Active',
+                context.tr('No Multi-FPO Clusters Active', 'कोई मल्टी-एफपीओ क्लस्टर सक्रिय नहीं'),
                 style: GoogleFonts.outfit(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -208,10 +219,13 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'There are currently no multi-FPO pooled cluster tenders. When large institutional buyers place orders pooled across multiple neighboring FPOs, they will appear here.',
+              Text(
+                context.tr(
+                  'There are currently no multi-FPO pooled cluster tenders. When large institutional buyers place orders pooled across multiple neighboring FPOs, they will appear here.',
+                  'वर्तमान में कोई मल्टी-एफपीओ पूल्ड क्लस्टर टेंडर सक्रिय नहीं है। जब बड़े खरीदार आसपास के कई एफपीओ से संयुक्त ऑर्डर देंगे, तो वे यहां दिखाई देंगे।',
+                ),
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 13,
                   color: AppTheme.textSecondary,
                   height: 1.4,
@@ -221,7 +235,7 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
               ElevatedButton.icon(
                 onPressed: () => _tabController.animateTo(1),
                 icon: const Icon(Icons.store_outlined, size: 18),
-                label: const Text('View Single FPO Direct Orders'),
+                label: Text(context.tr('View Single FPO Direct Orders', 'प्रत्यक्ष एफपीओ ऑर्डर देखें')),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1B5E20),
                   foregroundColor: Colors.white,
@@ -249,14 +263,17 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: const Color(0xFFA7F3D0)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.info_outline, color: Color(0xFF047857), size: 20),
-                SizedBox(width: 10),
+                const Icon(Icons.info_outline, color: Color(0xFF047857), size: 20),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Shared Bulk Order: Multiple nearby FPOs combine stock to satisfy a large institutional requirement.',
-                    style: TextStyle(fontSize: 11.5, color: Color(0xFF065F46)),
+                    context.tr(
+                      'Shared Bulk Order: Multiple nearby FPOs combine stock to satisfy a large institutional requirement.',
+                      'साझा थोक ऑर्डर: आसपास के कई एफपीओ बड़ी संस्थागत मांग पूरी करने के लिए स्टॉक मिलाते हैं।',
+                    ),
+                    style: const TextStyle(fontSize: 11.5, color: Color(0xFF065F46)),
                   ),
                 ),
               ],
@@ -807,19 +824,22 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
                 color: AppTheme.textSecondary.withValues(alpha: 0.4),
               ),
               const SizedBox(height: 14),
-              const Text(
-                'No Direct Orders Yet',
-                style: TextStyle(
+              Text(
+                context.tr('No Direct Orders Yet', 'कोई प्रत्यक्ष ऑर्डर नहीं'),
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.textPrimary,
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
-                'Direct commercial purchase orders issued to your FPO by millers and institutional buyers will appear here.',
+              Text(
+                context.tr(
+                  'Direct commercial purchase orders issued to your FPO by millers and institutional buyers will appear here.',
+                  'मिलर्स और बड़े खरीदारों द्वारा आपकी एफपीओ को दिए गए प्रत्यक्ष खरीद ऑर्डर यहां दिखाई देंगे।',
+                ),
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 13,
                   color: AppTheme.textSecondary,
                 ),
@@ -895,7 +915,13 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
                     border: Border.all(color: statusColor.withValues(alpha: 0.3)),
                   ),
                   child: Text(
-                    status,
+                    status == 'Active'
+                        ? context.tr('Active', 'सक्रिय')
+                        : (status.toLowerCase().contains('transit')
+                            ? context.tr('In Transit', 'मार्ग में')
+                            : (status.toLowerCase().contains('delivered')
+                                ? context.tr('Delivered', 'वितरित')
+                                : status)),
                     style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: statusColor),
                   ),
                 ),
@@ -931,7 +957,7 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
                       style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF2E7D32)),
                     ),
                     Text(
-                      '${qtyQtl.toStringAsFixed(0)} Qtl',
+                      '${qtyQtl.toStringAsFixed(0)} ${context.tr("Qtl", "क्विंटल")}',
                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
                     ),
                   ],
@@ -953,7 +979,7 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'Origin: $silo • Dest: $destination',
+                      '${context.tr("Origin", "स्रोत")}: $silo • ${context.tr("Dest", "गंतव्य")}: $destination',
                       style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                     ),
                   ),
@@ -976,7 +1002,7 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
                       );
                     },
                     icon: const Icon(Icons.description_outlined, size: 14),
-                    label: const Text('Contract', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                    label: Text(context.tr('Contract', 'अनुबंध'), style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFF2E7D32),
                       side: const BorderSide(color: Color(0xFF2E7D32)),
@@ -987,7 +1013,7 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
                 ),
                 const SizedBox(width: 8),
                 Tooltip(
-                  message: 'Download Smart Contract PDF',
+                  message: context.tr('Download Smart Contract PDF', 'स्मार्ट अनुबंध PDF डाउनलोड करें'),
                   child: InkWell(
                     onTap: () async {
                       final contract = await _dbService.getB2bContract(id);
@@ -1035,7 +1061,7 @@ class _FpoOrdersScreenState extends State<FpoOrdersScreen>
                       );
                     },
                     icon: const Icon(Icons.local_shipping, size: 15),
-                    label: const Text('Track & Gate Pass', style: TextStyle(fontSize: 11.5)),
+                    label: Text(context.tr('Track & Gate Pass', 'ट्रैक व गेट पास'), style: const TextStyle(fontSize: 11.5)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2E7D32),
                       foregroundColor: Colors.white,

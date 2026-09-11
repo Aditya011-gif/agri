@@ -10,6 +10,8 @@ import '../../models/crop_benchmark_model.dart';
 import '../../services/fpo_inventory_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/custom_app_bar.dart';
+import '../../widgets/language_switcher.dart';
+import '../../utils/translation_helper.dart';
 
 /// Screen: Publish Commercial Bulk Crop Listing
 /// Tailored specifically for FPO B2B wholesale warehouse inventory with
@@ -380,8 +382,14 @@ class _FpoAddCropScreenState extends State<FpoAddCropScreen> {
       backgroundColor: AppTheme.backgroundGreen,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          const CustomAppBar(
-            title: 'Publish Bulk Listing',
+          CustomAppBar(
+            title: context.tr('Publish Bulk Listing', 'थोक लॉट प्रकाशित करें'),
+            actions: const [
+              Padding(
+                padding: EdgeInsets.only(right: 8),
+                child: Center(child: LanguageSwitcherPill(isDark: true)),
+              ),
+            ],
           ),
         ],
         body: Form(
@@ -1314,6 +1322,46 @@ class _FpoAddCropScreenState extends State<FpoAddCropScreen> {
                       ),
                     ),
                   ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Informational Guide: Quantity Distribution Basis & DBT Escrow Mechanism
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline, color: Color(0xFF1D4ED8), size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'किसान स्टॉक वितरण व भुगतान का आधार (Distribution Basis)',
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: const Color(0xFF1E3A8A),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '1. तौल पर्ची आधार: प्रत्येक किसान द्वारा एफपीओ गोदाम में जमा वास्तविक इनवर्ड रसीद (Weighbridge Deposit Receipt) के आधार पर मात्रा तय होती है।\n'
+                        '2. 100% आनुपातिक मिलान: घोषित कुल बल्क लॉट का 100% सदस्य किसानों से जुड़ा होना अनिवार्य है (Auto-Balance बटन से स्वतः संतुलित करें)।\n'
+                        '3. प्रत्यक्ष DBT बैंक ट्रांसफर: खरीदार द्वारा डिलीवरी स्वीकारने पर स्मार्ट एस्क्रो (Schedule I) सीधे प्रत्येक किसान के खाते में बिना बिचौलिए के भुगतान करता है।',
+                        style: const TextStyle(fontSize: 11, color: Color(0xFF1E40AF), height: 1.35),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

@@ -4,8 +4,12 @@ import '../../theme/app_theme.dart';
 import '../../services/database_service.dart';
 import '../../services/smart_contract_pdf_service.dart';
 import '../../widgets/custom_app_bar.dart';
+import '../../widgets/language_switcher.dart';
+import '../../utils/translation_helper.dart';
 import '../fpo/fpo_order_shipment_screen.dart';
 import 'b2b_contract_screen.dart';
+import '../retail_buyer/rating_screen.dart';
+import '../../models/firestore_models.dart';
 
 class BulkBuyerOrdersScreen extends StatefulWidget {
   const BulkBuyerOrdersScreen({super.key});
@@ -52,8 +56,14 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
       backgroundColor: AppTheme.background,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          const CustomAppBar(
-            title: 'Procurement Orders',
+          CustomAppBar(
+            title: context.tr('Procurement Orders', 'थोक खरीद ऑर्डर'),
+            actions: const [
+              Padding(
+                padding: EdgeInsets.only(right: 8),
+                child: Center(child: LanguageSwitcherPill(isDark: true)),
+              ),
+            ],
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -77,7 +87,13 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
                       indicatorColor: AppTheme.primaryColor,
                       indicatorWeight: 3,
                       labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                      tabs: _tabs.map((t) => Tab(text: t)).toList(),
+                      tabs: [
+                        Tab(text: context.tr('Active', 'सक्रिय')),
+                        Tab(text: context.tr('In Transit', 'मार्ग में')),
+                        Tab(text: context.tr('Inspection', 'निरीक्षण')),
+                        Tab(text: context.tr('Completed', 'पूर्ण')),
+                        Tab(text: context.tr('Disputed', 'विवादित')),
+                      ],
                     ),
                   ),
                 ],
@@ -118,25 +134,25 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
             child: const Icon(Icons.shield_outlined, color: Colors.white, size: 24),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '100% Escrow & Quality Gate',
-                  style: TextStyle(
+                  context.tr('100% Escrow & Quality Gate', '100% एस्क्रो व गुणवत्ता सुरक्षा'),
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                     color: Color(0xFF1B5E20),
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'Institutional buyer funds remain in secure tripartite escrow until final weighbridge and NABL lab moisture inspection.',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF388E3C),
+                  context.tr(
+                    'Funds are held safely in escrow until you inspect and approve the grain lot at destination.',
+                    'गंतव्य पर अनाज लॉट का निरीक्षण व सत्यापन होने तक भुगतान एस्क्रो में सुरक्षित रहता है।',
                   ),
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF2E7D32), height: 1.3),
                 ),
               ],
             ),
@@ -189,7 +205,7 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'No ${statusFilter.replaceAll('_', ' ')} Orders',
+                    context.tr('No Orders in this category', 'इस श्रेणी में कोई ऑर्डर नहीं है'),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -197,10 +213,13 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Confirmed purchase orders with live shipment tracking will appear here.',
+                  Text(
+                    context.tr(
+                      'Confirmed purchase orders with live shipment tracking will appear here.',
+                      'लाइव शिपमेंट ट्रैकिंग के साथ पुष्ट खरीद ऑर्डर यहां दिखाई देंगे।',
+                    ),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 13,
                       color: AppTheme.textSecondary,
                     ),
@@ -269,7 +288,7 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '#$orderId • ${totalQtl > 0 ? totalQtl.toStringAsFixed(0) : '3,000'} Qtl $commodity',
+                        '#$orderId • ${totalQtl > 0 ? totalQtl.toStringAsFixed(0) : '3,000'} ${context.tr('Qtl', 'क्विंटल')} $commodity',
                         style: GoogleFonts.outfit(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -298,7 +317,9 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    status == 'in_transit' ? 'IN TRANSIT' : status.toUpperCase(),
+                    status == 'in_transit'
+                        ? context.tr('IN TRANSIT', 'मार्ग में')
+                        : (status == 'completed' ? context.tr('COMPLETED', 'पूर्ण') : status.toUpperCase()),
                     style: TextStyle(
                       color: status == 'completed'
                           ? const Color(0xFF2E7D32)
@@ -314,7 +335,6 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
         ),
 
         Padding(
-
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,12 +346,12 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Total Purchase Value',
-                          style: TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                        Text(
+                          context.tr('Total Purchase Value', 'कुल खरीद मूल्य'),
+                          style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
                         ),
                         Text(
-                          '₹${(totalAmount / 100000).toStringAsFixed(2)} Lakh',
+                          '₹${(totalAmount / 100000).toStringAsFixed(2)} ${context.tr('Lakh', 'लाख')}',
                           style: GoogleFonts.outfit(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -379,7 +399,7 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Shipment ETA: $eta (3 Heavy Trucks Fleet)',
+                          '${context.tr('Shipment ETA', 'आगमन अनुमान')}: $eta (${context.tr('3 Heavy Trucks Fleet', '3 भारी ट्रकों का बेड़ा')})',
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -395,9 +415,9 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
 
                 // Multi-FPO Allocation Checklist
                 if (isMultiFpo || allocations.isNotEmpty) ...[
-                  const Text(
-                    'Multi-FPO Cluster Allocation & Dispatch Status:',
-                    style: TextStyle(
+                  Text(
+                    context.tr('Multi-FPO Cluster Allocation & Dispatch Status:', 'मल्टी-एफपीओ क्लस्टर आवंटन और प्रेषण स्थिति:'),
+                    style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                       color: AppTheme.textSecondary,
@@ -435,7 +455,7 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
                                       ),
                                     ),
                                     Text(
-                                      '${qtyVal.toStringAsFixed(0)} Qtl ${isDone ? '✓' : '→'}',
+                                      '${qtyVal.toStringAsFixed(0)} ${context.tr('Qtl', 'क्विंटल')} ${isDone ? '✓' : '→'}',
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
@@ -447,9 +467,9 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
                               );
                             }).toList()
                           : [
-                              _buildStaticAllocationItem('Karnal Agro Producer Co.', '1,200 Qtl', true),
-                              _buildStaticAllocationItem('Taraori Kisan Producer Co.', '1,000 Qtl', true),
-                              _buildStaticAllocationItem('Gharaunda Farmers Producer Co.', '800 Qtl', false),
+                              _buildStaticAllocationItem('Karnal Agro Producer Co.', '1,200 ${context.tr('Qtl', 'क्विंटल')}', true),
+                              _buildStaticAllocationItem('Taraori Kisan Producer Co.', '1,000 ${context.tr('Qtl', 'क्विंटल')}', true),
+                              _buildStaticAllocationItem('Gharaunda Farmers Producer Co.', '800 ${context.tr('Qtl', 'क्विंटल')}', false),
                             ],
                     ),
                   ),
@@ -470,7 +490,7 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
                           );
                         },
                         icon: const Icon(Icons.description_outlined, size: 14),
-                        label: const Text('Contract', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                        label: Text(context.tr('Contract', 'अनुबंध'), style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF1565C0),
                           side: const BorderSide(color: Color(0xFF1565C0)),
@@ -516,7 +536,7 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
                       child: ElevatedButton.icon(
                         onPressed: () => _showTrackingDetailsModal(order),
                         icon: const Icon(Icons.navigation_outlined, size: 14),
-                        label: const Text('Track Fleet', style: TextStyle(fontSize: 11.5)),
+                        label: Text(context.tr('Track Fleet', 'फ्लीट ट्रैक करें'), style: const TextStyle(fontSize: 11.5)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1565C0),
                           foregroundColor: Colors.white,
@@ -531,9 +551,36 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
                         child: ElevatedButton.icon(
                           onPressed: () => _confirmReleaseEscrow(orderId, fpoName, totalAmount),
                           icon: const Icon(Icons.check_circle_outline, size: 14),
-                          label: const Text('Release Payout', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                          label: Text(context.tr('Release Payout', 'भुगतान जारी करें'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF2E7D32),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 11),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => GiveRatingScreen(
+                                  toUserId: (order['fpoId'] ?? 'fpo_karnal').toString(),
+                                  toUserName: fpoName,
+                                  ratingType: RatingType.seller,
+                                  transactionId: orderId.toString(),
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.star, size: 14),
+                          label: Text(context.tr('Rate FPO', 'रेटिंग दें'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.amber.shade700,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 11),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -606,20 +653,23 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: Text('Order #$orderId Details & Escrow'),
-        content: const SingleChildScrollView(
+        title: Text('${context.tr('Order', 'ऑर्डर')} #$orderId ${context.tr('Details & Escrow', 'विवरण और एस्क्रो')}'),
+        content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('• Escrow Account: Axis Tripartite #9921'),
-              Text('• Weighbridge Pass: Digital Fastag Verified'),
-              Text('• Moisture Level: 11.2% (Target < 12.0%)'),
-              Text('• Tax Invoice: Form GST B2B #INV-4921'),
-              SizedBox(height: 12),
+              Text(dialogCtx.tr('• Escrow Account: Axis Tripartite #9921', '• एस्क्रो खाता: एक्सिस त्रिपक्षीय #9921')),
+              Text(dialogCtx.tr('• Weighbridge Pass: Digital Fastag Verified', '• वेब्रिज पास: डिजिटल फास्टैग सत्यापित')),
+              Text(dialogCtx.tr('• Moisture Level: 11.2% (Target < 12.0%)', '• नमी स्तर: 11.2% (लक्ष्य < 12.0%)')),
+              Text(dialogCtx.tr('• Tax Invoice: Form GST B2B #INV-4921', '• कर चालान: फॉर्म जीएसटी बी2बी #INV-4921')),
+              const SizedBox(height: 12),
               Text(
-                'Funds are automatically released to FPO bank accounts upon factory gate moisture & weighbridge clearance.',
-                style: TextStyle(fontSize: 11, color: Colors.grey),
+                dialogCtx.tr(
+                  'Funds are automatically released to FPO bank accounts upon factory gate moisture & weighbridge clearance.',
+                  'फैक्ट्री गेट पर नमी और वेब्रिज क्लीयरेंस के बाद धनराशि स्वचालित रूप से एफपीओ बैंक खातों में जारी कर दी जाती है।',
+                ),
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
               ),
             ],
           ),
@@ -643,21 +693,21 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
               }
             },
             icon: const Icon(Icons.picture_as_pdf, size: 16),
-            label: const Text('Contract PDF'),
+            label: Text(dialogCtx.tr('Contract PDF', 'अनुबंध पीडीएफ')),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(dialogCtx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Dispute Ticket Raised for Quality Inspection.')),
+                SnackBar(content: Text(context.tr('Dispute Ticket Raised for Quality Inspection.', 'गुणवत्ता निरीक्षण के लिए विवाद टिकट दर्ज किया गया।'))),
               );
             },
-            child: const Text('Raise Quality Dispute', style: TextStyle(color: Colors.redAccent)),
+            child: Text(dialogCtx.tr('Raise Quality Dispute', 'गुणवत्ता विवाद दर्ज करें'), style: const TextStyle(color: Colors.redAccent)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogCtx),
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white),
-            child: const Text('Close'),
+            child: Text(dialogCtx.tr('Close', 'बंद करें')),
           ),
         ],
       ),
@@ -673,30 +723,33 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
           children: [
             const Icon(Icons.verified, color: Color(0xFF2E7D32), size: 24),
             const SizedBox(width: 8),
-            Text('Release Escrow Payout', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(ctx.tr('Release Escrow Payout', 'एस्क्रो भुगतान जारी करें'), style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Order: #$orderId', style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold)),
+            Text('${ctx.tr('Order', 'ऑर्डर')}: #$orderId', style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
-            Text('Beneficiary FPO: $fpoName', style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
+            Text('${ctx.tr('Beneficiary FPO', 'लाभार्थी एफपीओ')}: $fpoName', style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
             const SizedBox(height: 6),
             Text(
-              'Payout Amount: ₹${amount.toStringAsFixed(0)}',
+              '${ctx.tr('Payout Amount', 'भुगतान राशि')}: ₹${amount.toStringAsFixed(0)}',
               style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF2E7D32)),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'By authorizing release, you certify that computerized weighbridge slips and NABL assay quality checks are satisfied. Funds will be directly credited to the FPO account via RTGS.',
-              style: TextStyle(fontSize: 11, color: Color(0xFF64748B), height: 1.4),
+            Text(
+              ctx.tr(
+                'By authorizing release, you certify that computerized weighbridge slips and NABL assay quality checks are satisfied. Funds will be directly credited to the FPO account via RTGS.',
+                'भुगतान की अनुमति देकर आप प्रमाणित करते हैं कि वेब्रिज पर्चियां और एनएबीएल परीक्षण गुणवत्ता जांच संतुष्ट हैं। राशि आरटीजीएस द्वारा सीधे एफपीओ खाते में जमा की जाएगी।',
+              ),
+              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), height: 1.4),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ctx.tr('Cancel', 'रद्द करें'))),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
@@ -705,14 +758,14 @@ class _BulkBuyerOrdersScreenState extends State<BulkBuyerOrdersScreen>
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('✅ Escrow Released! ₹${amount.toStringAsFixed(0)} credited to $fpoName (UTR: $utr)'),
+                    content: Text('✅ ${context.tr('Escrow Released!', 'एस्क्रो जारी!')} ₹${amount.toStringAsFixed(0)} credited to $fpoName (UTR: $utr)'),
                     backgroundColor: const Color(0xFF2E7D32),
                   ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
-            child: const Text('Confirm Release Payout', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(ctx.tr('Confirm Release Payout', 'भुगतान जारी करने की पुष्टि करें'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../services/database_service.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/translation_helper.dart';
+import '../../widgets/language_switcher.dart';
 
 /// Screen 4: FPO Earnings & Confirmed Settlements Passbook
 /// Clean, simple passbook matching the Farmer app, showing exactly how much
@@ -88,7 +90,7 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Earnings & Settlements',
+                  context.tr('Earnings & Settlements', 'आय व भुगतान (पेआउट)'),
                   style: GoogleFonts.outfit(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
@@ -96,7 +98,10 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
                   ),
                 ),
                 Text(
-                  'Direct Commercial Bank Credits • Smart Escrow Passbook',
+                  context.tr(
+                    'Direct Commercial Bank Credits • Smart Escrow Passbook',
+                    'सीधा व्यावसायिक बैंक भुगतान • स्मार्ट एस्क्रो पासबुक',
+                  ),
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     color: Colors.grey.shade600,
@@ -104,6 +109,10 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
                 ),
               ],
             ),
+            actions: const [
+              LanguageSwitcherPill(isDark: false),
+              SizedBox(width: 8),
+            ],
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
@@ -123,7 +132,7 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Settlement Passbook',
+                      context.tr('Settlement Passbook', 'भुगतान पासबुक'),
                       style: GoogleFonts.outfit(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -133,10 +142,15 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
                     Row(
                       children: ['All', 'Confirmed', 'In Escrow'].map((filter) {
                         final isSel = _selectedFilter == filter;
+                        final filterDisplay = filter == 'All'
+                            ? context.tr('All', 'सभी')
+                            : (filter == 'Confirmed'
+                                ? context.tr('Confirmed', 'पुष्ट')
+                                : context.tr('In Escrow', 'एस्क्रो में'));
                         return Padding(
                           padding: const EdgeInsets.only(left: 6),
                           child: ChoiceChip(
-                            label: Text(filter),
+                            label: Text(filterDisplay),
                             selected: isSel,
                             selectedColor: const Color(0xFF2E7D32),
                             backgroundColor: Colors.white,
@@ -174,19 +188,22 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
                           color: AppTheme.textSecondary.withValues(alpha: 0.4),
                         ),
                         const SizedBox(height: 12),
-                        const Text(
-                          'No Settlements Yet',
-                          style: TextStyle(
+                        Text(
+                          context.tr('No Settlements Yet', 'कोई भुगतान रिकॉर्ड नहीं'),
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: AppTheme.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 6),
-                        const Text(
-                          'Commercial payouts and escrow releases from completed bulk orders will credit your verified bank account and appear here.',
+                        Text(
+                          context.tr(
+                            'Commercial payouts and escrow releases from completed bulk orders will credit your verified bank account and appear here.',
+                            'पूर्ण थोक ऑर्डर से व्यावसायिक भुगतान व एस्क्रो रिलीज़ आपके सत्यापित बैंक खाते में जमा होकर यहां दिखाई देंगे।',
+                          ),
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 13,
                             color: AppTheme.textSecondary,
                           ),
@@ -222,9 +239,9 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Total Confirmed Earnings',
-                style: TextStyle(color: Colors.white70, fontSize: 12.5, fontWeight: FontWeight.w500),
+              Text(
+                context.tr('Total Confirmed Earnings', 'कुल पुष्ट आय'),
+                style: const TextStyle(color: Colors.white70, fontSize: 12.5, fontWeight: FontWeight.w500),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -232,13 +249,13 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.verified, size: 12, color: Color(0xFF69F0AE)),
-                    SizedBox(width: 4),
+                    const Icon(Icons.verified, size: 12, color: Color(0xFF69F0AE)),
+                    const SizedBox(width: 4),
                     Text(
-                      '100% Tax-Exempt Sec 10(1)',
-                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      context.tr('100% Tax-Exempt Sec 10(1)', '100% कर-मुक्त धारा 10(1)'),
+                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -247,7 +264,7 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            '₹${(confirmed / 100000).toStringAsFixed(2)} Lakhs',
+            '₹${(confirmed / 100000).toStringAsFixed(2)} ${context.tr("Lakhs", "लाख")}',
             style: GoogleFonts.outfit(
               fontSize: 32,
               fontWeight: FontWeight.bold,
@@ -256,7 +273,7 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
             ),
           ),
           Text(
-            'Exact: ₹${confirmed.toStringAsFixed(0)} credited directly to bank account',
+            '${context.tr("Exact", "वास्तविक")}: ₹${confirmed.toStringAsFixed(0)} ${context.tr("credited directly to bank account", "सीधे बैंक खाते में जमा")}',
             style: const TextStyle(color: Colors.white70, fontSize: 11),
           ),
           const Divider(height: 24, color: Colors.white24),
@@ -266,10 +283,10 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Active in Escrow', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    Text(context.tr('Active in Escrow', 'एस्क्रो में सक्रिय'), style: const TextStyle(color: Colors.white70, fontSize: 11)),
                     const SizedBox(height: 2),
                     Text(
-                      '₹${(inEscrow / 100000).toStringAsFixed(2)} Lakhs',
+                      '₹${(inEscrow / 100000).toStringAsFixed(2)} ${context.tr("Lakhs", "लाख")}',
                       style: const TextStyle(color: Color(0xFFFEF08A), fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -281,11 +298,11 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Settled Orders', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    Text(context.tr('Settled Orders', 'संपन्न ऑर्डर'), style: const TextStyle(color: Colors.white70, fontSize: 11)),
                     const SizedBox(height: 2),
-                    const Text(
-                      '3 Orders Completed',
-                      style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                    Text(
+                      context.tr('3 Orders Completed', '3 ऑर्डर संपन्न'),
+                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -317,21 +334,21 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
             child: const Icon(Icons.account_balance, color: Color(0xFF2E7D32), size: 24),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'State Bank of India (Commercial A/C)',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
+                  context.tr('State Bank of India (Commercial A/C)', 'भारतीय स्टेट बैंक (व्यावसायिक खाता)'),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.textPrimary),
                 ),
                 Text(
-                  'A/C: •••• •••• •••• 2019 • IFSC: SBIN0001824',
-                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                  '${context.tr("A/C", "खाता")}: •••• •••• •••• 2019 • IFSC: SBIN0001824',
+                  style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                 ),
                 Text(
-                  'Auto-credit via NACH / RTGS upon buyer delivery',
-                  style: TextStyle(fontSize: 10.5, color: Color(0xFF15803D), fontWeight: FontWeight.w500),
+                  context.tr('Auto-credit via NACH / RTGS upon buyer delivery', 'खरीदार डिलीवरी पर NACH / RTGS द्वारा स्वतः जमा'),
+                  style: const TextStyle(fontSize: 10.5, color: Color(0xFF15803D), fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -382,7 +399,9 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        item['type'] as String,
+                        item['type'] == 'Multi-FPO Shared Order'
+                            ? context.tr('Multi-FPO Shared Order', 'मल्टी-FPO साझा ऑर्डर')
+                            : context.tr('Single FPO Direct Order', 'प्रत्यक्ष FPO ऑर्डर'),
                         style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                       ),
                     ],
@@ -395,7 +414,9 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
                       border: Border.all(color: statusColor.withValues(alpha: 0.3)),
                     ),
                     child: Text(
-                      item['status'] as String,
+                      isEscrow
+                          ? context.tr('IN ESCROW', 'एस्क्रो में')
+                          : context.tr('CREDITED TO BANK', 'बैंक में जमा'),
                       style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: statusColor),
                     ),
                   ),
@@ -417,7 +438,7 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
                           style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                         ),
                         Text(
-                          '${item['buyer']} • ${((item['yourShareMT'] as double) * 10).toStringAsFixed(0)} Qtl',
+                          '${item['buyer']} • ${((item['yourShareMT'] as double) * 10).toStringAsFixed(0)} ${context.tr("Qtl", "क्विंटल")}',
                           style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                         ),
                       ],
@@ -435,7 +456,9 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
                         ),
                       ),
                       Text(
-                        isEscrow ? 'Awaiting Release' : 'Net Credited',
+                        isEscrow
+                            ? context.tr('Awaiting Release', 'भुगतान प्रतीक्षारत')
+                            : context.tr('Net Credited', 'शुद्ध जमा'),
                         style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
                       ),
                     ],
@@ -459,9 +482,9 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
                     ],
                   ),
                   Row(
-                    children: const [
-                      Text('View Slip', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
-                      Icon(Icons.chevron_right, size: 16, color: Color(0xFF2E7D32)),
+                    children: [
+                      Text(context.tr('View Slip', 'पर्ची देखें'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+                      const Icon(Icons.chevron_right, size: 16, color: Color(0xFF2E7D32)),
                     ],
                   ),
                 ],
@@ -491,32 +514,32 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Settlement Breakdown Slip',
+                    context.tr('Settlement Breakdown Slip', 'भुगतान विवरण पर्ची'),
                     style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
                 ],
               ),
               Text(
-                'Order: ${item['orderId']} • Buyer: ${item['buyer']}',
+                '${context.tr("Order", "ऑर्डर")}: ${item['orderId']} • ${context.tr("Buyer", "खरीदार")}: ${item['buyer']}',
                 style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
               ),
               const Divider(height: 24),
 
-              _buildModalSlipRow('Crop & Weight', '${item['crop']} (${((item['yourShareMT'] as double) * 10).toStringAsFixed(0)} Qtl)'),
-              _buildModalSlipRow('Gross Agreed Value', '₹${(item['grossAmount'] as double).toStringAsFixed(0)}'),
-              _buildModalSlipRow('Freight Deduction', '- ₹${(item['freightDeduction'] as double).toStringAsFixed(0)}', isDeduction: true),
-              _buildModalSlipRow('Mandi Cess (0.5%)', '- ₹${(item['mandiCessDeduction'] as double).toStringAsFixed(0)}', isDeduction: true),
-              _buildModalSlipRow('Platform Tech Fee (0.2%)', '- ₹${(item['platformFee'] as double).toStringAsFixed(0)}', isDeduction: true),
+              _buildModalSlipRow(context.tr('Crop & Weight', 'फसल व वजन'), '${item['crop']} (${((item['yourShareMT'] as double) * 10).toStringAsFixed(0)} ${context.tr("Qtl", "क्विंटल")})'),
+              _buildModalSlipRow(context.tr('Gross Agreed Value', 'सकल तय मूल्य'), '₹${(item['grossAmount'] as double).toStringAsFixed(0)}'),
+              _buildModalSlipRow(context.tr('Freight Deduction', 'मालभाड़ा कटौती'), '- ₹${(item['freightDeduction'] as double).toStringAsFixed(0)}', isDeduction: true),
+              _buildModalSlipRow(context.tr('Mandi Cess (0.5%)', 'मंडी उपकर (0.5%)'), '- ₹${(item['mandiCessDeduction'] as double).toStringAsFixed(0)}', isDeduction: true),
+              _buildModalSlipRow(context.tr('Platform Tech Fee (0.2%)', 'प्लेटफ़ॉर्म तकनीकी शुल्क (0.2%)'), '- ₹${(item['platformFee'] as double).toStringAsFixed(0)}', isDeduction: true),
               const Divider(height: 16),
               _buildModalSlipRow(
-                'Net Credited Payout',
+                context.tr('Net Credited Payout', 'शुद्ध जमा भुगतान'),
                 '₹${(item['netAmount'] as double).toStringAsFixed(0)}',
                 isHighlight: true,
               ),
               const SizedBox(height: 10),
-              _buildModalSlipRow('Settled Into', item['bank'] as String),
-              _buildModalSlipRow('Banking UTR', item['utr'] as String),
+              _buildModalSlipRow(context.tr('Settled Into', 'जमा खाता'), item['bank'] as String),
+              _buildModalSlipRow(context.tr('Banking UTR', 'बैंकिंग यूटीआर'), item['utr'] as String),
               const SizedBox(height: 20),
 
               SizedBox(
@@ -525,14 +548,14 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
                   onPressed: () {
                     Navigator.pop(ctx);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Tax-Exempt Settlement Slip downloaded (PDF).'),
-                        backgroundColor: Color(0xFF2E7D32),
+                      SnackBar(
+                        content: Text(context.tr('Tax-Exempt Settlement Slip downloaded (PDF).', 'कर-मुक्त भुगतान पर्ची PDF डाउनलोड हो गई।')),
+                        backgroundColor: const Color(0xFF2E7D32),
                       ),
                     );
                   },
                   icon: const Icon(Icons.download, size: 16),
-                  label: const Text('Download Commercial Settlement Slip (PDF)'),
+                  label: Text(context.tr('Download Commercial Settlement Slip (PDF)', 'व्यावसायिक भुगतान पर्ची डाउनलोड करें (PDF)')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2E7D32),
                     foregroundColor: Colors.white,

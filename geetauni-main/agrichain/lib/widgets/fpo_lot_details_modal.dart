@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../utils/crop_image_helper.dart';
+import '../utils/translation_helper.dart';
 import '../screens/bulk_buyer/escrow_checkout_screen.dart';
 import '../screens/retail_buyer/retail_checkout_screen.dart';
 
@@ -155,7 +156,10 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Lot Passport downloaded: LOT-${widget.cropName.toUpperCase().replaceAll(' ', '')}-QC.pdf',
+                  context.tr(
+                    'Lot Passport downloaded: LOT-${widget.cropName.toUpperCase().replaceAll(' ', '')}-QC.pdf',
+                    'लॉट पासपोर्ट डाउनलोड किया गया: LOT-${widget.cropName.toUpperCase().replaceAll(' ', '')}-QC.pdf',
+                  ),
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
@@ -178,8 +182,12 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
     final availableValuation = availableQtl * widget.pricePerQtl;
 
     final pricePerKg = widget.pricePerQtl > 300 ? widget.pricePerQtl / 100.0 : widget.pricePerQtl;
-    final priceDisplay = widget.isRetail ? '₹${pricePerKg.toStringAsFixed(0)} / kg' : '₹${widget.pricePerQtl.toStringAsFixed(0)} / Quintal';
-    final subPriceDisplay = widget.isRetail ? '₹${(pricePerKg * 100).toStringAsFixed(0)} / Qtl' : '₹${widget.pricePerMt.toStringAsFixed(0)} / MT';
+    final priceDisplay = widget.isRetail
+        ? '₹${pricePerKg.toStringAsFixed(0)} / ${context.tr('kg', 'किग्रा')}'
+        : '₹${widget.pricePerQtl.toStringAsFixed(0)} / ${context.tr('Quintal', 'क्विंटल')}';
+    final subPriceDisplay = widget.isRetail
+        ? '₹${(pricePerKg * 100).toStringAsFixed(0)} / ${context.tr('Qtl', 'क्विंटल')}'
+        : '₹${widget.pricePerMt.toStringAsFixed(0)} / MT';
 
     return ListView(
       controller: widget.scrollController,
@@ -225,9 +233,9 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Text(
-                      'Warehouse Lot Passport',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+                    Text(
+                      context.tr('Warehouse Lot Passport', 'गोदाम लॉट पासपोर्ट'),
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
                     ),
                   ],
                 ),
@@ -236,7 +244,7 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
             IconButton(
               onPressed: () => Navigator.pop(context),
               icon: const Icon(Icons.close, color: Color(0xFF64748B)),
-              tooltip: 'Close',
+              tooltip: context.tr('Close', 'बंद करें'),
             ),
           ],
         ),
@@ -313,14 +321,14 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
                   color: const Color(0xFF0284C7).withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.auto_awesome, size: 12, color: Colors.white),
-                    SizedBox(width: 4),
+                    const Icon(Icons.auto_awesome, size: 12, color: Colors.white),
+                    const SizedBox(width: 4),
                     Text(
-                      'AI Assayed & Lab Certified',
-                      style: TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.bold),
+                      context.tr('AI Assayed & Lab Certified', 'एआई परीक्षित एवं लैब प्रमाणित'),
+                      style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -391,11 +399,13 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    widget.isRetail ? 'Farm Stock & Lot Availability' : 'Warehouse Stock Allocation',
+                    widget.isRetail
+                        ? context.tr('Farm Stock & Lot Availability', 'फार्म स्टॉक एवं लॉट उपलब्धता')
+                        : context.tr('Warehouse Stock Allocation', 'गोदाम स्टॉक आवंटन'),
                     style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   Text(
-                    'Avail: ₹${(availableValuation / 100000).toStringAsFixed(2)}L • Total: ₹${(totalValuation / 100000).toStringAsFixed(2)}L',
+                    '${context.tr('Avail', 'उपलब्ध')}: ₹${(availableValuation / 100000).toStringAsFixed(2)}L • ${context.tr('Total', 'कुल')}: ₹${(totalValuation / 100000).toStringAsFixed(2)}L',
                     style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF0284C7)),
                   ),
                 ],
@@ -426,24 +436,24 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _buildTonnageTile(
-                    widget.isRetail ? 'Total Farm Lot' : 'Total In Silo',
-                    widget.isRetail ? '${(widget.totalMt * 1000).toStringAsFixed(0)} kg' : '${totalQtl.toStringAsFixed(0)} Qtl',
+                    widget.isRetail ? context.tr('Total Farm Lot', 'कुल फार्म लॉट') : context.tr('Total In Silo', 'साइलो में कुल'),
+                    widget.isRetail ? '${(widget.totalMt * 1000).toStringAsFixed(0)} ${context.tr('kg', 'किग्रा')}' : '${totalQtl.toStringAsFixed(0)} ${context.tr('Qtl', 'क्विंटल')}',
                     const Color(0xFF0F172A),
-                    'Physical Stock',
+                    context.tr('Physical Stock', 'भौतिक स्टॉक'),
                   ),
                   Container(width: 1, height: 32, color: Colors.grey.shade300),
                   _buildTonnageTile(
-                    widget.isRetail ? 'Available to Order' : 'Available to Contract',
-                    widget.isRetail ? '${(widget.availableMt * 1000).toStringAsFixed(0)} kg' : '${availableQtl.toStringAsFixed(0)} Qtl',
+                    widget.isRetail ? context.tr('Available to Order', 'ऑर्डर के लिए उपलब्ध') : context.tr('Available to Contract', 'अनुबंध के लिए उपलब्ध'),
+                    widget.isRetail ? '${(widget.availableMt * 1000).toStringAsFixed(0)} ${context.tr('kg', 'किग्रा')}' : '${availableQtl.toStringAsFixed(0)} ${context.tr('Qtl', 'क्विंटल')}',
                     const Color(0xFF15803D),
-                    'Immediate Delivery',
+                    context.tr('Immediate Delivery', 'तत्काल डिलीवरी'),
                   ),
                   Container(width: 1, height: 32, color: Colors.grey.shade300),
                   _buildTonnageTile(
-                    'Locked in Escrow',
-                    widget.isRetail ? '${(widget.reservedMt * 1000).toStringAsFixed(0)} kg' : '${reservedQtl.toStringAsFixed(0)} Qtl',
+                    context.tr('Locked in Escrow', 'एस्क्रो में आरक्षित'),
+                    widget.isRetail ? '${(widget.reservedMt * 1000).toStringAsFixed(0)} ${context.tr('kg', 'किग्रा')}' : '${reservedQtl.toStringAsFixed(0)} ${context.tr('Qtl', 'क्विंटल')}',
                     const Color(0xFFD97706),
-                    'Under Active PO',
+                    context.tr('Under Active PO', 'सक्रिय खरीद आदेश अंतर्गत'),
                   ),
                 ],
               ),
@@ -457,8 +467,8 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
                     Expanded(
                       child: Text(
                         widget.isRetail
-                            ? '${(widget.reservedMt * 1000).toStringAsFixed(0)} kg is locked in buyer escrow awaiting dispatch.'
-                            : '${reservedQtl.toStringAsFixed(0)} Qtl is locked for ITC Limited (PO-ITC-3000QTL-NH44) awaiting dispatch.',
+                            ? '${(widget.reservedMt * 1000).toStringAsFixed(0)} ${context.tr('kg is locked in buyer escrow awaiting dispatch.', 'किग्रा खरीदार एस्क्रो में आरक्षित है, प्रेषण की प्रतीक्षा में।')}'
+                            : '${reservedQtl.toStringAsFixed(0)} ${context.tr('Qtl is locked in buyer escrow awaiting dispatch.', 'क्विंटल प्रेषण की प्रतीक्षा में एस्क्रो में आरक्षित है।')}',
                         style: const TextStyle(fontSize: 11, color: Color(0xFF92400E), fontWeight: FontWeight.w500),
                       ),
                     ),
@@ -472,18 +482,32 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
 
         // 6. REAL-TIME SILO ENVIRONMENTAL TELEMETRY
         Text(
-          widget.isRetail ? 'Storage & Post-Harvest Telemetry' : 'Silo Environmental Telemetry',
+          widget.isRetail
+              ? context.tr('Storage & Post-Harvest Telemetry', 'भंडारण एवं पोस्ट-हार्वेस्ट टेलीमेट्री')
+              : context.tr('Silo Environmental Telemetry', 'साइलो पर्यावरण टेलीमेट्री'),
           style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
         ),
         const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
-              child: _buildTelemetryCard('Chamber Temp', '21.4°C', 'Safe (< 25°C)', Icons.thermostat, const Color(0xFF0284C7)),
+              child: _buildTelemetryCard(
+                context.tr('Chamber Temp', 'कक्ष तापमान'),
+                '21.4°C',
+                context.tr('Safe (< 25°C)', 'सुरक्षित (< 25°C)'),
+                Icons.thermostat,
+                const Color(0xFF0284C7),
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: _buildTelemetryCard('Ambient Humidity', '54% RH', 'Optimal (< 65%)', Icons.water_drop_outlined, const Color(0xFF16A34A)),
+              child: _buildTelemetryCard(
+                context.tr('Ambient Humidity', 'परिवेश आर्द्रता'),
+                '54% RH',
+                context.tr('Optimal (< 65%)', 'इष्टतम (< 65%)'),
+                Icons.water_drop_outlined,
+                const Color(0xFF16A34A),
+              ),
             ),
           ],
         ),
@@ -491,11 +515,23 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
         Row(
           children: [
             Expanded(
-              child: _buildTelemetryCard('Aeration Blower', 'Active', 'Automated Cycling', Icons.air, const Color(0xFF7C3AED)),
+              child: _buildTelemetryCard(
+                context.tr('Aeration Blower', 'वायु संचरण ब्लोअर'),
+                context.tr('Active', 'सक्रिय'),
+                context.tr('Automated Cycling', 'स्वचालित चक्र'),
+                Icons.air,
+                const Color(0xFF7C3AED),
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: _buildTelemetryCard('Pest Inspection', 'Zero Pest', 'Valid till Nov 2026', Icons.shield_outlined, const Color(0xFFD97706)),
+              child: _buildTelemetryCard(
+                context.tr('Pest Inspection', 'कीट निरीक्षण'),
+                context.tr('Zero Pest', 'शून्य कीट'),
+                context.tr('Valid till Nov 2026', 'नवंबर 2026 तक वैध'),
+                Icons.shield_outlined,
+                const Color(0xFFD97706),
+              ),
             ),
           ],
         ),
@@ -503,7 +539,7 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
 
         // 7. PHYSICAL ASSAYING & QUALITY SPECIFICATIONS
         Text(
-          'Physical Assaying & Quality Specs',
+          context.tr('Physical Assaying & Quality Specs', 'भौतिक परीक्षण एवं गुणवत्ता विनिर्देश'),
           style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
         ),
         const SizedBox(height: 8),
@@ -517,17 +553,17 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
           ),
           child: Column(
             children: [
-              _buildSpecRow('Moisture Assay', widget.moistureText, 'Standard ≤ 12.0%', true),
+              _buildSpecRow(context.tr('Moisture Assay', 'नमी परीक्षण'), widget.moistureText, context.tr('Standard ≤ 12.0%', 'मानक ≤ 12.0%'), true),
               const Divider(height: 16),
-              _buildSpecRow('Purity Score', '98.8%', 'Minimum ≥ 98.0%', true),
+              _buildSpecRow(context.tr('Purity Score', 'शुद्धता स्कोर'), '98.8%', context.tr('Minimum ≥ 98.0%', 'न्यूनतम ≥ 98.0%'), true),
               const Divider(height: 16),
-              _buildSpecRow('Broken Grains', '1.4%', 'AGMARK Grade A ≤ 2.0%', true),
+              _buildSpecRow(context.tr('Broken Grains', 'टूटे दाने'), '1.4%', context.tr('AGMARK Grade A ≤ 2.0%', 'एगमार्क ग्रेड ए ≤ 2.0%'), true),
               const Divider(height: 16),
-              _buildSpecRow('Foreign Matter', '0.3%', 'Standard ≤ 0.75%', true),
+              _buildSpecRow(context.tr('Foreign Matter', 'बाहरी पदार्थ'), '0.3%', context.tr('Standard ≤ 0.75%', 'मानक ≤ 0.75%'), true),
               const Divider(height: 16),
-              _buildSpecRow('Bulk Density (Test Weight)', '79.4 kg/hL', 'Heavy Test Grain', true),
+              _buildSpecRow(context.tr('Bulk Density (Test Weight)', 'थोक घनत्व (परीक्षण भार)'), '79.4 kg/hL', context.tr('Heavy Test Grain', 'उत्कृष्ट भारी अनाज'), true),
               const Divider(height: 16),
-              _buildSpecRow('Protein / Gluten Content', '12.8% Wet Gluten', 'Superior Milling Yield', true),
+              _buildSpecRow(context.tr('Protein / Gluten Content', 'प्रोटीन / ग्लूटेन मात्रा'), '12.8% Wet Gluten', context.tr('Superior Milling Yield', 'उच्च मिलिंग उपज'), true),
             ],
           ),
         ),
@@ -535,7 +571,7 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
 
         // 8. COMMERCIAL TRADING & LOGISTICS TERMS
         Text(
-          'Commercial Terms & Logistics',
+          context.tr('Commercial Terms & Logistics', 'वाणिज्यिक शर्तें एवं रसद'),
           style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
         ),
         const SizedBox(height: 8),
@@ -550,28 +586,36 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
           child: Column(
             children: [
               _buildTermItem(
-                'Minimum Order Quantity (MOQ)',
-                widget.isRetail ? '5 kg (Flexible Direct Purchase)' : '250 Quintals (1 Full Truckload / FTL)',
+                context.tr('Minimum Order Quantity (MOQ)', 'न्यूनतम ऑर्डर मात्रा (MOQ)'),
+                widget.isRetail
+                    ? context.tr('5 kg (Flexible Direct Purchase)', '5 किग्रा (लचीली प्रत्यक्ष खरीद)')
+                    : context.tr('250 Quintals (1 Full Truckload / FTL)', '250 क्विंटल (1 पूर्ण ट्रक लोड / FTL)'),
                 Icons.local_shipping_outlined,
               ),
               _buildTermItem(
-                'Dispatch Lead Time',
-                widget.isRetail ? 'Same-Day / 24 Hours Direct Farm Dispatch' : '24 - 48 Hours post-Escrow Confirmation',
+                context.tr('Dispatch Lead Time', 'प्रेषण अवधि'),
+                widget.isRetail
+                    ? context.tr('Same-Day / 24 Hours Direct Farm Dispatch', 'उसी दिन / 24 घंटे में सीधा खेत से प्रेषण')
+                    : context.tr('24 - 48 Hours post-Escrow Confirmation', 'एस्क्रो पुष्टि के 24 - 48 घंटे बाद'),
                 Icons.schedule,
               ),
               _buildTermItem(
-                'Weighbridge Specifications',
-                widget.isRetail ? 'Electronic Certified Precision Scale (NABL Calibrated)' : '600-Quintal Electronic (NABL Haryana Calibrated)',
+                context.tr('Weighbridge Specifications', 'वेब्रिज विनिर्देश'),
+                widget.isRetail
+                    ? context.tr('Electronic Certified Precision Scale (NABL Calibrated)', 'इलेक्ट्रॉनिक प्रमाणित परिशुद्धता तराजू (NABL कैलिब्रेटेड)')
+                    : context.tr('600-Quintal Electronic (NABL Haryana Calibrated)', '600-क्विंटल इलेक्ट्रॉनिक (NABL हरियाणा कैलिब्रेटेड)'),
                 Icons.scale_outlined,
               ),
               _buildTermItem(
-                'Mandi Cess & Tax Exemption',
-                '0% GST (Tax Exempt) • Zero Intermediary Cuts',
+                context.tr('Mandi Cess & Tax Exemption', 'मंडी उपकर एवं कर छूट'),
+                context.tr('0% GST (Tax Exempt) • Zero Intermediary Cuts', '0% जीएसटी (कर मुक्त) • शून्य बिचौलिया कटौती'),
                 Icons.receipt_long_outlined,
               ),
               _buildTermItem(
-                'Escrow Settlement Type',
-                widget.isRetail ? 'Buyer Safe Escrow Protection (Instant Disbursal on Verified Delivery)' : 'Multi-FPO Isolated Smart Contract Escrow',
+                context.tr('Escrow Settlement Type', 'एस्क्रो निपटान प्रकार'),
+                widget.isRetail
+                    ? context.tr('Buyer Safe Escrow Protection (Instant Disbursal on Verified Delivery)', 'सुरक्षित खरीदार एस्क्रो सुरक्षा (डिलीवरी सत्यापन पर तत्काल भुगतान)')
+                    : context.tr('Multi-FPO Isolated Smart Contract Escrow', 'मल्टी-एफपीओ स्मार्ट अनुबंध एस्क्रो'),
                 Icons.verified_user_outlined,
               ),
             ],
@@ -589,13 +633,13 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.fingerprint, size: 16, color: Color(0xFF334155)),
-                  SizedBox(width: 6),
+                  const Icon(Icons.fingerprint, size: 16, color: Color(0xFF334155)),
+                  const SizedBox(width: 6),
                   Text(
-                    'Compliance & Traceability',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF334155)),
+                    context.tr('Compliance & Traceability', 'अनुपालन एवं ट्रेसिबिलिटी'),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF334155)),
                   ),
                 ],
               ),
@@ -616,7 +660,7 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
             builder: (context) {
               final isRetail = widget.isRetail;
               final maxStock = isRetail ? (widget.availableMt * 1000.0) : (widget.availableMt * 10.0);
-              final unit = isRetail ? 'kg' : 'Qtl';
+              final unit = isRetail ? context.tr('kg', 'किग्रा') : context.tr('Qtl', 'क्विंटल');
               final effectivePrice = isRetail ? pricePerKg : widget.pricePerQtl;
               final currentQty = (_selectedBuyerQty ?? (isRetail ? 25.0 : 50.0)).clamp(1.0, maxStock > 0 ? maxStock : 5000.0);
               final totalCost = currentQty * effectivePrice;
@@ -648,11 +692,13 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          isRetail ? 'Procurement Quantity ($unit):' : 'Lot Order Quantity ($unit):',
+                          isRetail
+                              ? '${context.tr('Procurement Quantity', 'खरीद मात्रा')} ($unit):'
+                              : '${context.tr('Lot Order Quantity', 'लॉट ऑर्डर मात्रा')} ($unit):',
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF334155)),
                         ),
                         Text(
-                          'Max ${maxStock.toStringAsFixed(0)} $unit available',
+                          '${context.tr('Max', 'अधिकतम')} ${maxStock.toStringAsFixed(0)} $unit ${context.tr('available', 'उपलब्ध')}',
                           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
                         ),
                       ],
@@ -690,11 +736,11 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
                                     keyboardType: const TextInputType.numberWithOptions(decimal: false),
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
-                                    decoration: const InputDecoration(
+                                    decoration: InputDecoration(
                                       border: InputBorder.none,
                                       isDense: true,
-                                      contentPadding: EdgeInsets.symmetric(vertical: 8),
-                                      hintText: 'Qty',
+                                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                                      hintText: context.tr('Qty', 'मात्रा'),
                                     ),
                                     onChanged: (val) {
                                       final parsed = double.tryParse(val.trim());
@@ -796,7 +842,7 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
                                 border: Border.all(color: (currentQty - maxStock).abs() < 0.1 ? const Color(0xFF15803D) : const Color(0xFFCBD5E1)),
                               ),
                               child: Text(
-                                'Full Lot (${maxStock.toStringAsFixed(0)} $unit)',
+                                '${context.tr('Full Lot', 'पूरा लॉट')} (${maxStock.toStringAsFixed(0)} $unit)',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
@@ -822,11 +868,11 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Rate: ₹${effectivePrice.toStringAsFixed(0)}/$unit × ${currentQty.toStringAsFixed(0)} $unit',
+                            '${context.tr('Rate', 'दर')}: ₹${effectivePrice.toStringAsFixed(0)}/$unit × ${currentQty.toStringAsFixed(0)} $unit',
                             style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
                           ),
                           Text(
-                            '₹${totalCost.toStringAsFixed(0)} Total',
+                            '₹${totalCost.toStringAsFixed(0)} ${context.tr('Total', 'कुल')}',
                             style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF15803D)),
                           ),
                         ],
@@ -900,8 +946,8 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
                   icon: Icon(widget.isRetail ? Icons.shopping_bag_outlined : Icons.lock, size: 18, color: Colors.white),
                   label: Text(
                     widget.isRetail
-                        ? 'Buy Direct & Escrow Lock (${chosenQty.toStringAsFixed(0)} kg • ₹${totalCost.toStringAsFixed(0)})'
-                        : 'Order Lot & Escrow Lock (${chosenQty.toStringAsFixed(0)} Qtl • ₹${totalCost.toStringAsFixed(0)})',
+                        ? '${context.tr('Buy Direct & Escrow Lock', 'सीधा खरीदें व एस्क्रो लॉक')} (${chosenQty.toStringAsFixed(0)} ${context.tr('kg', 'किग्रा')} • ₹${totalCost.toStringAsFixed(0)})'
+                        : '${context.tr('Order Lot & Escrow Lock', 'लॉट ऑर्डर व एस्क्रो लॉक')} (${chosenQty.toStringAsFixed(0)} ${context.tr('Qtl', 'क्विंटल')} • ₹${totalCost.toStringAsFixed(0)})',
                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
@@ -922,7 +968,12 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
               icon: _isDownloadingPdf
                   ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.download, size: 16),
-              label: Text(_isDownloadingPdf ? 'Generating...' : 'Download Warehouse Passport', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              label: Text(
+                _isDownloadingPdf
+                    ? context.tr('Generating...', 'तैयार किया जा रहा है...')
+                    : context.tr('Download Warehouse Passport', 'गोदाम पासपोर्ट डाउनलोड करें'),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF0F172A),
                 side: const BorderSide(color: Color(0xFFCBD5E1)),
@@ -940,7 +991,12 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
                   icon: _isDownloadingPdf
                       ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.download, size: 16),
-                  label: Text(_isDownloadingPdf ? 'Generating...' : 'Download Passport', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  label: Text(
+                    _isDownloadingPdf
+                        ? context.tr('Generating...', 'तैयार किया जा रहा है...')
+                        : context.tr('Download Passport', 'पासपोर्ट डाउनलोड करें'),
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF0F172A),
                     side: const BorderSide(color: Color(0xFFCBD5E1)),
@@ -959,7 +1015,7 @@ class _FpoLotDetailsContentState extends State<_FpoLotDetailsContent> {
                     }
                   },
                   icon: const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
-                  label: const Text('Run AI Assaying', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  label: Text(context.tr('Run AI Assaying', 'एआई परख चलाएं'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2E7D32),
                     foregroundColor: Colors.white,

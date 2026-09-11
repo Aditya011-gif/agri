@@ -6,6 +6,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/language_switcher.dart';
 import '../../utils/crop_image_helper.dart';
+import '../../utils/translation_helper.dart';
 import '../../widgets/fpo_lot_details_modal.dart';
 import '../../models/fpo_inventory_model.dart';
 import '../../services/fpo_inventory_service.dart';
@@ -65,7 +66,7 @@ class _FpoHomeScreenState extends State<FpoHomeScreen> {
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           CustomAppBar(
-            title: 'FPO Command Center',
+            title: context.tr('FPO Command Center', 'एफपीओ कमांड सेंटर'),
             actions: const [
               Padding(
                 padding: EdgeInsets.only(right: 8),
@@ -189,7 +190,7 @@ class _FpoHomeScreenState extends State<FpoHomeScreen> {
                   children: [
                     Flexible(
                       child: Text(
-                        'Namaste, $name',
+                        '${context.tr('Namaste', 'नमस्ते')}, $name',
                         style: GoogleFonts.outfit(
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
@@ -223,9 +224,9 @@ class _FpoHomeScreenState extends State<FpoHomeScreen> {
                     color: const Color(0xFFDCFCE7),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text(
-                    'SFAC & NABARD Verified Cooperative',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                  child: Text(
+                    context.tr('SFAC & NABARD Verified Cooperative', 'SFAC और नाबार्ड सत्यापित सहकारी समिति'),
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
                   ),
                 ),
               ],
@@ -286,16 +287,16 @@ class _FpoHomeScreenState extends State<FpoHomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Add Bulk Crop Lot',
+                          context.tr('Add Bulk Crop Lot', 'थोक फसल लॉट जोड़ें'),
                           style: GoogleFonts.outfit(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
                         ),
-                        const Text(
-                          'List warehouse silos or harvest to bulk buyers',
-                          style: TextStyle(fontSize: 11, color: Colors.white70),
+                        Text(
+                          context.tr('List warehouse silos or harvest to bulk buyers', 'थोक खरीदारों के लिए साइलो या कटाई जोड़ें'),
+                          style: const TextStyle(fontSize: 11, color: Colors.white70),
                         ),
                       ],
                     ),
@@ -337,58 +338,61 @@ class _FpoHomeScreenState extends State<FpoHomeScreen> {
           borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFEF3C7),
-                  borderRadius: BorderRadius.circular(14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.repeat, color: Color(0xFFB45309), size: 24),
                 ),
-                child: const Icon(Icons.repeat, color: Color(0xFFB45309), size: 24),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          '12-Week Recurring Supply',
-                          style: GoogleFonts.outfit(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF0F172A),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            context.tr('12-Week Recurring Supply', '12-सप्ताह नियमित आपूर्ति'),
+                            style: GoogleFonts.outfit(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF0F172A),
+                            ),
                           ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDC2626),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              context.tr('NEW', 'नया'),
+                              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        context.tr(
+                          'Review incoming corporate buyer proposals & Monday dispatches',
+                          'कॉर्पोरेट खरीदार प्रस्ताव व साप्ताहिक डिस्पैच देखें',
                         ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFDC2626),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text(
-                            'NEW',
-                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      'Review incoming corporate buyer proposals & Monday dispatches',
-                      style: TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
-                    ),
-                  ],
+                        style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.arrow_forward_ios, color: Color(0xFF94A3B8), size: 14),
-            ],
+                const Icon(Icons.arrow_forward_ios, color: Color(0xFF94A3B8), size: 14),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -405,9 +409,9 @@ class _FpoHomeScreenState extends State<FpoHomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildStatItem('Warehouse Stock', '${totalStockQtl.toStringAsFixed(0)} Qtl', Icons.warehouse, const Color(0xFF2E7D32)),
-          _buildStatItem('Available to Sell', '${availableStockQtl.toStringAsFixed(0)} Qtl', Icons.check_circle_outline, const Color(0xFF2563EB)),
-          _buildStatItem('Confirmed Sales', confirmedSalesText, Icons.currency_rupee, const Color(0xFFD97706)),
+          _buildStatItem(context.tr('Warehouse Stock', 'गोदाम स्टॉक'), '${totalStockQtl.toStringAsFixed(0)} Qtl', Icons.warehouse, const Color(0xFF2E7D32)),
+          _buildStatItem(context.tr('Available to Sell', 'बिक्री योग्य'), '${availableStockQtl.toStringAsFixed(0)} Qtl', Icons.check_circle_outline, const Color(0xFF2563EB)),
+          _buildStatItem(context.tr('Confirmed Sales', 'पुष्ट बिक्री'), confirmedSalesText, Icons.currency_rupee, const Color(0xFFD97706)),
         ],
       ),
     );
@@ -532,7 +536,7 @@ class _FpoHomeScreenState extends State<FpoHomeScreen> {
                 const Icon(Icons.inventory_2, color: Color(0xFF2E7D32), size: 20),
                 const SizedBox(width: 8),
                 Text(
-                  'What You Have in Stock',
+                  context.tr('What You Have in Stock', 'आपके गोदाम में उपलब्ध स्टॉक'),
                   style: GoogleFonts.outfit(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
@@ -547,9 +551,9 @@ class _FpoHomeScreenState extends State<FpoHomeScreen> {
                   widget.onNavigateTab!(1); // Go to Inventory tab
                 }
               },
-              child: const Text(
-                'View All Silos',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
+              child: Text(
+                context.tr('View All Silos', 'सभी साइलो देखें'),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
               ),
             ),
           ],
@@ -569,9 +573,9 @@ class _FpoHomeScreenState extends State<FpoHomeScreen> {
               children: [
                 const Icon(Icons.warehouse_outlined, size: 48, color: Colors.grey),
                 const SizedBox(height: 10),
-                Text('No Warehouse Crops Listed Yet', style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold)),
+                Text(context.tr('No Warehouse Crops Listed Yet', 'अभी तक कोई गोदाम फसल सूचीबद्ध नहीं'), style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                const Text('Tap "Add Bulk Crop Lot" above to publish your first lot to the database.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(context.tr('Tap "Add Bulk Crop Lot" above to publish your first lot to the database.', 'पहला लॉट प्रकाशित करने के लिए ऊपर "थोक फसल लॉट जोड़ें" पर टैप करें।'), style: const TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             ),
           )

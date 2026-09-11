@@ -157,16 +157,31 @@ class DemandForecastingService {
       case 'karnal':
       case 'taraori':
         return 'Haryana';
+      case 'khanna':
+      case 'ludhiana':
+        return 'Punjab';
       case 'nashik':
+      case 'lasalgaon':
       case 'pune':
+      case 'vashi':
+      case 'mumbai':
         return 'Maharashtra';
       case 'azadpur':
+      case 'delhi':
         return 'Delhi';
       case 'kolar':
+      case 'bangalore':
         return 'Karnataka';
+      case 'guntur':
+        return 'Andhra Pradesh';
+      case 'indore':
+        return 'Madhya Pradesh';
+      case 'kota':
+        return 'Rajasthan';
       case 'agra':
         return 'Uttar Pradesh';
       case 'rajkot':
+      case 'gondal':
         return 'Gujarat';
       default:
         return 'Haryana';

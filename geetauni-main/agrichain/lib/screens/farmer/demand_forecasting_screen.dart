@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../models/demand_forecast_models.dart';
 import '../../services/demand_forecasting_service.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/translation_helper.dart';
+import '../../widgets/language_switcher.dart';
 
 class DemandForecastingScreen extends StatefulWidget {
   final String? initialCrop;
@@ -80,14 +82,103 @@ class _DemandForecastingScreenState extends State<DemandForecastingScreen> {
   ];
 
   final List<Map<String, String>> _supportedDistricts = [
-    {'name': 'Karnal', 'state': 'Haryana', 'badge': 'NH-44 Hub'},
-    {'name': 'Nashik', 'state': 'Maharashtra', 'badge': 'Lasalgaon Mandi'},
-    {'name': 'Kolar', 'state': 'Karnataka', 'badge': 'South Mandi'},
-    {'name': 'Azadpur', 'state': 'Delhi', 'badge': 'Mega APMC'},
-    {'name': 'Pune', 'state': 'Maharashtra', 'badge': 'Western APMC'},
-    {'name': 'Agra', 'state': 'Uttar Pradesh', 'badge': 'Central Silo'},
-    {'name': 'Rajkot', 'state': 'Gujarat', 'badge': 'Saurashtra Hub'},
+    {
+      'name': 'Azadpur',
+      'mandiName': 'Azadpur APMC Mega Mandi (आज़ादपुर)',
+      'state': 'Delhi',
+      'badge': 'Asia\'s Mega APMC',
+    },
+    {
+      'name': 'Karnal',
+      'mandiName': 'Karnal Anaj Mandi (करनाल मंडी)',
+      'state': 'Haryana',
+      'badge': 'Basmati Hub',
+    },
+    {
+      'name': 'Lasalgaon',
+      'mandiName': 'Lasalgaon APMC (लासलगांव मंडी)',
+      'state': 'Maharashtra',
+      'badge': 'Asia\'s Onion Capital',
+    },
+    {
+      'name': 'Khanna',
+      'mandiName': 'Khanna Grain Market (खन्ना मंडी)',
+      'state': 'Punjab',
+      'badge': 'Asia\'s Largest Grain Mandi',
+    },
+    {
+      'name': 'Kolar',
+      'mandiName': 'Kolar APMC Market (कोलार मंडी)',
+      'state': 'Karnataka',
+      'badge': 'Tomato Hub',
+    },
+    {
+      'name': 'Vashi',
+      'mandiName': 'Vashi APMC Navi Mumbai (वाशी मंडी)',
+      'state': 'Maharashtra',
+      'badge': 'Western Terminal APMC',
+    },
+    {
+      'name': 'Gondal',
+      'mandiName': 'Gondal APMC (गोंडल मंडी)',
+      'state': 'Gujarat',
+      'badge': 'Groundnut & Cotton',
+    },
+    {
+      'name': 'Guntur',
+      'mandiName': 'Guntur Mirchi Yard (गुंटूर मिर्ची यार्ड)',
+      'state': 'Andhra Pradesh',
+      'badge': 'Spices & Chilli Mandi',
+    },
+    {
+      'name': 'Indore',
+      'mandiName': 'Choithram APMC Mandi (इंदौर मंडी)',
+      'state': 'Madhya Pradesh',
+      'badge': 'Soybean & Wheat Center',
+    },
+    {
+      'name': 'Kota',
+      'mandiName': 'Bhamashah APMC Mandi (कोटा मंडी)',
+      'state': 'Rajasthan',
+      'badge': 'Hadoti Agro Exchange',
+    },
+    {
+      'name': 'Agra',
+      'mandiName': 'Agra APMC Mandi (आगरा मंडी)',
+      'state': 'Uttar Pradesh',
+      'badge': 'Potato Capital',
+    },
+    {
+      'name': 'Pune',
+      'mandiName': 'Gultekdi APMC Yard (पुणे मंडी)',
+      'state': 'Maharashtra',
+      'badge': 'Western APMC',
+    },
   ];
+
+  static const Map<String, Map<String, dynamic>> _cropMspCatalog = {
+    'Wheat': {'mspQtl': 2275.0, 'mspKg': 22.75, 'season': 'Rabi 2024-25', 'govtNotified': true},
+    'Rice': {'mspQtl': 2320.0, 'mspKg': 23.20, 'season': 'Kharif 2024-25', 'govtNotified': true},
+    'Maize': {'mspQtl': 2090.0, 'mspKg': 20.90, 'season': 'Kharif 2024-25', 'govtNotified': true},
+    'Desi Chana': {'mspQtl': 5440.0, 'mspKg': 54.40, 'season': 'Rabi 2024-25', 'govtNotified': true},
+    'Moong Dal': {'mspQtl': 8682.0, 'mspKg': 86.82, 'season': 'Kharif 2024-25', 'govtNotified': true},
+    'Mustard': {'mspQtl': 5650.0, 'mspKg': 56.50, 'season': 'Rabi 2024-25', 'govtNotified': true},
+    'Soybean': {'mspQtl': 4892.0, 'mspKg': 48.92, 'season': 'Kharif 2024-25', 'govtNotified': true},
+    'Cotton': {'mspQtl': 7121.0, 'mspKg': 71.21, 'season': 'Kharif 2024-25', 'govtNotified': true},
+    'Potato': {'mspQtl': null, 'cacpBenchmarkKg': 18.0, 'season': '2024-25', 'govtNotified': false},
+    'Tomato': {'mspQtl': null, 'cacpBenchmarkKg': 22.0, 'season': '2024-25', 'govtNotified': false},
+    'Onion': {'mspQtl': null, 'cacpBenchmarkKg': 24.0, 'season': '2024-25', 'govtNotified': false},
+    'Garlic': {'mspQtl': null, 'cacpBenchmarkKg': 90.0, 'season': '2024-25', 'govtNotified': false},
+    'Ginger': {'mspQtl': null, 'cacpBenchmarkKg': 70.0, 'season': '2024-25', 'govtNotified': false},
+    'Cauliflower': {'mspQtl': null, 'cacpBenchmarkKg': 20.0, 'season': '2024-25', 'govtNotified': false},
+    'Cabbage': {'mspQtl': null, 'cacpBenchmarkKg': 14.0, 'season': '2024-25', 'govtNotified': false},
+    'Green Peas': {'mspQtl': null, 'cacpBenchmarkKg': 38.0, 'season': '2024-25', 'govtNotified': false},
+    'Green Chilli': {'mspQtl': null, 'cacpBenchmarkKg': 40.0, 'season': '2024-25', 'govtNotified': false},
+    'Mango': {'mspQtl': null, 'cacpBenchmarkKg': 45.0, 'season': '2024-25', 'govtNotified': false},
+    'Apple': {'mspQtl': null, 'cacpBenchmarkKg': 65.0, 'season': '2024-25', 'govtNotified': false},
+    'Kinnow': {'mspQtl': null, 'cacpBenchmarkKg': 28.0, 'season': '2024-25', 'govtNotified': false},
+    'Banana': {'mspQtl': null, 'cacpBenchmarkKg': 20.0, 'season': '2024-25', 'govtNotified': false},
+  };
 
   @override
   void initState() {
@@ -146,7 +237,7 @@ class _DemandForecastingScreenState extends State<DemandForecastingScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'KrishiDrishti AI Forecasting',
+              context.tr('AI Price & Demand Forecast', 'कृषिदृष्टि: मंडी भाव व मांग अनुमान'),
               style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -165,7 +256,7 @@ class _DemandForecastingScreenState extends State<DemandForecastingScreen> {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  'Probabilistic Quantile & Mandi Price Engine',
+                  context.tr('Probabilistic Quantile & Mandi Price Engine', 'संभाव्य क्वांटाइल और मंडी मूल्य इंजन'),
                   style: GoogleFonts.inter(
                     fontSize: 10,
                     color: Colors.grey.shade600,
@@ -177,9 +268,13 @@ class _DemandForecastingScreenState extends State<DemandForecastingScreen> {
           ],
         ),
         actions: [
+          const Padding(
+            padding: EdgeInsets.only(right: 6),
+            child: Center(child: LanguageSwitcherPill(isDark: false)),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: AppTheme.primaryGreen),
-            tooltip: 'Recalculate Forecast',
+            tooltip: context.tr('Recalculate Forecast', 'पूर्वानुमान ताज़ा करें'),
             onPressed: _isLoading ? null : _fetchForecast,
           ),
         ],
@@ -201,6 +296,10 @@ class _DemandForecastingScreenState extends State<DemandForecastingScreen> {
 
             // 3. Price Forecast & Revenue Estimator
             _buildPriceRealizationCard(_forecastData!),
+            const SizedBox(height: 16),
+
+            // 3.5. Government Minimum Support Price (MSP) Benchmark Card
+            _buildGovtMspBenchmarkCard(_forecastData!),
             const SizedBox(height: 16),
 
             // 4. Probabilistic Demand Quantiles (P10 / P50 / P90)
@@ -407,16 +506,100 @@ class _DemandForecastingScreenState extends State<DemandForecastingScreen> {
           ),
           const SizedBox(height: 12),
 
-          // District / Mandi Hub Selector
-          Text(
-            'Target Mandi Corridor:',
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade700,
-            ),
+          // Target APMC Mandi Selector Dropdown & Chips
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Target APMC Mandi (मंडी चयन):',
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${_supportedDistricts.length} Real APMCs',
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade800,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 6),
+
+          // Primary APMC Mandi Dropdown
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _supportedDistricts.any((d) => d['name'] == _selectedDistrict)
+                    ? _selectedDistrict
+                    : 'Azadpur',
+                isExpanded: true,
+                icon: const Icon(Icons.storefront_outlined, color: AppTheme.primaryGreen),
+                items: _supportedDistricts.map((mandi) {
+                  return DropdownMenuItem<String>(
+                    value: mandi['name'],
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_city, size: 16, color: Color(0xFF1B5E20)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                mandi['mandiName'] ?? '${mandi['name']} Mandi',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.darkGreen,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                '${mandi['state']} • ${mandi['badge']}',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null && val != _selectedDistrict) {
+                    setState(() => _selectedDistrict = val);
+                    _fetchForecast();
+                  }
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Quick-Access APMC Mandi Chips
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -660,6 +843,213 @@ class _DemandForecastingScreenState extends State<DemandForecastingScreen> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 3.5. Government Minimum Support Price (MSP) Benchmark Card
+  Widget _buildGovtMspBenchmarkCard(DemandForecastResponse data) {
+    final commodity = data.meta.commodity;
+    final mspInfo = _cropMspCatalog[commodity];
+    final isGovtNotified = mspInfo?['govtNotified'] == true;
+    final mspQtl = mspInfo?['mspQtl'] as double?;
+    final mspKg = mspInfo?['mspKg'] as double? ?? (mspQtl != null ? mspQtl / 100 : null);
+    final cacpBenchmark = mspInfo?['cacpBenchmarkKg'] as double? ?? 22.0;
+    final season = mspInfo?['season'] as String? ?? '2024-25';
+
+    final modalPrice = data.priceForecastInrPerKg.expectedModalPrice;
+    final compareBase = isGovtNotified ? (mspKg ?? 20.0) : cacpBenchmark;
+    final diff = modalPrice - compareBase;
+    final isAboveFloor = diff >= 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isGovtNotified
+              ? (isAboveFloor ? const Color(0xFF10B981) : const Color(0xFFF59E0B))
+              : const Color(0xFF3B82F6),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header: Govt MSP Emblem & Season Tag
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isGovtNotified ? const Color(0xFFECFDF5) : const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  isGovtNotified ? Icons.verified_user_outlined : Icons.insights_outlined,
+                  color: isGovtNotified ? const Color(0xFF059669) : const Color(0xFF2563EB),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isGovtNotified
+                          ? 'Govt. MSP Floor (न्यूनतम समर्थन मूल्य)'
+                          : 'CACP Seasonal Benchmark (संदर्भ भाव)',
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    ),
+                    Text(
+                      isGovtNotified
+                          ? 'CACP / Ministry of Agriculture Notified • $season'
+                          : 'Open Mandi Horticultural Parity • $season',
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isGovtNotified ? const Color(0xFFDCFCE7) : const Color(0xFFDBEAFE),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  isGovtNotified ? 'GOVT NOTIFIED' : 'MARKET PARITY',
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.bold,
+                    color: isGovtNotified ? const Color(0xFF15803D) : const Color(0xFF1D4ED8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Core Rates Comparison Block
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              children: [
+                // MSP Rate Column
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isGovtNotified ? 'Official MSP Rate' : 'CACP Baseline Rate',
+                        style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isGovtNotified && mspQtl != null
+                            ? '₹${mspQtl.toStringAsFixed(0)} / Qtl'
+                            : '₹${cacpBenchmark.toStringAsFixed(1)} / kg',
+                        style: GoogleFonts.inter(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF0F172A),
+                        ),
+                      ),
+                      if (isGovtNotified && mspKg != null)
+                        Text(
+                          '≈ ₹${mspKg.toStringAsFixed(2)} / kg',
+                          style: const TextStyle(fontSize: 11, color: Color(0xFF475569), fontWeight: FontWeight.w600),
+                        ),
+                    ],
+                  ),
+                ),
+                Container(width: 1, height: 40, color: const Color(0xFFCBD5E1)),
+                const SizedBox(width: 12),
+                // Market Modal vs MSP
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Projected Mandi Modal',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '₹${modalPrice.toStringAsFixed(2)} / kg',
+                        style: GoogleFonts.inter(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF1B5E20),
+                        ),
+                      ),
+                      Text(
+                        '≈ ₹${(modalPrice * 100).toStringAsFixed(0)} / Qtl',
+                        style: const TextStyle(fontSize: 11, color: Color(0xFF15803D), fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Visual Floor Protection Badge / Advisory
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isAboveFloor ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isAboveFloor ? const Color(0xFFA7F3D0) : const Color(0xFFFECACA),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isAboveFloor ? Icons.check_circle : Icons.warning_amber_rounded,
+                  size: 16,
+                  color: isAboveFloor ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    isAboveFloor
+                        ? (isGovtNotified
+                            ? 'Mandi modal is ₹${diff.toStringAsFixed(2)}/kg above Govt MSP floor (+${((diff / compareBase) * 100).toStringAsFixed(0)}%). Safe for open auction.'
+                            : 'Mandi modal is trading ₹${diff.toStringAsFixed(2)}/kg above seasonal benchmark.')
+                        : (isGovtNotified
+                            ? 'Warning: Modal price is ₹${(-diff).toStringAsFixed(2)}/kg below MSP floor! Recommend selling via FPO / Govt Silo Procurement center.'
+                            : 'Mandi price is below seasonal baseline. Consider holding lot in cold storage.'),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isAboveFloor ? const Color(0xFF065F46) : const Color(0xFF991B1B),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

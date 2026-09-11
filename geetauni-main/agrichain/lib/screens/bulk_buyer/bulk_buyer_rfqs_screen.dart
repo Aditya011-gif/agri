@@ -6,6 +6,8 @@ import '../../theme/app_theme.dart';
 import '../../services/database_service.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../models/crop_benchmark_model.dart';
+import '../../utils/translation_helper.dart';
+import '../../widgets/language_switcher.dart';
 
 class BulkBuyerRfqsScreen extends StatefulWidget {
   const BulkBuyerRfqsScreen({super.key});
@@ -26,6 +28,23 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
     'Completed',
     'Expired',
   ];
+
+  String _getTabTitle(BuildContext context, String tab) {
+    switch (tab) {
+      case 'Active':
+        return context.tr('Active', 'सक्रिय');
+      case 'Draft':
+        return context.tr('Draft', 'ड्राफ्ट');
+      case 'Responses':
+        return context.tr('Responses', 'प्रतिक्रियाएँ');
+      case 'Completed':
+        return context.tr('Completed', 'पूर्ण');
+      case 'Expired':
+        return context.tr('Expired', 'समाप्त');
+      default:
+        return tab;
+    }
+  }
 
   @override
   void initState() {
@@ -58,12 +77,13 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
         backgroundColor: const Color(0xFF2E7D32),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
-        label: const Text('Post Requirement', style: TextStyle(fontWeight: FontWeight.bold)),
+        label: Text(context.tr('Post Requirement', 'आवश्यकता पोस्ट करें'), style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          const CustomAppBar(
-            title: 'Manage Bulk RFQs',
+          CustomAppBar(
+            title: context.tr('Manage Bulk RFQs', 'थोक आरएफक्यू प्रबंधित करें'),
+            actions: const [LanguageSwitcherPill(isDark: true)],
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -87,7 +107,7 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
                       indicatorColor: AppTheme.primaryColor,
                       indicatorWeight: 3,
                       labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                      tabs: _tabs.map((t) => Tab(text: t)).toList(),
+                      tabs: _tabs.map((t) => Tab(text: _getTabTitle(context, t))).toList(),
                     ),
                   ),
                 ],
@@ -128,22 +148,25 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
             child: const Icon(Icons.assignment, color: Colors.white, size: 24),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Institutional RFQ Engine',
-                  style: TextStyle(
+                  context.tr('Institutional RFQ Engine', 'संस्थागत आरएफक्यू इंजन'),
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                     color: Color(0xFF1B5E20),
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'Broadcast bulk requirements across 1,200+ FPOs with automatic 7 km cluster matching.',
-                  style: TextStyle(
+                  context.tr(
+                    'Broadcast bulk requirements across 1,200+ FPOs with automatic 7 km cluster matching.',
+                    'स्वचालित 7 किमी क्लस्टर मिलान के साथ 1,200+ एफपीओ में थोक आवश्यकताएं प्रसारित करें।',
+                  ),
+                  style: const TextStyle(
                     fontSize: 11,
                     color: Color(0xFF388E3C),
                   ),
@@ -173,6 +196,7 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
         }).toList();
 
         if (rfqs.isEmpty) {
+          final tabLabel = _getTabTitle(context, statusFilter[0].toUpperCase() + statusFilter.substring(1));
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
@@ -186,7 +210,7 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'No $statusFilter RFQs Found',
+                    context.tr('No $statusFilter RFQs Found', 'कोई $tabLabel आरएफक्यू नहीं मिले'),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -194,10 +218,13 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Tap "Post Requirement" below to broadcast a new procurement tender to FPOs.',
+                  Text(
+                    context.tr(
+                      'Tap "Post Requirement" below to broadcast a new procurement tender to FPOs.',
+                      'एफपीओ को नई खरीद निविदा प्रसारित करने के लिए नीचे "आवश्यकता पोस्ट करें" पर टैप करें।',
+                    ),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 13,
                       color: AppTheme.textSecondary,
                     ),
@@ -287,7 +314,7 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    status == 'open' ? 'ACTIVE' : status.toString().toUpperCase(),
+                    status == 'open' ? context.tr('ACTIVE', 'सक्रिय') : status.toString().toUpperCase(),
                     style: TextStyle(
                       color: status == 'open'
                           ? const Color(0xFF2E7D32)
@@ -311,16 +338,16 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
                   children: [
                     Expanded(
                       child: _buildSpecPill(
-                        label: 'Required Volume',
-                        value: '${qtyQtl.toStringAsFixed(0)} Qtl',
+                        label: context.tr('Required Volume', 'आवश्यक मात्रा'),
+                        value: '${qtyQtl.toStringAsFixed(0)} ${context.tr('Qtl', 'क्विंटल')}',
                         icon: Icons.scale_outlined,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: _buildSpecPill(
-                        label: 'Max Budget Rate',
-                        value: '₹${maxPriceQtl.toStringAsFixed(0)}/Qtl',
+                        label: context.tr('Max Budget Rate', 'अधिकतम बजट दर'),
+                        value: '₹${maxPriceQtl.toStringAsFixed(0)}/${context.tr('Qtl', 'क्विंटल')}',
                         icon: Icons.currency_rupee,
                       ),
                     ),
@@ -331,7 +358,7 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
                   children: [
                     Expanded(
                       child: _buildSpecPill(
-                        label: 'Delivery Point',
+                        label: context.tr('Delivery Point', 'वितरण स्थल'),
                         value: location.split(',').first,
                         icon: Icons.location_on_outlined,
                       ),
@@ -339,7 +366,7 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
                     const SizedBox(width: 8),
                     Expanded(
                       child: _buildSpecPill(
-                        label: 'Target Window',
+                        label: context.tr('Target Window', 'लक्षित अवधि'),
                         value: deadline,
                         icon: Icons.calendar_today_outlined,
                       ),
@@ -363,7 +390,7 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          '$matchedCount FPO matches found within 7 km clusters',
+                          '$matchedCount ${context.tr('FPO matches found within 7 km clusters', 'एफपीओ मिलान 7 किमी क्लस्टर में उपलब्ध')}',
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -379,7 +406,7 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            '$quotesCount Quotes',
+                            '$quotesCount ${context.tr('Quotes', 'कोटेशन')}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,
@@ -401,7 +428,11 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
                       child: ElevatedButton.icon(
                         onPressed: () => _showResponsesDialog(rfq),
                         icon: const Icon(Icons.forum_outlined, size: 16),
-                        label: Text(quotesCount > 0 ? 'View $quotesCount Responses' : 'View Responses'),
+                        label: Text(
+                          quotesCount > 0
+                              ? '${context.tr('View', 'देखें')} $quotesCount ${context.tr('Responses', 'प्रतिक्रियाएँ')}'
+                              : context.tr('View Responses', 'प्रतिक्रियाएँ देखें'),
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1565C0),
                           foregroundColor: Colors.white,
@@ -421,13 +452,13 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: const Text('Edit'),
+                      child: Text(context.tr('Edit', 'संपादित करें')),
                     ),
                     const SizedBox(width: 8),
                     IconButton(
                       onPressed: () => _cancelRfq(rfq['id']),
                       icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent),
-                      tooltip: 'Cancel RFQ',
+                      tooltip: context.tr('Cancel RFQ', 'आरएफक्यू रद्द करें'),
                     ),
                   ],
                 ),
@@ -520,7 +551,7 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'FPO Responses & Quotes',
+                          context.tr('FPO Responses & Quotes', 'एफपीओ प्रतिक्रियाएँ और कोटेशन'),
                           style: GoogleFonts.outfit(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -580,14 +611,14 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
                   onPressed: () {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Accepted Combined Quotes! Consolidated PO Generated.'),
-                        backgroundColor: Color(0xFF2E7D32),
+                      SnackBar(
+                        content: Text(context.tr('Accepted Combined Quotes! Consolidated PO Generated.', 'संयुक्त कोटेशन स्वीकृत! समेकित पीओ तैयार किया गया।')),
+                        backgroundColor: const Color(0xFF2E7D32),
                       ),
                     );
                   },
                   icon: const Icon(Icons.handshake),
-                  label: const Text('Accept All 3 Clustered Quotes (3,000 Qtl Total)'),
+                  label: Text(context.tr('Accept All 3 Clustered Quotes (3,000 Qtl Total)', 'सभी 3 क्लस्टर्ड कोटेशन स्वीकारें (कुल 3,000 क्विंटल)')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2E7D32),
                     foregroundColor: Colors.white,
@@ -655,11 +686,11 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Supply: ${quantityMT.toStringAsFixed(0)} Qtl',
+                '${context.tr('Supply', 'आपूर्ति')}: ${quantityMT.toStringAsFixed(0)} ${context.tr('Qtl', 'क्विंटल')}',
                 style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1565C0)),
               ),
               Text(
-                '₹${quotedRate.toStringAsFixed(0)}/Qtl',
+                '₹${quotedRate.toStringAsFixed(0)}/${context.tr('Qtl', 'क्विंटल')}',
                 style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2E7D32), fontSize: 15),
               ),
             ],
@@ -715,7 +746,7 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Post Bulk Requirement (RFQ)',
+                          context.tr('Post Bulk Requirement (RFQ)', 'थोक आवश्यकता पोस्ट करें (आरएफक्यू)'),
                           style: GoogleFonts.outfit(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -723,15 +754,18 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Broadcast your bulk demand across regional FPO clusters.',
-                          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                        Text(
+                          context.tr(
+                            'Broadcast your bulk demand across regional FPO clusters.',
+                            'क्षेत्रीय एफपीओ क्लस्टरों में अपनी थोक मांग प्रसारित करें।',
+                          ),
+                          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                         ),
                         const Divider(height: 24),
 
                         // Categorized Commodity Dropdown Selector
                         Text(
-                          'Select Commodity (फल / सब्जी / अनाज / दलहन) *',
+                          context.tr('Select Commodity (फल / सब्जी / अनाज / दलहन) *', 'फसल चुनें (फल / सब्जी / अनाज / दलहन) *'),
                           style: GoogleFonts.inter(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w600,
@@ -826,153 +860,153 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
                         // Variety Input Field
                         TextFormField(
                           controller: varietyController,
-                          decoration: const InputDecoration(
-                            labelText: 'Variety / Specification *',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.style),
-                            helperText: 'Auto-suggested from Indian APMC standards',
+                          decoration: InputDecoration(
+                            labelText: context.tr('Variety / Specification *', 'किस्म / विनिर्देश *'),
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.style),
+                            helperText: context.tr('Auto-suggested from Indian APMC standards', 'भारतीय एपीएमसी मानकों से स्वतः सुझाया गया'),
                           ),
-                          validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                          validator: (v) => v?.isEmpty == true ? context.tr('Required', 'आवश्यक') : null,
                         ),
                         const SizedBox(height: 12),
 
-                    // Quantity (Qtl) & Max Price
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: qtyController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Quantity (Quintals / Qtl) *',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.scale),
-                              suffixText: 'Qtl',
+                        // Quantity (Qtl) & Max Price
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: qtyController,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: context.tr('Quantity (Quintals / Qtl) *', 'मात्रा (क्विंटल / Qtl) *'),
+                                  border: const OutlineInputBorder(),
+                                  prefixIcon: const Icon(Icons.scale),
+                                  suffixText: context.tr('Qtl', 'क्विंटल'),
+                                ),
+                                validator: (v) => v?.isEmpty == true ? context.tr('Required', 'आवश्यक') : null,
+                              ),
                             ),
-                            validator: (v) => v?.isEmpty == true ? 'Required' : null,
-                          ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: TextFormField(
+                                controller: maxPriceController,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: context.tr('Max Target (₹/Qtl) *', 'अधिकतम बजट (₹/क्विंटल) *'),
+                                  border: const OutlineInputBorder(),
+                                  prefixIcon: const Icon(Icons.currency_rupee),
+                                ),
+                                validator: (v) => v?.isEmpty == true ? context.tr('Required', 'आवश्यक') : null,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextFormField(
-                            controller: maxPriceController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Max Target (₹/Qtl) *',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.currency_rupee),
+                        const SizedBox(height: 12),
+
+                        // Quality Grade Dropdown
+                        DropdownButtonFormField<String>(
+                          initialValue: selectedGrade,
+                          decoration: InputDecoration(
+                            labelText: context.tr('Quality Grade', 'गुणवत्ता श्रेणी'),
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.verified),
+                          ),
+                          items: [
+                            'Grade A (Milling Grade)',
+                            'Super Fine (Export)',
+                            'FAQ (Fair Average Quality)',
+                            'Standard Processing',
+                          ].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+                          onChanged: (v) => selectedGrade = v ?? selectedGrade,
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Delivery Location & Deadline
+                        TextFormField(
+                          controller: locationController,
+                          decoration: InputDecoration(
+                            labelText: context.tr('Delivery Destination *', 'वितरण गंतव्य *'),
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.location_city),
+                          ),
+                          validator: (v) => v?.isEmpty == true ? context.tr('Required', 'आवश्यक') : null,
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: deadlineController,
+                          decoration: InputDecoration(
+                            labelText: context.tr('Delivery Window / Deadline *', 'वितरण अवधि / समय सीमा *'),
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.calendar_month),
+                          ),
+                          validator: (v) => v?.isEmpty == true ? context.tr('Required', 'आवश्यक') : null,
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Submit Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              if (formKey.currentState!.validate()) {
+                                final qtyQtl = double.tryParse(qtyController.text) ?? 3000.0;
+                                final maxRate = double.tryParse(maxPriceController.text) ?? 3600.0;
+
+                                await _dbService.createBulkRfq({
+                                  'title': '${qtyQtl.toStringAsFixed(0)} Qtl ${commodityController.text} (${varietyController.text})',
+                                  'commodity': commodityController.text,
+                                  'variety': varietyController.text,
+                                  'requiredQuantityQtl': qtyQtl,
+                                  'requiredQuantityMT': qtyQtl / 10,
+                                  'requiredQuantityKg': qtyQtl * 100,
+                                  'maxPricePerQtl': maxRate,
+                                  'maxPricePerKg': maxRate / 100,
+                                  'qualityGrade': selectedGrade,
+                                  'deliveryLocation': locationController.text,
+                                  'deliveryDeadline': deadlineController.text,
+                                  'buyerId': buyerId,
+                                  'buyerName': buyerName,
+                                  'status': 'open',
+                                  'matchedFposCount': 24,
+                                  'quotesCount': 0,
+                                });
+
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(context.tr('Bulk RFQ broadcasted to FPOs successfully!', 'थोक आरएफक्यू एफपीओ को सफलतापूर्वक प्रसारित किया गया!')),
+                                      backgroundColor: const Color(0xFF2E7D32),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.send),
+                            label: Text(context.tr('Broadcast Requirement to FPOs', 'एफपीओ को आवश्यकता प्रसारित करें')),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2E7D32),
+                              foregroundColor: Colors.white,
+                              textStyle: const TextStyle(fontWeight: FontWeight.bold),
                             ),
-                            validator: (v) => v?.isEmpty == true ? 'Required' : null,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-
-                    // Quality Grade Dropdown
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedGrade,
-                      decoration: const InputDecoration(
-                        labelText: 'Quality Grade',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.verified),
-                      ),
-                      items: [
-                        'Grade A (Milling Grade)',
-                        'Super Fine (Export)',
-                        'FAQ (Fair Average Quality)',
-                        'Standard Processing',
-                      ].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
-                      onChanged: (v) => selectedGrade = v ?? selectedGrade,
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Delivery Location & Deadline
-                    TextFormField(
-                      controller: locationController,
-                      decoration: const InputDecoration(
-                        labelText: 'Delivery Destination *',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.location_city),
-                      ),
-                      validator: (v) => v?.isEmpty == true ? 'Required' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: deadlineController,
-                      decoration: const InputDecoration(
-                        labelText: 'Delivery Window / Deadline *',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.calendar_month),
-                      ),
-                      validator: (v) => v?.isEmpty == true ? 'Required' : null,
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Submit Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          if (formKey.currentState!.validate()) {
-                            final qtyQtl = double.tryParse(qtyController.text) ?? 3000.0;
-                            final maxRate = double.tryParse(maxPriceController.text) ?? 3600.0;
-
-                            await _dbService.createBulkRfq({
-                              'title': '${qtyQtl.toStringAsFixed(0)} Qtl ${commodityController.text} (${varietyController.text})',
-                              'commodity': commodityController.text,
-                              'variety': varietyController.text,
-                              'requiredQuantityQtl': qtyQtl,
-                              'requiredQuantityMT': qtyQtl / 10,
-                              'requiredQuantityKg': qtyQtl * 100,
-                              'maxPricePerQtl': maxRate,
-                              'maxPricePerKg': maxRate / 100,
-                              'qualityGrade': selectedGrade,
-                              'deliveryLocation': locationController.text,
-                              'deliveryDeadline': deadlineController.text,
-                              'buyerId': buyerId,
-                              'buyerName': buyerName,
-                              'status': 'open',
-                              'matchedFposCount': 24,
-                              'quotesCount': 0,
-                            });
-
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Bulk RFQ broadcasted to FPOs successfully!'),
-                                  backgroundColor: Color(0xFF2E7D32),
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        icon: const Icon(Icons.send),
-                        label: const Text('Broadcast Requirement to FPOs'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2E7D32),
-                          foregroundColor: Colors.white,
-                          textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
-  },
-);
-}
+  }
 
   void _showEditRfqDialog(Map<String, dynamic> rfq) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Editing RFQ specifications...')),
+      SnackBar(content: Text(context.tr('Editing RFQ specifications...', 'आरएफक्यू विनिर्देश संपादित किए जा रहे हैं...'))),
     );
   }
 
@@ -981,19 +1015,19 @@ class _BulkBuyerRfqsScreenState extends State<BulkBuyerRfqsScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cancel RFQ?'),
-        content: const Text('Are you sure you want to withdraw this requirement from FPOs?'),
+        title: Text(context.tr('Cancel RFQ?', 'आरएफक्यू रद्द करें?')),
+        content: Text(context.tr('Are you sure you want to withdraw this requirement from FPOs?', 'क्या आप वाकई एफपीओ से इस आवश्यकता को वापस लेना चाहते हैं?')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Keep Active')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(context.tr('Keep Active', 'सक्रिय रखें'))),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('RFQ cancelled.')),
+                SnackBar(content: Text(context.tr('RFQ cancelled.', 'आरएफक्यू रद्द किया गया।'))),
               );
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
-            child: const Text('Cancel RFQ'),
+            child: Text(context.tr('Cancel RFQ', 'आरएफक्यू रद्द करें')),
           ),
         ],
       ),

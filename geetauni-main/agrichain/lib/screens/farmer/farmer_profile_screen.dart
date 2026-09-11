@@ -11,6 +11,8 @@ import '../../widgets/language_switcher.dart';
 import '../../widgets/signature_pad_dialog.dart';
 import '../../services/database_service.dart';
 import '../../services/whatsapp_kisan_service.dart';
+import '../../widgets/rating_widgets.dart';
+import '../../utils/translation_helper.dart';
 import '../login_screen.dart';
 import 'mint_land_nft_screen.dart';
 import 'land_analysis_screen.dart';
@@ -67,40 +69,43 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Direct Settlement Bank & UPI Details',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+              Text(
+                context.tr('Direct Settlement Bank & UPI Details', 'सीधा भुगतान बैंक व यूपीआई विवरण'),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Used for instant IMPS and UPI payouts from retail buyers and FPO procurement.',
-                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              Text(
+                context.tr(
+                  'Used for instant IMPS and UPI payouts from retail buyers and FPO procurement.',
+                  'खुदरा खरीदारों और एफपीओ खरीद से तत्काल आईएमपीएस और यूपीआई भुगतान के लिए उपयोग किया जाता है।',
+                ),
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: _bankAccController,
-                decoration: const InputDecoration(
-                  labelText: 'Bank Account Number',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.account_balance),
+                decoration: InputDecoration(
+                  labelText: context.tr('Bank Account Number', 'बैंक खाता संख्या'),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.account_balance),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _ifscController,
-                decoration: const InputDecoration(
-                  labelText: 'Bank IFSC Code',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.pin),
+                decoration: InputDecoration(
+                  labelText: context.tr('Bank IFSC Code', 'बैंक आईएफएससी कोड'),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.pin),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _upiController,
-                decoration: const InputDecoration(
-                  labelText: 'UPI ID (VPA)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.qr_code),
+                decoration: InputDecoration(
+                  labelText: context.tr('UPI ID (VPA)', 'यूपीआई आईडी (VPA)'),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.qr_code),
                 ),
               ),
               const SizedBox(height: 18),
@@ -111,9 +116,9 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                     Navigator.pop(ctx);
                     setState(() {});
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Bank and UPI payout details updated successfully!'),
-                        backgroundColor: Color(0xFF2E7D32),
+                      SnackBar(
+                        content: Text(context.tr('Bank and UPI payout details updated successfully!', 'बैंक और यूपीआई भुगतान विवरण सफलतापूर्वक अपडेट किया गया!')),
+                        backgroundColor: const Color(0xFF2E7D32),
                       ),
                     );
                   },
@@ -122,7 +127,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: const Text('Save Payout Details', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text(context.tr('Save Payout Details', 'भुगतान विवरण सहेजें'), style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -146,7 +151,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           CustomAppBar(
-            title: 'Farmer Profile',
+            title: context.tr('Farmer Profile', 'किसान प्रोफ़ाइल'),
             actions: const [
               Padding(
                 padding: EdgeInsets.only(right: 8),
@@ -160,6 +165,10 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
           children: [
             // Farmer Header Card
             _buildProfileHeaderCard(farmerName, email, location),
+            const SizedBox(height: 18),
+
+            // Farmer Trust & Rating Card
+            _buildFarmerReputationCard(),
             const SizedBox(height: 18),
 
             // WhatsApp Kisan Assistant (Auto-Connect & Status)
@@ -314,7 +323,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          isLinked ? 'Linked' : 'Not Linked',
+                          isLinked ? context.tr('Linked', 'जुड़ा हुआ') : context.tr('Not Linked', 'नहीं जुड़ा'),
                           style: TextStyle(
                             color: isLinked ? const Color(0xFF15803D) : const Color(0xFFD97706),
                             fontSize: 11,
@@ -330,7 +339,10 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Connect WhatsApp for 1-Tap Auto Login. Any crops you send via voice note or text to WhatsApp will automatically be saved to your AgriChain account under "My Crops".',
+            context.tr(
+              'Connect WhatsApp for 1-Tap Auto Login. Any crops you send via voice note or text to WhatsApp will automatically be saved to your AgriChain account under "My Crops".',
+              '1-टैप ऑटो लॉगिन के लिए व्हाट्सएप कनेक्ट करें। व्हाट्सएप पर वॉयस नोट या टेक्स्ट द्वारा भेजी गई कोई भी फसल "मेरी फसलें" के तहत स्वचालित रूप से सहेजी जाएगी।',
+            ),
             style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
           ),
           const SizedBox(height: 14),
@@ -341,22 +353,22 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                   onPressed: () async {
                     if (user == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please log in first to link your account')),
+                        SnackBar(content: Text(context.tr('Please log in first to link your account', 'खाता लिंक करने के लिए पहले लॉग इन करें'))),
                       );
                       return;
                     }
                     final launched = await kisanService.launchConnectWhatsApp(user);
                     if (!launched && mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('✅ Handshake code copied! Paste in WhatsApp chat to link.'),
-                          backgroundColor: Color(0xFF075E54),
+                        SnackBar(
+                          content: Text(context.tr('✅ Handshake code copied! Paste in WhatsApp chat to link.', '✅ हैंडशेक कोड कॉपी हो गया! लिंक करने के लिए व्हाट्सएप चैट में पेस्ट करें।')),
+                          backgroundColor: const Color(0xFF075E54),
                         ),
                       );
                     }
                   },
                   icon: const Icon(Icons.link, size: 18),
-                  label: const Text('Connect WhatsApp (Auto Link)'),
+                  label: Text(context.tr('Connect WhatsApp (Auto Link)', 'व्हाट्सएप कनेक्ट करें (ऑटो लिंक)')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF25D366),
                     foregroundColor: Colors.white,
@@ -448,11 +460,11 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.satellite_alt, color: Color(0xFF2563EB), size: 22),
-                  SizedBox(width: 8),
-                  Text('Land Records & GIS Soil Health', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  const Icon(Icons.satellite_alt, color: Color(0xFF2563EB), size: 22),
+                  const SizedBox(width: 8),
+                  Text(context.tr('Land Records & GIS Soil Health', 'भूमि रिकॉर्ड और जीआईएस मृदा स्वास्थ्य'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                 ],
               ),
               Container(
@@ -461,7 +473,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                   color: const Color(0xFFDCFCE7),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text('NFT Bound', style: TextStyle(color: Color(0xFF15803D), fontSize: 11, fontWeight: FontWeight.bold)),
+                child: Text(context.tr('NFT Bound', 'NFT बाउंड'), style: const TextStyle(color: Color(0xFF15803D), fontSize: 11, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -471,9 +483,12 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Soil: Alluvial Sandy Loam • Moisture Index: Optimal (11.8%) • Nitrogen: High',
-            style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+          Text(
+            context.tr(
+              'Soil: Alluvial Sandy Loam • Moisture Index: Optimal (11.8%) • Nitrogen: High',
+              'मृदा: जलोढ़ रेतीली दोमट • नमी सूचकांक: अनुकूल (11.8%) • नाइट्रोजन: उच्च',
+            ),
+            style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
           ),
           const Divider(height: 20, color: Color(0xFFF1F5F9)),
           Row(
@@ -487,7 +502,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                     );
                   },
                   icon: const Icon(Icons.search, size: 16),
-                  label: const Text('Land Scan', style: TextStyle(fontSize: 12)),
+                  label: Text(context.tr('Land Scan', 'जमीन स्कैन'), style: const TextStyle(fontSize: 12)),
                   style: OutlinedButton.styleFrom(
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
@@ -503,7 +518,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                     );
                   },
                   icon: const Icon(Icons.token, size: 16),
-                  label: const Text('Mint Land NFT', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  label: Text(context.tr('Mint Land NFT', 'भूमि NFT मिंट करें'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
@@ -559,12 +574,12 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Digital Signature & DigiLocker',
+                        context.tr('Digital Signature & DigiLocker', 'डिजिटल हस्ताक्षर और डिजिलॉकर'),
                         style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
-                      const Text(
-                        'Embedded onto dual-signed smart contracts',
-                        style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                      Text(
+                        context.tr('Embedded onto dual-signed smart contracts', 'दोहरे हस्ताक्षरित स्मार्ट अनुबंधों में अंतर्निहित'),
+                        style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                       ),
                     ],
                   ),
@@ -586,7 +601,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      hasSignature ? 'ACTIVE' : 'ACTION REQUIRED',
+                      hasSignature ? context.tr('ACTIVE', 'सक्रिय') : context.tr('ACTION REQUIRED', 'कार्रवाई आवश्यक'),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
@@ -625,10 +640,13 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
               children: [
                 const Icon(Icons.check_circle, size: 14, color: Color(0xFF15803D)),
                 const SizedBox(width: 6),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Official signature linked to your Aadhaar & e-Kisan profile.',
-                    style: TextStyle(fontSize: 11, color: Color(0xFF166534), fontWeight: FontWeight.w500),
+                    context.tr(
+                      'Official signature linked to your Aadhaar & e-Kisan profile.',
+                      'आपके आधार और ई-किसान प्रोफाइल से जुड़ा आधिकारिक हस्ताक्षर।',
+                    ),
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF166534), fontWeight: FontWeight.w500),
                   ),
                 ),
                 TextButton(
@@ -643,15 +661,15 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                       await appState.updateUserSignature(res['signatureUrl']);
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('✅ Signature updated for smart contracts!'),
-                            backgroundColor: Color(0xFF15803D),
+                          SnackBar(
+                            content: Text(context.tr('✅ Signature updated for smart contracts!', '✅ स्मार्ट अनुबंधों के लिए हस्ताक्षर अपडेट किए गए!')),
+                            backgroundColor: const Color(0xFF15803D),
                           ),
                         );
                       }
                     }
                   },
-                  child: const Text('Update / Re-sign', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+                  child: Text(context.tr('Update / Re-sign', 'हस्ताक्षर बदलें'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
                 ),
               ],
             ),
@@ -666,14 +684,17 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'No digital signature on file!',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                  Text(
+                    context.tr('No digital signature on file!', 'कोई डिजिटल हस्ताक्षर उपलब्ध नहीं!'),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Upload your signature, draw it directly, or verify via DigiLocker so the dual-signed smart contracts include your real signature.',
-                    style: TextStyle(fontSize: 11, color: Color(0xFFB45309), height: 1.3),
+                  Text(
+                    context.tr(
+                      'Upload your signature, draw it directly, or verify via DigiLocker so the dual-signed smart contracts include your real signature.',
+                      'अपना हस्ताक्षर अपलोड करें, सीधे ड्रा करें, या डिजिलॉकर के माध्यम से सत्यापित करें ताकि स्मार्ट अनुबंधों में आपका वास्तविक हस्ताक्षर शामिल हो सके।',
+                    ),
+                    style: const TextStyle(fontSize: 11, color: Color(0xFFB45309), height: 1.3),
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
@@ -689,16 +710,19 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                           await appState.updateUserSignature(res['signatureUrl']);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('✅ Digital signature saved to profile!'),
-                                backgroundColor: Color(0xFF15803D),
+                              SnackBar(
+                                content: Text(context.tr('✅ Digital signature saved to profile!', '✅ डिजिटल हस्ताक्षर प्रोफ़ाइल में सहेजा गया!')),
+                                backgroundColor: const Color(0xFF15803D),
                               ),
                             );
                           }
                         }
                       },
                       icon: const Icon(Icons.draw, size: 16),
-                      label: const Text('Upload or Draw Signature / DigiLocker e-Sign', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      label: Text(
+                        context.tr('Upload or Draw Signature / DigiLocker e-Sign', 'हस्ताक्षर अपलोड/ड्रा करें या डिजिलॉकर ई-साइन'),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1B5E20),
                         foregroundColor: Colors.white,
@@ -730,11 +754,11 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.account_balance, color: Color(0xFF2E7D32), size: 22),
-                  SizedBox(width: 8),
-                  Text('Direct Payout Bank & UPI', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  const Icon(Icons.account_balance, color: Color(0xFF2E7D32), size: 22),
+                  const SizedBox(width: 8),
+                  Text(context.tr('Direct Payout Bank & UPI', 'सीधा भुगतान बैंक व यूपीआई'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                 ],
               ),
               IconButton(
@@ -744,9 +768,9 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
             ],
           ),
           const SizedBox(height: 6),
-          _buildInfoRow('Account Number', _bankAccController.text),
-          _buildInfoRow('IFSC Code', _ifscController.text),
-          _buildInfoRow('UPI ID (VPA)', _upiController.text),
+          _buildInfoRow(context.tr('Account Number', 'खाता संख्या'), _bankAccController.text),
+          _buildInfoRow(context.tr('IFSC Code', 'आईएफएससी कोड'), _ifscController.text),
+          _buildInfoRow(context.tr('UPI ID (VPA)', 'यूपीआई आईडी (VPA)'), _upiController.text),
         ],
       ),
     );
@@ -777,11 +801,11 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.receipt_long, color: Color(0xFFD97706), size: 22),
-              SizedBox(width: 8),
-              Text('Recent Payout Settlements', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              const Icon(Icons.receipt_long, color: Color(0xFFD97706), size: 22),
+              const SizedBox(width: 8),
+              Text(context.tr('Recent Payout Settlements', 'हालिया भुगतान निपटान'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
             ],
           ),
           const SizedBox(height: 10),
@@ -790,9 +814,9 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
             builder: (context, snapshot) {
               final orders = snapshot.data ?? [];
               if (orders.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('No payout settlements yet.', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(context.tr('No payout settlements yet.', 'अभी तक कोई भुगतान निपटान नहीं।'), style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                 );
               }
 
@@ -800,7 +824,9 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                 children: orders.take(3).map((o) {
                   final total = _toDouble(o['totalPrice']);
                   final date = o['createdAt'] != null ? o['createdAt'].toString().split('T').first : 'Recent';
-                  final type = o['orderType'] == 'fpo_procurement' ? 'FPO Settlement' : 'Retail Sale';
+                  final type = o['orderType'] == 'fpo_procurement'
+                      ? context.tr('FPO Settlement', 'एफपीओ निपटान')
+                      : context.tr('Retail Sale', 'खुदरा बिक्री');
 
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -833,17 +859,17 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.folder_shared, color: Color(0xFF475569), size: 22),
-              SizedBox(width: 8),
-              Text('Documents & Certifications', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              const Icon(Icons.folder_shared, color: Color(0xFF475569), size: 22),
+              const SizedBox(width: 8),
+              Text(context.tr('Documents & Certifications', 'दस्तावेज़ और प्रमाण पत्र'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
             ],
           ),
           const SizedBox(height: 10),
-          _buildDocItem('Aadhaar / Farmer Identity Card', 'Verified', const Color(0xFF15803D)),
-          _buildDocItem('Land Registry Deed (7/12 Extract)', 'Verified', const Color(0xFF15803D)),
-          _buildDocItem('NPOP Organic Certification', 'Active', const Color(0xFF2563EB)),
+          _buildDocItem(context.tr('Aadhaar / Farmer Identity Card', 'आधार / किसान पहचान पत्र'), context.tr('Verified', 'सत्यापित'), const Color(0xFF15803D)),
+          _buildDocItem(context.tr('Land Registry Deed (7/12 Extract)', 'भूमि रजिस्ट्री (7/12 नकल)'), context.tr('Verified', 'सत्यापित'), const Color(0xFF15803D)),
+          _buildDocItem(context.tr('NPOP Organic Certification', 'NPOP जैविक प्रमाणीकरण'), context.tr('Active', 'सक्रिय'), const Color(0xFF2563EB)),
         ],
       ),
     );
@@ -874,11 +900,21 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('App Settings & Preferences', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          Text(context.tr('App Settings & Preferences', 'ऐप सेटिंग्स और प्राथमिकताएं'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
           const SizedBox(height: 10),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.translate, color: Color(0xFF2E7D32)),
+            title: Text(
+              context.tr('Language / भाषा', 'भाषा / Language'),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            trailing: const LanguageSwitcherPill(isDark: false),
+          ),
+          const Divider(height: 16),
           SwitchListTile(
-            title: const Text('SMS & Push Notifications', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-            subtitle: const Text('Order updates, FPO collection routes, MSP alerts', style: TextStyle(fontSize: 11)),
+            title: Text(context.tr('SMS & Push Notifications', 'एसएमएस और पुश सूचनाएं'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            subtitle: Text(context.tr('Order updates, FPO collection routes, MSP alerts', 'ऑर्डर अपडेट, एफपीओ संग्रह मार्ग, एमएसपी अलर्ट'), style: const TextStyle(fontSize: 11)),
             value: _notificationsEnabled,
             activeThumbColor: const Color(0xFF2E7D32),
             contentPadding: EdgeInsets.zero,
@@ -888,7 +924,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.help_outline, color: Color(0xFF475569)),
-            title: const Text('Kisan Helpdesk & Agri Advisory', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            title: Text(context.tr('Kisan Helpdesk & Agri Advisory', 'किसान हेल्पलाइन व कृषि सलाह'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -900,7 +936,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.logout, color: AppTheme.error),
-            title: const Text('Sign Out', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.error)),
+            title: Text(context.tr('Sign Out', 'लॉग आउट'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.error)),
             onTap: () async {
               await FirebaseAuth.instance.signOut();
               appState.signOut();
@@ -914,6 +950,195 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFarmerReputationCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: AppTheme.softShadow,
+        border: Border.all(color: const Color(0xFFFDE68A)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFEF3C7),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.stars, color: Color(0xFFD97706), size: 22),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        context.tr('Farmer Trust & Ratings', 'किसान साख व रेटिंग'),
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        context.tr('Trust, Quality & Buyer Ratings', 'विश्वास, गुणवत्ता और खरीदार रेटिंग'),
+                        style: GoogleFonts.inter(fontSize: 11, color: Colors.grey.shade600),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDCFCE7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.verified, size: 12, color: Color(0xFF15803D)),
+                    const SizedBox(width: 3),
+                    Text(
+                      context.tr('TOP RATED FARMER', 'शीर्ष रेटेड किसान'),
+                      style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Rating Score Header
+          Row(
+            children: [
+              Text(
+                '4.92',
+                style: GoogleFonts.inter(
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const StarRatingDisplay(rating: 4.92, size: 18, activeColor: Colors.amber),
+                  const SizedBox(height: 3),
+                  Text(
+                    context.tr('Based on 38 verified deliveries & harvests', '38 सत्यापित डिलीवरी और उपज पर आधारित'),
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Breakdown metrics
+          _buildRatingMetricRow(context.tr('Produce Quality & Purity', 'फसल की गुणवत्ता व शुद्धता'), 0.98, '4.9'),
+          const SizedBox(height: 8),
+          _buildRatingMetricRow(context.tr('Weighment Accuracy', 'वजन व तौल की शुद्धता'), 1.0, '5.0'),
+          const SizedBox(height: 8),
+          _buildRatingMetricRow(context.tr('On-Time Farmgate Dispatch', 'समय पर फार्मगेट डिलीवरी'), 0.96, '4.8'),
+          const SizedBox(height: 16),
+
+          // Verified Buyer Reviews Snippet
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Amit Verma (Retail Buyer, Delhi NCR)',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12, color: const Color(0xFF0F172A)),
+                    ),
+                    const Text('⭐ 5.0 • 3 days ago', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '"Basmati 1121 is exceptionally clean, aromatic, and naturally farm-dried. Quick farmgate dispatch and smooth escrow release."',
+                  style: TextStyle(fontSize: 11.5, color: Color(0xFF334155), fontStyle: FontStyle.italic),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Karnal Kisan Samriddhi FPO',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12, color: const Color(0xFF0F172A)),
+                    ),
+                    const Text('⭐ 5.0 • 1 week ago', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '"Excellent mustard lot inwarded at collection center. Moisture tested accurately at 7.8%. Instant DBT payout issued."',
+                  style: TextStyle(fontSize: 11.5, color: Color(0xFF334155), fontStyle: FontStyle.italic),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRatingMetricRow(String label, double value, String score) {
+    return Row(
+      children: [
+        Expanded(
+          flex: 4,
+          child: Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF475569))),
+        ),
+        Expanded(
+          flex: 3,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: value,
+              minHeight: 5,
+              backgroundColor: const Color(0xFFE2E8F0),
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(score, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+      ],
     );
   }
 }
