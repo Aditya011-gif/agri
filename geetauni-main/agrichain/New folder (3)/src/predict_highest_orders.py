@@ -20,8 +20,25 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from src.config import CORRIDOR_COORDINATES, COMMODITIES
-from src.inference import predict_demand_and_price
+try:
+    from src.config import CORRIDOR_COORDINATES, COMMODITIES
+    from src.inference import predict_demand_and_price
+    HAS_ML_DEPS = True
+except Exception as e:
+    HAS_ML_DEPS = False
+    CORRIDOR_COORDINATES = {
+        ("Rice", "Karnal", "Haryana"): (29.6857, 76.9905),
+        ("Wheat", "Karnal", "Haryana"): (29.6857, 76.9905),
+        ("Rice", "Kurukshetra", "Haryana"): (29.9695, 76.8783),
+        ("Wheat", "Kurukshetra", "Haryana"): (29.9695, 76.8783),
+        ("Rice", "Ambala", "Haryana"): (30.3782, 76.7767),
+        ("Mustard", "Bhiwani", "Haryana"): (28.7831, 76.1319),
+        ("Cotton", "Sirsa", "Haryana"): (29.5349, 75.0298),
+        ("Potato", "Agra", "Uttar Pradesh"): (27.1767, 78.0081),
+        ("Onion", "Nashik", "Maharashtra"): (19.9975, 73.7898),
+        ("Soybean", "Indore", "Madhya Pradesh"): (22.7196, 75.8577),
+    }
+    COMMODITIES = ["Rice", "Wheat", "Mustard", "Cotton", "Potato", "Onion", "Soybean"]
 
 
 def predict_highest_orders(commodity_filter=None, days_ahead=7):
@@ -99,7 +116,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Predict highest incoming agricultural orders")
     parser.add_argument("--commodity", type=str, default=None, help="Commodity: Tomato, Onion, Wheat or All")
     parser.add_argument("--days", type=int, default=7, help="Days ahead (default: 7)")
+    parser.add_argument("--top", type=int, default=5, help="Number of top corridors to return (default: 5)")
     args = parser.parse_args()
 
     result = predict_highest_orders(commodity_filter=args.commodity, days_ahead=args.days)
+    if args.top and "all_ranked_corridors" in result:
+        result["all_ranked_corridors"] = result["all_ranked_corridors"][:args.top]
     print(json.dumps(result, indent=2))

@@ -7,6 +7,7 @@ import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../models/firestore_models.dart';
 import '../widgets/language_switcher.dart';
+import '../widgets/digilocker_webview_modal.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -447,7 +448,75 @@ class _LoginScreenState extends State<LoginScreen>
                                     },
                                   ),
                                 ),
-                                const SizedBox(height: 24),
+                                const SizedBox(height: 16),
+
+                                // OR Divider
+                                Row(
+                                  children: [
+                                    Expanded(child: Divider(color: Colors.grey.withOpacity(0.3))),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                                      child: Text(
+                                        'OR',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: isDark ? Colors.white54 : AppTheme.textSecondary,
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(child: Divider(color: Colors.grey.withOpacity(0.3))),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Sign In with DigiLocker Button
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 52,
+                                  child: OutlinedButton(
+                                    onPressed: () => DigilockerWebviewModal.show(context),
+                                    style: OutlinedButton.styleFrom(
+                                      backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF0F9FF),
+                                      side: const BorderSide(color: Color(0xFF0284C7), width: 1.5),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Text('🇮🇳', style: TextStyle(fontSize: 20)),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          'Sign In with DigiLocker',
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                            color: isDark ? Colors.white : const Color(0xFF0369A1),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF15803D),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: const Text(
+                                            'Govt Verified',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
 
                                 // Forgot Password
                                 TextButton(

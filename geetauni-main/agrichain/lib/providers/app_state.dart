@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/firestore_models.dart';
 import '../services/database_service.dart';
 import '../services/auth_service.dart';
+import '../services/digilocker_service.dart';
 
 class AppState extends ChangeNotifier {
   // Firebase instances
@@ -247,6 +248,41 @@ class AppState extends ChangeNotifier {
     );
     notifyListeners();
     debugPrint('⚡ Logged in as Demo Role: ${_currentUser!.name} (${role.name})');
+  }
+
+  /// Login via DigiLocker / MeriPehchaan Verified Citizen
+  void setDigilockerUserRole(UserType role, DigilockerProfile profile) {
+    double wallet = 75000.0;
+    if (role == UserType.fpo) {
+      wallet = 2500000.0;
+    } else if (role == UserType.buyer) {
+      wallet = 20000000.0;
+    } else if (role == UserType.retailBuyer) {
+      wallet = 50000.0;
+    }
+
+    _currentUser = FirestoreUser(
+      id: 'digilocker_${role.name}_${profile.certificateId.replaceAll('-', '_')}',
+      name: profile.fullName,
+      email: '${profile.fullName.toLowerCase().replaceAll(' ', '.')}@digilocker.gov.in',
+      phone: '+91 98124 56780',
+      userType: role,
+      location: profile.address ?? 'Karnal, Haryana',
+      walletBalance: wallet,
+      createdAt: DateTime.now(),
+      isActive: true,
+      metadata: {
+        'isDigilockerVerified': true,
+        'maskedAadhaar': profile.maskedAadhaar,
+        'certificateId': profile.certificateId,
+        'verifiedAt': profile.verifiedAt.toIso8601String(),
+        'digilockerSessionId': profile.sessionId,
+        'dob': profile.dob ?? '',
+        'gender': profile.gender ?? '',
+      },
+    );
+    notifyListeners();
+    debugPrint('🇮🇳 DigiLocker Authenticated: ${_currentUser!.name} (${role.name}) [Cert: ${profile.certificateId}]');
   }
 
 

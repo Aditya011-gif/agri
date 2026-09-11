@@ -1018,6 +1018,62 @@ class _EscrowCheckoutScreenState extends State<EscrowCheckoutScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFBBF7D0)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.verified, size: 16, color: Color(0xFF15803D)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Indian IT Act 2000 Sec 10A • DigiLocker Verified',
+                    style: GoogleFonts.inter(fontSize: 10.5, fontWeight: FontWeight.w600, color: const Color(0xFF166534)),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    final double totalQtl = widget.orderedQuantityQtl ?? (widget.orderedTonnage * 10.0);
+                    final double totalMT = totalQtl / 10.0;
+                    final double ratePerQtl = widget.cropRatePerQtl ?? (widget.cropRatePerTonne > 5000 ? widget.cropRatePerTonne / 10.0 : widget.cropRatePerTonne);
+                    final double cropCost = totalQtl * ratePerQtl;
+                    final double freightCost = _carriers[_selectedCarrierIndex]['quote'] as double;
+                    final double transitInsurance = cropCost * 0.002;
+                    final double protocolFee = cropCost * 0.015;
+                    final double total = cropCost + freightCost + transitInsurance + protocolFee;
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SignedContractPdfScreen(
+                          contractId: 'B2B-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
+                          commodity: widget.commodity,
+                          variety: widget.variety ?? 'Grade A',
+                          originCluster: widget.originCluster,
+                          quantity: totalMT,
+                          unit: 'MT',
+                          ratePerUnit: ratePerQtl * 10,
+                          totalAmount: total,
+                          buyerName: _signatoryController.text.isNotEmpty ? _signatoryController.text : 'Authorized Buyer Officer',
+                          fpoName: widget.fpoName ?? 'Karnal Agro Farmers Producer Co.',
+                          inventoryItemId: widget.inventoryItemId,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    'View Legal Deed',
+                    style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF0F766E)),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1322,6 +1378,34 @@ class _EscrowCheckoutScreenState extends State<EscrowCheckoutScreen> {
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFF1B5E20),
               side: const BorderSide(color: Color(0xFF1B5E20)),
+            ),
+          ),
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SignedContractPdfScreen(
+                    contractId: contract.contractNumber,
+                    commodity: widget.commodity,
+                    variety: widget.variety ?? 'Grade A',
+                    originCluster: widget.originCluster,
+                    quantity: widget.orderedTonnage,
+                    unit: 'MT',
+                    ratePerUnit: widget.cropRatePerTonne,
+                    totalAmount: total,
+                    buyerName: contract.buyerName,
+                    fpoName: widget.fpoName ?? 'Karnal Agro Farmers Producer Co.',
+                    inventoryItemId: widget.inventoryItemId,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.verified, size: 15, color: Color(0xFF0F766E)),
+            label: const Text('DigiLocker Deed'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF0F766E),
+              side: const BorderSide(color: Color(0xFF0F766E)),
             ),
           ),
           OutlinedButton(
