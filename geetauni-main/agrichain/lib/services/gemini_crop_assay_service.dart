@@ -251,7 +251,7 @@ class GeminiCropAssayService {
     ),
   );
 
-  // Gemini API key configured with active project fallback
+  // Gemini API key configured via environment variable
   String _geminiApiKey = const String.fromEnvironment(
     'GEMINI_API_KEY',
     defaultValue: '',
