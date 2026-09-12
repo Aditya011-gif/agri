@@ -112,7 +112,16 @@ class DigilockerService {
     return null;
   }
 
+  static String? _customBackendUrl;
+  static void setBackendUrl(String url) => _customBackendUrl = url;
+
   static String get _proxyBaseUrl {
+    if (_customBackendUrl != null && _customBackendUrl!.isNotEmpty) {
+      return _customBackendUrl!;
+    }
+    const envBackend = String.fromEnvironment('BACKEND_URL', defaultValue: '');
+    if (envBackend.isNotEmpty) return envBackend;
+
     if (kIsWeb) return 'http://localhost:8088';
     if (defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:8088';
@@ -120,13 +129,7 @@ class DigilockerService {
     return 'http://localhost:8088';
   }
 
-  static String get defaultRedirectUrl {
-    if (kIsWeb) return 'http://localhost:8088/digilocker/callback';
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8088/digilocker/callback';
-    }
-    return 'http://localhost:8088/digilocker/callback';
-  }
+  static String get defaultRedirectUrl => '$_proxyBaseUrl/digilocker/callback';
 
   /// 2. Initialize a DigiLocker Consent Session via Sandbox.co.in
   static Future<DigilockerSessionResponse?> initiateSession({
