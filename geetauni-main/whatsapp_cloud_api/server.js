@@ -1110,52 +1110,221 @@ app.get('/', (req, res) => {
 
 // ---------------------------------------------------------------------------
 // DigiLocker / MeriPehchaan Sandbox Server Proxy
-// Eliminates browser CORS issues for Flutter Web client
+// Eliminates browser CORS issues and powers mobile deep-linking
 // ---------------------------------------------------------------------------
-app.post('/api/digilocker/init', async (req, res) => {
-  const apiKey = req.headers['x-api-key'] || 'key_live_d2e9824f3742403e991f79491c9cadd3';
-  const apiSecret = req.headers['x-api-secret'] || 'secret_live_a2042d8ee8144cda92d94c0a4069bc52';
+const SANDBOX_KEY = process.env.SANDBOX_API_KEY || 'key_live_d2e9824f3742403e991f79491c9cadd3';
+const SANDBOX_SECRET = process.env.SANDBOX_API_SECRET || 'secret_live_a2042d8ee8144cda92d94c0a4069bc52';
+let cachedSandboxToken = null;
+let sandboxTokenExpiry = 0;
+
+async function getSandboxAccessToken(force = false) {
+  const now = Date.now();
+  if (!force && cachedSandboxToken && now < sandboxTokenExpiry) {
+    return cachedSandboxToken;
+  }
   try {
     const authRes = await axios.post('https://api.sandbox.co.in/authenticate', {}, {
       headers: {
-        'x-api-key': apiKey,
-        'x-api-secret': apiSecret,
+        'x-api-key': SANDBOX_KEY,
+        'x-api-secret': SANDBOX_SECRET,
         'x-api-version': '1.0.0',
         'Content-Type': 'application/json'
       },
-      timeout: 8000
+      timeout: 10000
     });
     const token = authRes.data?.data?.access_token || authRes.data?.access_token;
+    if (token) {
+      cachedSandboxToken = token;
+      sandboxTokenExpiry = now + 23 * 3600 * 1000;
+      return token;
+    }
+  } catch (err) {
+    console.warn('[DigiLocker Proxy] Failed to fetch access token:', err.message);
+  }
+  return null;
+}
+
+function parseAadhaarXml(xmlText) {
+  let name = 'Citizen';
+  let gender = 'M';
+  let dob = '';
+  let address = '';
+  let maskedAadhaar = 'XXXX-XXXX-XXXX';
+
+  const nameMatch = xmlText.match(/name="([^"]+)"/i) || xmlText.match(/<name>([^<]+)<\/name>/i);
+  if (nameMatch) name = nameMatch[1];
+
+  const genderMatch = xmlText.match(/gender="([^"]+)"/i) || xmlText.match(/<gender>([^<]+)<\/gender>/i);
+  if (genderMatch) gender = genderMatch[1] === 'M' ? 'Male' : genderMatch[1] === 'F' ? 'Female' : genderMatch[1];
+
+  const dobMatch = xmlText.match(/dob="([^"]+)"/i) || xmlText.match(/<dob>([^<]+)<\/dob>/i);
+  if (dobMatch) dob = dobMatch[1];
+
+  const uidMatch = xmlText.match(/uid="([^"]+)"/i) || xmlText.match(/masked_uid="([^"]+)"/i);
+  if (uidMatch) maskedAadhaar = uidMatch[1];
+
+  const addrParts = [];
+  ['co', 'house', 'street', 'loc', 'vtc', 'dist', 'state', 'pc'].forEach(attr => {
+    const m = xmlText.match(new RegExp(`${attr}="([^"]+)"`, 'i'));
+    if (m) addrParts.push(m[1]);
+  });
+  if (addrParts.length > 0) address = addrParts.join(', ');
+
+  return { name, gender, dob, address, maskedAadhaar };
+}
+
+app.post('/api/digilocker/init', async (req, res) => {
+  const host = req.get('host') || `localhost:${PORT}`;
+  const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+  const defaultCallback = `${protocol}://${host}/digilocker/callback`;
+
+  try {
+    const token = await getSandboxAccessToken();
     if (token) {
       const initRes = await axios.post('https://api.sandbox.co.in/kyc/digilocker/sessions/init', {
         '@entity': 'in.co.sandbox.kyc.digilocker.session.request',
         flow: req.body.flow || 'signin',
         doc_types: req.body.doc_types || ['aadhaar'],
-        redirect_url: req.body.redirect_url || 'https://agrichain.app/digilocker/callback'
+        redirect_url: req.body.redirect_url || defaultCallback,
+        options: {
+          verification_method: req.body.verification_method || ['aadhaar', 'mobile']
+        }
       }, {
         headers: {
           'authorization': token,
-          'x-api-key': apiKey,
+          'x-api-key': SANDBOX_KEY,
           'x-api-version': '1.0.0',
           'Content-Type': 'application/json'
         },
-        timeout: 10000
+        timeout: 12000
       });
       return res.json(initRes.data);
     }
   } catch (err) {
-    console.warn('[DigiLocker Proxy] Sandbox API live call warning:', err.message);
+    console.warn('[DigiLocker Proxy] Sandbox API live call warning:', err.response?.data || err.message);
   }
 
-  // Graceful fallback for local development/sandbox
+  // Graceful fallback
   const mockSessionId = `sandbox_dl_${Date.now()}`;
   return res.json({
     status: 200,
     data: {
       session_id: mockSessionId,
-      authorization_url: `https://digilocker.meripehchaan.gov.in/public/oauth2/1/authorize?response_type=code&client_id=SANDBOX_AGRI_01&redirect_uri=https://agrichain.app/digilocker/callback&state=${mockSessionId}`
+      authorization_url: `https://digilocker.meripehchaan.gov.in/public/oauth2/1/authorize?response_type=code&client_id=SANDBOX_AGRI_01&redirect_uri=${encodeURIComponent(defaultCallback)}&state=${mockSessionId}`
     }
   });
+});
+
+app.get('/api/digilocker/status/:sessionId', async (req, res) => {
+  const { sessionId } = req.params;
+  try {
+    const token = await getSandboxAccessToken();
+    const sandboxRes = await axios.get(`https://api.sandbox.co.in/kyc/digilocker/sessions/${sessionId}/status`, {
+      headers: {
+        'authorization': token,
+        'x-api-key': SANDBOX_KEY,
+        'x-api-version': '1.0.0'
+      }
+    });
+    return res.json(sandboxRes.data);
+  } catch (err) {
+    return res.status(err.response?.status || 500).json(err.response?.data || { error: err.message });
+  }
+});
+
+app.get('/api/digilocker/documents/:sessionId', async (req, res) => {
+  const { sessionId } = req.params;
+  try {
+    let token = await getSandboxAccessToken();
+    let sandboxRes;
+    try {
+      sandboxRes = await axios.get(`https://api.sandbox.co.in/kyc/digilocker/sessions/${sessionId}/documents/aadhaar`, {
+        headers: { 'authorization': token, 'x-api-key': SANDBOX_KEY, 'x-api-version': '1.0.0' }
+      });
+    } catch (e) {
+      if (e.response?.status === 401) {
+        token = await getSandboxAccessToken(true);
+        sandboxRes = await axios.get(`https://api.sandbox.co.in/kyc/digilocker/sessions/${sessionId}/documents/aadhaar`, {
+          headers: { 'authorization': token, 'x-api-key': SANDBOX_KEY, 'x-api-version': '1.0.0' }
+        });
+      } else {
+        throw e;
+      }
+    }
+
+    const files = sandboxRes.data?.data?.files;
+    if (files && files.length > 0 && files[0].url) {
+      const xmlRes = await axios.get(files[0].url, { responseType: 'text' });
+      const parsed = parseAadhaarXml(xmlRes.data);
+      return res.json({
+        code: 200,
+        data: {
+          name: parsed.name,
+          gender: parsed.gender,
+          dob: parsed.dob,
+          masked_aadhaar: parsed.maskedAadhaar,
+          address: parsed.address,
+          raw_xml_available: true
+        }
+      });
+    }
+
+    return res.json(sandboxRes.data);
+  } catch (err) {
+    return res.status(err.response?.status || 500).json(err.response?.data || { error: err.message });
+  }
+});
+
+app.get(['/digilocker/callback', '/api/digilocker/callback'], (req, res) => {
+  const sessionId = req.query.session_id || req.query.sessionId || '';
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgriChain - DigiLocker Verified</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 24px;
+    }
+    .card {
+      background: white; border-radius: 24px; padding: 40px 32px;
+      max-width: 440px; width: 100%; text-align: center;
+      box-shadow: 0 20px 40px rgba(16, 124, 65, 0.12); border: 1px solid #bbf7d0;
+    }
+    .badge {
+      width: 80px; height: 80px; background: #dcfce7; color: #15803d;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px; font-size: 40px; border: 3px solid #86efac;
+    }
+    h1 { color: #14532d; font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+    p { color: #475569; font-size: 14.5px; line-height: 1.55; margin-bottom: 24px; }
+    .btn {
+      display: block; width: 100%; padding: 14px 20px; background: #107c41;
+      color: white; text-decoration: none; font-weight: 700; border-radius: 14px;
+      font-size: 15px; box-shadow: 0 4px 12px rgba(16, 124, 65, 0.25);
+    }
+  </style>
+  <script>
+    try { window.location.href = "agrichain://auth/digilocker-success?sessionId=" + encodeURIComponent('${sessionId}'); } catch (_) {}
+    setTimeout(() => { try { window.close(); } catch (_) {} }, 2500);
+  </script>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">✓</div>
+    <h1>DigiLocker Verified!</h1>
+    <p>Your Aadhaar identity has been verified via MeriPehchaan &amp; DigiLocker.<br><strong>Your AgriChain app has already updated in the background.</strong></p>
+    <a href="agrichain://auth/digilocker-success" class="btn" onclick="try{window.close();}catch(e){}">Return to AgriChain App / ऐप पर वापस जाएं</a>
+  </div>
+</body>
+</html>`;
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(html);
 });
 
 
