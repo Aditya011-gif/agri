@@ -119,7 +119,8 @@ class DigilockerService {
     if (_customBackendUrl != null && _customBackendUrl!.isNotEmpty) {
       return _customBackendUrl!;
     }
-    const envBackend = String.fromEnvironment('BACKEND_URL', defaultValue: '');
+    const envBackend = String.fromEnvironment('BACKEND_URL',
+        defaultValue: 'https://agrichain-whatsapp-api.onrender.com');
     if (envBackend.isNotEmpty) return envBackend;
 
     if (kIsWeb) return 'http://localhost:8088';
