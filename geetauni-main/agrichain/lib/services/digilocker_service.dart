@@ -112,14 +112,29 @@ class DigilockerService {
     return null;
   }
 
-  static const String _proxyBaseUrl = 'http://localhost:8088';
+  static String get _proxyBaseUrl {
+    if (kIsWeb) return 'http://localhost:8088';
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:8088';
+    }
+    return 'http://localhost:8088';
+  }
+
+  static String get defaultRedirectUrl {
+    if (kIsWeb) return 'http://localhost:8088/digilocker/callback';
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:8088/digilocker/callback';
+    }
+    return 'http://localhost:8088/digilocker/callback';
+  }
 
   /// 2. Initialize a DigiLocker Consent Session via Sandbox.co.in
   static Future<DigilockerSessionResponse?> initiateSession({
     String flow = 'signin',
     List<String> docTypes = const ['aadhaar'],
-    String redirectUrl = 'https://sandbox.co.in',
+    String? redirectUrl,
   }) async {
+    final effectiveRedirectUrl = redirectUrl ?? defaultRedirectUrl;
     // 1. Try local proxy first (bypasses browser CORS restriction in Flutter Web)
     try {
       final proxyResponse = await http.post(
@@ -128,7 +143,7 @@ class DigilockerService {
         body: jsonEncode({
           'flow': flow,
           'doc_types': docTypes,
-          'redirect_url': redirectUrl,
+          'redirect_url': effectiveRedirectUrl,
         }),
       ).timeout(const Duration(seconds: 8));
 
@@ -158,7 +173,7 @@ class DigilockerService {
           '@entity': 'in.co.sandbox.kyc.digilocker.session.request',
           'flow': flow,
           'doc_types': docTypes,
-          'redirect_url': redirectUrl,
+          'redirect_url': effectiveRedirectUrl,
         });
 
         final response = await http.post(

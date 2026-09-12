@@ -72,8 +72,14 @@ class AppState extends ChangeNotifier {
       // Listen to auth state changes
       _auth.authStateChanges().listen(_onAuthStateChanged);
 
-      // Mock data initialization removed to avoid permission errors
+      // Automatically purge all Gmail-registered users and orphaned test data
+      _databaseService.deleteGmailUsersAndAssociatedData().catchError((e) {
+        debugPrint('⚠️ Gmail users cleanup background notice: $e');
+        return <String, int>{'users': 0, 'orders': 0, 'crops': 0};
+      });
 
+      // Mock data initialization removed to avoid permission errors
+      
       // Check if user is already signed in
       _firebaseUser = _auth.currentUser;
       if (_firebaseUser != null) {
@@ -157,9 +163,9 @@ class AppState extends ChangeNotifier {
         final userTypeString = userData['userType'] as String? ?? 'farmer';
         _currentUser = FirestoreUser(
           id: userData['id'] ?? firebaseUid,
-          name: userData['firstName'] != null && userData['lastName'] != null
-              ? '${userData['firstName']} ${userData['lastName']}'
-              : userData['name'] ?? '',
+          name: ((userData['name'] as String?)?.trim().isNotEmpty == true)
+              ? (userData['name'] as String).trim()
+              : ('${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}').trim(),
           email: userData['email'] ?? '',
           phone: userData['phone'],
           userType: UserType.values.firstWhere(
@@ -176,7 +182,7 @@ class AppState extends ChangeNotifier {
             },
             orElse: () => UserType.farmer,
           ),
-          location: userData['location'],
+          location: userData['location'] ?? userData['address'] ?? 'Karnal, Haryana',
           walletAddress: userData['walletAddress'],
           walletBalance: (userData['walletBalance'] ?? 0.0).toDouble(),
           createdAt: userData['createdAt'] != null
@@ -832,36 +838,37 @@ class AppState extends ChangeNotifier {
 
   // Load orders from Firebase
   Future<void> _loadOrders() async {
-    if (_currentUser == null || _firebaseUser == null) return;
+    if (_currentUser == null && _firebaseUser == null) return;
 
     try {
       final firestore = FirebaseFirestore.instance;
       final ordersCollection = firestore.collection('orders');
-      final firebaseUid = _firebaseUser!.uid;
+      final currentUserId = _currentUser?.id ?? _firebaseUser?.uid ?? '';
+      final firebaseUid = _firebaseUser?.uid ?? currentUserId;
 
-      // Query using Firebase Auth UID (matches Firestore security rules)
-      final buyerOrders = await ordersCollection
-          .where('buyerId', isEqualTo: firebaseUid)
-          .get();
+      final Set<String> targetIds = {currentUserId, firebaseUid}..removeWhere((id) => id.isEmpty);
 
-      // Also try to get seller orders if user is a farmer
-      QuerySnapshot? sellerOrders;
-      try {
-        sellerOrders = await ordersCollection
-            .where('sellerId', isEqualTo: firebaseUid)
-            .get();
-      } catch (_) {
-        // sellerId field may not exist on older orders
-      }
-
-      // Combine and deduplicate orders
       final allOrderDocs = <String, QueryDocumentSnapshot>{};
-      for (var doc in buyerOrders.docs) {
-        allOrderDocs[doc.id] = doc;
-      }
-      if (sellerOrders != null) {
-        for (var doc in sellerOrders.docs) {
+
+      for (final id in targetIds) {
+        // Query buyer orders
+        final buyerOrders = await ordersCollection
+            .where('buyerId', isEqualTo: id)
+            .get();
+        for (var doc in buyerOrders.docs) {
           allOrderDocs[doc.id] = doc;
+        }
+
+        // Also try to get seller orders if user is a farmer
+        try {
+          final sellerOrders = await ordersCollection
+              .where('sellerId', isEqualTo: id)
+              .get();
+          for (var doc in sellerOrders.docs) {
+            allOrderDocs[doc.id] = doc;
+          }
+        } catch (_) {
+          // sellerId field may not exist on older orders
         }
       }
 

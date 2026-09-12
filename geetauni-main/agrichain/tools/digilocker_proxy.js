@@ -144,7 +144,7 @@ const server = http.createServer(async (req, res) => {
             '@entity': 'in.co.sandbox.kyc.digilocker.session.request',
             flow: clientPayload.flow || 'signin',
             doc_types: clientPayload.doc_types || ['aadhaar'],
-            redirect_url: clientPayload.redirect_url || 'https://sandbox.co.in',
+            redirect_url: clientPayload.redirect_url || `http://localhost:${PORT}/digilocker/callback`,
             options: {
               verification_method: clientPayload.verification_method || ['aadhaar', 'mobile']
             }
@@ -262,6 +262,121 @@ const server = http.createServer(async (req, res) => {
 
       res.writeHead(sandboxRes.status, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify(sandboxRes.body));
+    }
+
+    // 5. DigiLocker Return Callback: GET /digilocker/callback
+    if (pathname === '/digilocker/callback' || pathname === '/api/digilocker/callback') {
+      const sessionId = parsedUrl.query.session_id || parsedUrl.query.sessionId || '';
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgriChain - DigiLocker Verified</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 40px 32px;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(16, 124, 65, 0.12);
+      border: 1px solid #bbf7d0;
+    }
+    .badge {
+      width: 80px;
+      height: 80px;
+      background: #dcfce7;
+      color: #15803d;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 40px;
+      border: 3px solid #86efac;
+    }
+    h1 {
+      color: #14532d;
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    p {
+      color: #475569;
+      font-size: 14.5px;
+      line-height: 1.55;
+      margin-bottom: 24px;
+    }
+    .session-badge {
+      display: inline-block;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 24px;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 14px 20px;
+      background: #107c41;
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      border-radius: 14px;
+      font-size: 15px;
+      transition: background 0.2s;
+      box-shadow: 0 4px 12px rgba(16, 124, 65, 0.25);
+    }
+    .btn:hover {
+      background: #0c6233;
+    }
+    .notice {
+      margin-top: 16px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+  </style>
+  <script>
+    try {
+      window.location.href = "agrichain://auth/digilocker-success?sessionId=" + encodeURIComponent('${sessionId}');
+    } catch (_) {}
+
+    setTimeout(() => {
+      try {
+        window.close();
+      } catch (_) {}
+    }, 2500);
+  </script>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">✓</div>
+    <h1>DigiLocker Verified!</h1>
+    <p>Your Aadhaar identity has been verified via MeriPehchaan &amp; DigiLocker.<br><strong>Your AgriChain app has already updated in the background.</strong></p>
+    ${sessionId ? `<div class="session-badge">Session: ${sessionId}</div>` : ''}
+    <a href="agrichain://auth/digilocker-success" class="btn" onclick="try{window.close();}catch(e){}">Return to AgriChain App / ऐप पर वापस जाएं</a>
+    <div class="notice">You can safely close this browser window.</div>
+  </div>
+</body>
+</html>`;
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      return res.end(html);
     }
 
     res.writeHead(404, { 'Content-Type': 'application/json' });

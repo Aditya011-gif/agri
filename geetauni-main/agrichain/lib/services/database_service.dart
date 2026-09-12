@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../models/b2b_contract_model.dart';
+import '../models/fpo_member_model.dart';
 import 'fpo_inventory_service.dart';
 
 class DatabaseService {
@@ -28,6 +29,9 @@ class DatabaseService {
   static const String _fpoOrdersCollection = 'fpo_orders';
   static const String _retailOrdersCollection = 'retail_orders';
   static const String _savedCropsCollection = 'saved_crops';
+  static const String _fpoMembersCollection = 'fpo_members';
+  static const String _farmerPayoutsCollection = 'farmer_payouts';
+  static const String _fpoSettlementsCollection = 'fpo_settlements';
 
   /// Initialize Firestore settings
   Future<void> initialize() async {
@@ -84,19 +88,83 @@ class DatabaseService {
     }
   }
 
-  /// Get user by phone
+  /// Get user by phone (prioritizes real registered & KYC verified accounts over dummy placeholders)
   Future<Map<String, dynamic>?> getUserByPhone(String phone) async {
     try {
-      final querySnapshot = await _firestore
-          .collection(_usersCollection)
-          .where('phone', isEqualTo: phone)
-          .limit(1)
-          .get();
+      final clean = phone.replaceAll(RegExp(r'\D'), '');
+      final last10 = clean.length > 10 ? clean.substring(clean.length - 10) : clean;
 
-      if (querySnapshot.docs.isNotEmpty) {
-        return querySnapshot.docs.first.data();
+      // Search across possible phone formats
+      final queries = await Future.wait([
+        _firestore.collection(_usersCollection).where('phone', isEqualTo: last10).get(),
+        _firestore.collection(_usersCollection).where('phone', isEqualTo: '+91$last10').get(),
+        _firestore.collection(_usersCollection).where('phoneWithCountryCode', isEqualTo: '+91$last10').get(),
+      ]);
+
+      final allDocs = <DocumentSnapshot<Map<String, dynamic>>>[];
+      for (final q in queries) {
+        for (final doc in q.docs) {
+          if (!allDocs.any((d) => d.id == doc.id)) {
+            allDocs.add(doc);
+          }
+        }
       }
-      return null;
+
+      // Also check direct document lookup for 'user_phone_$last10'
+      if (allDocs.isEmpty) {
+        final directPhoneDoc = await _firestore.collection(_usersCollection).doc('user_phone_$last10').get();
+        if (directPhoneDoc.exists && directPhoneDoc.data() != null) {
+          allDocs.add(directPhoneDoc);
+        }
+      }
+
+      if (allDocs.isEmpty) return null;
+
+      // Filter and prioritize:
+      // 1. DigiLocker verified or KYC verified users
+      // 2. Real names (not placeholder 'Kisan Farmer')
+      // 3. Document ID not starting with 'user_phone_'
+      // 4. Most recent updated/created timestamp
+      allDocs.sort((a, b) {
+        final aData = a.data() ?? {};
+        final bData = b.data() ?? {};
+
+        final aVerified = (aData['digiLockerVerified'] == 1 ||
+                aData['isKycVerified'] == 1 ||
+                aData['isAadhaarVerified'] == true)
+            ? 1
+            : 0;
+        final bVerified = (bData['digiLockerVerified'] == 1 ||
+                bData['isKycVerified'] == 1 ||
+                bData['isAadhaarVerified'] == true)
+            ? 1
+            : 0;
+        if (aVerified != bVerified) return bVerified.compareTo(aVerified);
+
+        final aFirstName = (aData['firstName'] ?? '').toString().toLowerCase().trim();
+        final bFirstName = (bData['firstName'] ?? '').toString().toLowerCase().trim();
+        final aIsDummy = aFirstName == 'kisan' || a.id.startsWith('user_phone_');
+        final bIsDummy = bFirstName == 'kisan' || b.id.startsWith('user_phone_');
+        if (aIsDummy != bIsDummy) return aIsDummy ? 1 : -1;
+
+        final aTime = aData['updatedAt'] ?? aData['createdAt'] ?? '';
+        final bTime = bData['updatedAt'] ?? bData['createdAt'] ?? '';
+        return bTime.toString().compareTo(aTime.toString());
+      });
+
+      final bestDoc = allDocs.first;
+      final bestData = Map<String, dynamic>.from(bestDoc.data()!);
+      bestData['id'] ??= bestDoc.id;
+
+      // If an obsolete dummy user_phone_ document exists alongside a real verified profile, clean it up
+      if (allDocs.length > 1 && bestDoc.id != 'user_phone_$last10') {
+        try {
+          await _firestore.collection(_usersCollection).doc('user_phone_$last10').delete();
+          debugPrint('🧹 Cleaned up obsolete dummy user_phone_$last10 doc in favor of real profile: ${bestDoc.id}');
+        } catch (_) {}
+      }
+
+      return bestData;
     } catch (e) {
       debugPrint('❌ Get user by phone error: $e');
       return null;
@@ -196,6 +264,84 @@ class DatabaseService {
     } catch (e) {
       debugPrint('❌ Delete user error: $e');
       return false;
+    }
+  }
+
+  /// Hard delete user document from Firestore
+  Future<bool> hardDeleteUser(String userId) async {
+    try {
+      await _firestore.collection(_usersCollection).doc(userId).delete();
+      debugPrint('🗑️ User document deleted: $userId');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Hard delete user error: $e');
+      return false;
+    }
+  }
+
+  /// Remove all users created using Gmail and purge orphaned test data
+  Future<Map<String, int>> deleteGmailUsersAndAssociatedData() async {
+    try {
+      debugPrint('🧹 Scanning Firestore for users registered with Gmail...');
+      final userSnapshot = await _firestore.collection(_usersCollection).get();
+      final deletedUserIds = <String>{};
+      int usersDeleted = 0;
+
+      for (final doc in userSnapshot.docs) {
+        final data = doc.data();
+        final email = (data['email'] ?? '').toString().toLowerCase().trim();
+        if (email.contains('@gmail.com') || email.endsWith('@gmail.com')) {
+          deletedUserIds.add(doc.id);
+          if (data['firebaseUid'] != null) deletedUserIds.add(data['firebaseUid'].toString());
+          if (data['id'] != null) deletedUserIds.add(data['id'].toString());
+          await _firestore.collection(_usersCollection).doc(doc.id).delete();
+          usersDeleted++;
+          debugPrint('🗑️ Deleted Gmail user doc: ${doc.id} (Email: $email, Name: ${data['name'] ?? data['firstName']})');
+        }
+      }
+
+      // Clean up retail orders belonging to Gmail users or dummy unassigned demo orders
+      int ordersDeleted = 0;
+      final retailOrdersSnapshot = await _firestore.collection(_retailOrdersCollection).get();
+      for (final doc in retailOrdersSnapshot.docs) {
+        final data = doc.data();
+        final farmerId = (data['farmerId'] ?? data['sellerId'] ?? '').toString();
+        final buyerId = (data['buyerId'] ?? data['userId'] ?? '').toString();
+        final buyerEmail = (data['buyerEmail'] ?? '').toString().toLowerCase();
+
+        if (deletedUserIds.contains(farmerId) ||
+            deletedUserIds.contains(buyerId) ||
+            buyerEmail.contains('@gmail.com') ||
+            farmerId == 'farmer_demo' ||
+            farmerId.isEmpty) {
+          await _firestore.collection(_retailOrdersCollection).doc(doc.id).delete();
+          ordersDeleted++;
+          debugPrint('🗑️ Deleted orphaned/demo retail order: ${doc.id}');
+        }
+      }
+
+      // Clean up crops listed by Gmail users
+      int cropsDeleted = 0;
+      final cropsSnapshot = await _firestore.collection(_cropsCollection).get();
+      for (final doc in cropsSnapshot.docs) {
+        final data = doc.data();
+        final farmerId = (data['farmerId'] ?? data['userId'] ?? '').toString();
+        if (deletedUserIds.contains(farmerId)) {
+          await _firestore.collection(_cropsCollection).doc(doc.id).delete();
+          cropsDeleted++;
+          debugPrint('🗑️ Deleted crop created by Gmail user: ${doc.id}');
+        }
+      }
+
+      debugPrint('✅ Cleanup complete: $usersDeleted Gmail users, $ordersDeleted retail orders, $cropsDeleted crops removed.');
+      return {
+        'users': usersDeleted,
+        'orders': ordersDeleted,
+        'crops': cropsDeleted,
+      };
+    } catch (e) {
+      debugPrint('❌ Error during Gmail users cleanup: $e');
+      return {'users': 0, 'orders': 0, 'crops': 0};
     }
   }
 
@@ -1438,21 +1584,30 @@ class DatabaseService {
     }
   }
 
-  /// Stream all B2B orders involving this FPO (as direct seller or contributing partner)
-  Stream<List<Map<String, dynamic>>> streamFpoOrders({String? fpoId}) {
+  /// Stream all B2B orders involving this FPO or Bulk Buyer (strictly isolated to the authenticated user)
+  Stream<List<Map<String, dynamic>>> streamFpoOrders({String? fpoId, String? buyerId}) {
     return _firestore
         .collection(_b2bOrdersCollection)
         .snapshots()
         .map((snapshot) {
       final list = snapshot.docs
-          .map((doc) => doc.data())
+          .map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return data;
+          })
           .where((o) {
-            if (fpoId == null || fpoId.isEmpty) return true;
-            if (o['sellerId'] == fpoId || o['fpoId'] == fpoId) return true;
-            final allocs = o['fpoAllocations'] as List<dynamic>?;
-            if (allocs != null && allocs.any((a) => a['fpoId'] == fpoId)) return true;
-            final contribs = o['contributions'] as List<dynamic>?;
-            if (contribs != null && contribs.any((c) => c['fpoId'] == fpoId)) return true;
+            if (buyerId != null && buyerId.isNotEmpty) {
+              return o['buyerId'] == buyerId;
+            }
+            if (fpoId != null && fpoId.isNotEmpty) {
+              if (o['sellerId'] == fpoId || o['fpoId'] == fpoId) return true;
+              final allocs = o['fpoAllocations'] as List<dynamic>?;
+              if (allocs != null && allocs.any((a) => a['fpoId'] == fpoId)) return true;
+              final contribs = o['contributions'] as List<dynamic>?;
+              if (contribs != null && contribs.any((c) => c['fpoId'] == fpoId)) return true;
+              return false;
+            }
             return false;
           })
           .toList();
@@ -1682,7 +1837,7 @@ class DatabaseService {
     });
   }
 
-  /// Real-time stream of retail orders for a farmer
+  /// Real-time stream of retail orders for a farmer (strictly isolated to this farmer)
   Stream<List<Map<String, dynamic>>> streamFarmerRetailOrders(String farmerId) {
     return _firestore
         .collection(_retailOrdersCollection)
@@ -1692,9 +1847,12 @@ class DatabaseService {
             final data = doc.data();
             return {'id': doc.id, ...data};
           }).where((order) {
-            if (farmerId.isEmpty || farmerId == 'farmer_demo') return true;
+            if (farmerId.isEmpty) return false;
             final orderFarmerId = (order['farmerId'] ?? order['sellerId'] ?? '').toString();
-            return orderFarmerId == farmerId || orderFarmerId == 'farmer_demo' || orderFarmerId.isEmpty;
+            if (farmerId == 'farmer_demo' || farmerId.startsWith('demo_')) {
+              return orderFarmerId == 'farmer_demo';
+            }
+            return orderFarmerId == farmerId;
           }).toList();
           list.sort((a, b) {
             final aTime = a['createdAt']?.toString() ?? '';
@@ -1705,7 +1863,7 @@ class DatabaseService {
         });
   }
 
-  /// Real-time stream of all orders for a farmer (both retail & FPO)
+  /// Real-time stream of all orders for a farmer (strictly isolated to this farmer)
   Stream<List<Map<String, dynamic>>> streamFarmerOrders(String farmerId) {
     return _firestore
         .collection('orders')
@@ -1715,9 +1873,12 @@ class DatabaseService {
             final data = doc.data();
             return {'id': doc.id, ...data};
           }).where((order) {
-            if (farmerId.isEmpty || farmerId == 'farmer_demo') return true;
+            if (farmerId.isEmpty) return false;
             final orderFarmerId = (order['farmerId'] ?? order['sellerId'] ?? '').toString();
-            return orderFarmerId == farmerId || orderFarmerId == 'farmer_demo' || orderFarmerId.isEmpty;
+            if (farmerId == 'farmer_demo' || farmerId.startsWith('demo_')) {
+              return orderFarmerId == 'farmer_demo';
+            }
+            return orderFarmerId == farmerId;
           }).toList();
           list.sort((a, b) {
             final aTime = a['createdAt']?.toString() ?? '';
@@ -2041,19 +2202,28 @@ class DatabaseService {
     }
   }
 
-  /// Stream Retail Orders for a buyer
+  /// Stream Retail Orders for a buyer (strictly isolated)
   Stream<List<Map<String, dynamic>>> streamRetailOrders({String? buyerId}) {
-    Query query = _firestore.collection(_retailOrdersCollection);
-    if (buyerId != null && buyerId.isNotEmpty) {
-      query = query.where('buyerId', isEqualTo: buyerId);
-    }
-    return query.snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id;
-        return data;
-      }).toList();
-    });
+    return _firestore
+        .collection(_retailOrdersCollection)
+        .snapshots()
+        .map((snapshot) {
+          final list = snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return data;
+          }).where((o) {
+            if (buyerId == null || buyerId.isEmpty) return false;
+            final orderBuyerId = (o['buyerId'] ?? o['userId'] ?? '').toString();
+            return orderBuyerId == buyerId;
+          }).toList();
+          list.sort((a, b) {
+            final aTime = a['createdAt']?.toString() ?? '';
+            final bTime = b['createdAt']?.toString() ?? '';
+            return bTime.compareTo(aTime);
+          });
+          return list;
+        });
   }
 
   /// Toggle Saved Crop (Wishlist)
@@ -2186,6 +2356,130 @@ class DatabaseService {
     } catch (e) {
       debugPrint('⚠️ Error seeding retail buyer sample data: $e');
     }
+  }
+
+  // ==========================================
+  // FPO MEMBER FARMER DIRECTORY & DBT PAYOUTS
+  // ==========================================
+
+  /// Stream constituent member farmers for an FPO
+  Stream<List<FpoMemberFarmer>> streamFpoMembers(String fpoId) {
+    return _firestore
+        .collection(_fpoMembersCollection)
+        .where('fpoId', isEqualTo: fpoId)
+        .snapshots()
+        .map((snapshot) {
+          final members = snapshot.docs
+              .map((doc) => FpoMemberFarmer.fromMap(doc.data(), doc.id))
+              .toList();
+          members.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+          return members;
+        });
+  }
+
+  /// Batch save / import member farmers
+  Future<int> saveFpoMembers(String fpoId, List<FpoMemberFarmer> members) async {
+    try {
+      int saved = 0;
+      final batch = _firestore.batch();
+      for (final m in members) {
+        final docRef = _firestore.collection(_fpoMembersCollection).doc(m.id);
+        batch.set(docRef, m.toMap(), SetOptions(merge: true));
+        saved++;
+      }
+      await batch.commit();
+      debugPrint('✅ Batch saved $saved members for FPO: $fpoId');
+      return saved;
+    } catch (e) {
+      debugPrint('❌ Error saving FPO members: $e');
+      return 0;
+    }
+  }
+
+  /// Add individual member farmer
+  Future<bool> addFpoMember(String fpoId, FpoMemberFarmer member) async {
+    try {
+      await _firestore
+          .collection(_fpoMembersCollection)
+          .doc(member.id)
+          .set(member.toMap(), SetOptions(merge: true));
+      debugPrint('✅ Added member ${member.name} (${member.id}) to FPO $fpoId');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error adding member: $e');
+      return false;
+    }
+  }
+
+  /// Update individual member farmer
+  Future<bool> updateFpoMember(String fpoId, FpoMemberFarmer member) async {
+    try {
+      await _firestore
+          .collection(_fpoMembersCollection)
+          .doc(member.id)
+          .update(member.toMap());
+      debugPrint('✅ Updated member ${member.name} (${member.id})');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error updating member: $e');
+      return false;
+    }
+  }
+
+  /// Delete individual member farmer
+  Future<bool> deleteFpoMember(String fpoId, String memberId) async {
+    try {
+      await _firestore.collection(_fpoMembersCollection).doc(memberId).delete();
+      debugPrint('🗑️ Deleted member $memberId from FPO $fpoId');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error deleting member: $e');
+      return false;
+    }
+  }
+
+  /// Stream DBT payouts credited to a specific farmer
+  Stream<List<Map<String, dynamic>>> streamFarmerDbtPayouts(String farmerId, {String? farmerPhone}) {
+    return _firestore
+        .collection(_farmerPayoutsCollection)
+        .snapshots()
+        .map((snapshot) {
+          final cleanPhone = farmerPhone?.replaceAll(RegExp(r'\D'), '') ?? '';
+          final tenDigit = cleanPhone.length >= 10 ? cleanPhone.substring(cleanPhone.length - 10) : cleanPhone;
+
+          final payouts = snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .where((p) {
+                final pFarmerId = (p['farmerId'] ?? '').toString();
+                final pPhone = (p['farmerPhone'] ?? '').toString().replaceAll(RegExp(r'\D'), '');
+                if (farmerId.isNotEmpty && pFarmerId == farmerId) return true;
+                if (tenDigit.isNotEmpty && pPhone.contains(tenDigit)) return true;
+                return false;
+              })
+              .toList();
+
+          payouts.sort((a, b) {
+            final aTime = a['createdAt']?.toString() ?? '';
+            final bTime = b['createdAt']?.toString() ?? '';
+            return bTime.compareTo(aTime);
+          });
+          return payouts;
+        });
+  }
+
+  /// Stream FPO settlements for passbook and regulatory audit
+  Stream<List<Map<String, dynamic>>> streamFpoSettlements(String fpoId) {
+    return _firestore
+        .collection(_fpoSettlementsCollection)
+        .where('fpoId', isEqualTo: fpoId)
+        .snapshots()
+        .map((snapshot) {
+          final list = snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList();
+          list.sort((a, b) => (b['settledAt'] ?? '').toString().compareTo((a['settledAt'] ?? '').toString()));
+          return list;
+        });
   }
 }
 

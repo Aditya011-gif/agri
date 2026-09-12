@@ -227,11 +227,15 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context, cropsSnapshot) {
         final appState = Provider.of<AppState>(context);
         final streamedCrops = cropsSnapshot.data ?? [];
-        final localCrops = appState.crops.map((c) => c.toFirestore()).toList();
+        final localCrops = appState.myCrops.map((c) => c.toFirestore()).toList();
         final Set<String> seenIds = {};
         final List<Map<String, dynamic>> crops = [];
 
         for (final c in [...streamedCrops, ...localCrops]) {
+          final cropFarmerId = (c['farmerId'] ?? c['userId'] ?? '').toString();
+          if (!appState.isDemoAccount && cropFarmerId.isNotEmpty && cropFarmerId != farmerId) {
+            continue;
+          }
           final id = c['id']?.toString() ?? c['name']?.toString() ?? '';
           if (id.isEmpty || seenIds.add(id)) {
             crops.add(c);
@@ -240,11 +244,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
         double totalHarvestKg = 0.0;
         int activeListings = 0;
+        double cropInventoryValue = 0.0;
 
         for (final c in crops) {
           final q = _toDouble(c['quantity']);
+          final p = _toDouble(c['price']);
           totalHarvestKg += q;
           if (q > 0) activeListings++;
+          cropInventoryValue += (q * p);
         }
 
         return StreamBuilder<List<Map<String, dynamic>>>(
@@ -255,8 +262,9 @@ class _HomeScreenState extends State<HomeScreen> {
             for (final o in orders) {
               totalEarnings += _toDouble(o['totalPrice']);
             }
-            if (totalEarnings == 0.0) {
-              totalEarnings = 360224.0; // Benchmark portfolio baseline
+            double totalPortfolio = cropInventoryValue + totalEarnings;
+            if (totalPortfolio == 0.0 && appState.isDemoAccount) {
+              totalPortfolio = 360224.0; // Benchmark for demo testing
             }
 
             return Container(
@@ -337,7 +345,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     textBaseline: TextBaseline.alphabetic,
                     children: [
                       Text(
-                        '₹${totalEarnings.toStringAsFixed(0)}',
+                        '₹${totalPortfolio.toStringAsFixed(0)}',
                         style: GoogleFonts.outfit(
                           fontSize: 34,
                           fontWeight: FontWeight.w900,
@@ -807,11 +815,15 @@ class _HomeScreenState extends State<HomeScreen> {
           builder: (context, snapshot) {
             final appState = Provider.of<AppState>(context);
             final streamedCrops = snapshot.data ?? [];
-            final localCrops = appState.crops.map((c) => c.toFirestore()).toList();
+            final localCrops = appState.myCrops.map((c) => c.toFirestore()).toList();
             final Set<String> seenIds = {};
             final List<Map<String, dynamic>> crops = [];
 
             for (final c in [...streamedCrops, ...localCrops]) {
+              final cropFarmerId = (c['farmerId'] ?? c['userId'] ?? '').toString();
+              if (!appState.isDemoAccount && cropFarmerId.isNotEmpty && cropFarmerId != farmerId) {
+                continue;
+              }
               final id = c['id']?.toString() ?? c['name']?.toString() ?? '';
               if (id.isEmpty || seenIds.add(id)) {
                 crops.add(c);

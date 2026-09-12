@@ -192,11 +192,15 @@ class _MyCropsScreenState extends State<MyCropsScreen>
       stream: _dbService.streamFarmerCrops(farmerId),
       builder: (context, snapshot) {
         final streamedCrops = snapshot.data ?? [];
-        final localCrops = appState.crops.map((c) => c.toFirestore()).toList();
+        final localCrops = appState.myCrops.map((c) => c.toFirestore()).toList();
         final Set<String> seenIds = {};
         final List<Map<String, dynamic>> allCrops = [];
 
         for (final c in [...streamedCrops, ...localCrops]) {
+          final cropFarmerId = (c['farmerId'] ?? c['userId'] ?? '').toString();
+          if (!appState.isDemoAccount && cropFarmerId.isNotEmpty && cropFarmerId != farmerId) {
+            continue;
+          }
           final id = c['id']?.toString() ?? c['name']?.toString() ?? '';
           if (id.isEmpty || seenIds.add(id)) {
             allCrops.add(c);

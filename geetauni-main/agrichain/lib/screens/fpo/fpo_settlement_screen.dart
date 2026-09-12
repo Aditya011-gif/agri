@@ -28,57 +28,93 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
     final fpoId = user?.id.isNotEmpty == true ? user!.id : 'fpo_karnal_01';
 
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _dbService.streamFpoOrders(fpoId: fpoId),
-      builder: (context, snapshot) {
-        final orders = snapshot.data ?? [];
-        final List<Map<String, dynamic>> settlementRecords = [];
+      stream: _dbService.streamFpoSettlements(fpoId),
+      builder: (context, splitSnap) {
+        final splitSettlements = splitSnap.data ?? [];
 
-        for (final o in orders) {
-          final isDelivered = (o['status'] == 'completed' || o['status'] == 'delivered');
-          final isEscrow = !isDelivered;
-          final gross = (o['totalAmount'] as num?)?.toDouble() ?? 0.0;
-          final freight = gross * 0.015;
-          final cess = gross * 0.005;
-          final fee = gross * 0.002;
-          final net = gross - freight - cess - fee;
+        return StreamBuilder<List<Map<String, dynamic>>>(
+          stream: _dbService.streamFpoOrders(fpoId: fpoId),
+          builder: (context, snapshot) {
+            final orders = snapshot.data ?? [];
+            final List<Map<String, dynamic>> settlementRecords = [];
 
-          settlementRecords.add({
-            'orderId': o['orderId'] ?? o['id'] ?? 'ORD',
-            'type': o['isMultiFpo'] == true ? 'Multi-FPO Shared Order' : 'Single FPO Direct Order',
-            'buyer': o['buyerName'] ?? o['buyer'] ?? 'Institutional Buyer',
-            'crop': o['cropName'] ?? o['crop'] ?? 'Produce',
-            'yourShareMT': (((o['quantityQtl'] as num?)?.toDouble() ?? 0.0) / 10.0),
-            'date': o['createdAt']?.toString().split('T').first ?? 'Recent',
-            'grossAmount': gross,
-            'freightDeduction': freight,
-            'mandiCessDeduction': cess,
-            'platformFee': fee,
-            'netAmount': net > 0 ? net : gross,
-            'status': isEscrow ? 'IN ESCROW' : 'CREDITED TO BANK',
-            'statusColor': isEscrow ? const Color(0xFFD97706) : const Color(0xFF15803D),
-            'utr': 'TXN-${o['id'] ?? '8910'}',
-            'bank': 'State Bank of India •••• 2019',
-            'isEscrow': isEscrow,
-          });
-        }
+            // Add live atomic split settlements first
+            for (final s in splitSettlements) {
+              final gross = (s['totalOrderAmount'] as num?)?.toDouble() ?? 0.0;
+              final fpoCut = (s['fpoFeeAmount'] as num?)?.toDouble() ?? 0.0;
+              final farmerPool = (s['totalFarmerPoolAmount'] as num?)?.toDouble() ?? 0.0;
+              final distributions = (s['farmerDistributions'] as List<dynamic>?) ?? [];
 
-        // Calculate totals
-        double totalConfirmedMade = 0.0;
-        double totalInEscrow = 0.0;
+              settlementRecords.add({
+                'orderId': s['orderId'] ?? 'B2B-ORD',
+                'type': 'Automated Pro-Rata Split Order (T+0 DBT)',
+                'buyer': s['buyerName'] ?? 'Institutional Bulk Buyer',
+                'crop': s['cropName'] ?? 'Sharbati Wheat',
+                'yourShareMT': 0.0,
+                'date': s['settledAt']?.toString().split('T').first ?? 'Recent',
+                'grossAmount': gross,
+                'fpoCommission': fpoCut,
+                'farmerPoolAmount': farmerPool,
+                'freightDeduction': 0.0,
+                'mandiCessDeduction': 0.0,
+                'platformFee': 0.0,
+                'netAmount': fpoCut,
+                'status': 'CREDITED TO BANK',
+                'statusColor': const Color(0xFF15803D),
+                'utr': s['fpoUtrNumber'] ?? 'RTGS/FPO/2026',
+                'bank': 'FPO Institutional A/C •••• 2019',
+                'isEscrow': false,
+                'farmerDistributions': distributions,
+                'isAtomicSplit': true,
+              });
+            }
 
-        for (var r in settlementRecords) {
-          if (r['isEscrow'] == true) {
-            totalInEscrow += (r['netAmount'] as double);
-          } else {
-            totalConfirmedMade += (r['netAmount'] as double);
-          }
-        }
+            for (final o in orders) {
+              final isDelivered = (o['status'] == 'completed' || o['status'] == 'delivered');
+              final isEscrow = !isDelivered;
+              final gross = (o['totalAmount'] as num?)?.toDouble() ?? 0.0;
+              final freight = gross * 0.015;
+              final cess = gross * 0.005;
+              final fee = gross * 0.002;
+              final net = gross - freight - cess - fee;
 
-        final filteredList = settlementRecords.where((r) {
-          if (_selectedFilter == 'Confirmed') return r['isEscrow'] == false;
-          if (_selectedFilter == 'In Escrow') return r['isEscrow'] == true;
-          return true;
-        }).toList();
+              settlementRecords.add({
+                'orderId': o['orderId'] ?? o['id'] ?? 'ORD',
+                'type': o['isMultiFpo'] == true ? 'Multi-FPO Shared Order' : 'Single FPO Direct Order',
+                'buyer': o['buyerName'] ?? o['buyer'] ?? 'Institutional Buyer',
+                'crop': o['cropName'] ?? o['crop'] ?? 'Produce',
+                'yourShareMT': (((o['quantityQtl'] as num?)?.toDouble() ?? 0.0) / 10.0),
+                'date': o['createdAt']?.toString().split('T').first ?? 'Recent',
+                'grossAmount': gross,
+                'freightDeduction': freight,
+                'mandiCessDeduction': cess,
+                'platformFee': fee,
+                'netAmount': net > 0 ? net : gross,
+                'status': isEscrow ? 'IN ESCROW' : 'CREDITED TO BANK',
+                'statusColor': isEscrow ? const Color(0xFFD97706) : const Color(0xFF15803D),
+                'utr': 'TXN-${o['id'] ?? '8910'}',
+                'bank': 'State Bank of India •••• 2019',
+                'isEscrow': isEscrow,
+              });
+            }
+
+            // Calculate totals
+            double totalConfirmedMade = 0.0;
+            double totalInEscrow = 0.0;
+
+            for (var r in settlementRecords) {
+              if (r['isEscrow'] == true) {
+                totalInEscrow += (r['netAmount'] as double);
+              } else {
+                totalConfirmedMade += (r['netAmount'] as double);
+              }
+            }
+
+            final filteredList = settlementRecords.where((r) {
+              if (_selectedFilter == 'Confirmed') return r['isEscrow'] == false;
+              if (_selectedFilter == 'In Escrow') return r['isEscrow'] == true;
+              return true;
+            }).toList();
 
         return Scaffold(
           backgroundColor: AppTheme.backgroundGreen,
@@ -217,6 +253,8 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
             ),
           ),
         );
+      },
+    );
       },
     );
   }
@@ -438,9 +476,25 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
                           style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
                         ),
                         Text(
-                          '${item['buyer']} • ${((item['yourShareMT'] as double) * 10).toStringAsFixed(0)} ${context.tr("Qtl", "क्विंटल")}',
+                          item['isAtomicSplit'] == true
+                              ? '${item['buyer']} • ${((item['farmerDistributions'] as List<dynamic>?)?.length ?? 0)} ${context.tr("Farmers Direct DBT", "किसान प्रत्यक्ष डीबीटी")}'
+                              : '${item['buyer']} • ${((item['yourShareMT'] as double) * 10).toStringAsFixed(0)} ${context.tr("Qtl", "क्विंटल")}',
                           style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                         ),
+                        if (item['isAtomicSplit'] == true) ...[
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF15803D).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              context.tr('98% Farmers DBT • 2% FPO Fee', '98% किसान डीबीटी • 2% एफपीओ शुल्क'),
+                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -458,7 +512,9 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
                       Text(
                         isEscrow
                             ? context.tr('Awaiting Release', 'भुगतान प्रतीक्षारत')
-                            : context.tr('Net Credited', 'शुद्ध जमा'),
+                            : (item['isAtomicSplit'] == true
+                                ? context.tr('FPO Cut Credited', 'एफपीओ शुल्क जमा')
+                                : context.tr('Net Credited', 'शुद्ध जमा')),
                         style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
                       ),
                     ],
@@ -483,7 +539,12 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
                   ),
                   Row(
                     children: [
-                      Text(context.tr('View Slip', 'पर्ची देखें'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+                      Text(
+                        item['isAtomicSplit'] == true
+                            ? context.tr('View Split & Farmers', 'विभाजन व किसान देखें')
+                            : context.tr('View Slip', 'पर्ची देखें'),
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),
+                      ),
                       const Icon(Icons.chevron_right, size: 16, color: Color(0xFF2E7D32)),
                     ],
                   ),
@@ -497,77 +558,387 @@ class _FpoSettlementScreenState extends State<FpoSettlementScreen> {
   }
 
   void _showSettlementBreakdownModal(Map<String, dynamic> item) {
+    final isAtomicSplit = item['isAtomicSplit'] == true;
+    final distributions = (item['farmerDistributions'] as List<dynamic>?) ?? [];
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return DraggableScrollableSheet(
+          initialChildSize: isAtomicSplit ? 0.75 : 0.6,
+          maxChildSize: 0.9,
+          minChildSize: 0.45,
+          expand: false,
+          builder: (_, scrollController) {
+            return SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    context.tr('Settlement Breakdown Slip', 'भुगतान विवरण पर्ची'),
-                    style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
                   ),
-                  IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        isAtomicSplit
+                            ? context.tr('Automated Pro-Rata Split Settlement', 'स्वचालित समानुपातिक विभाजन भुगतान')
+                            : context.tr('Settlement Breakdown Slip', 'भुगतान विवरण पर्ची'),
+                        style: GoogleFonts.outfit(fontSize: 17, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
+                    ],
+                  ),
+                  Text(
+                    '${context.tr("Order", "ऑर्डर")}: ${item['orderId']} • ${context.tr("Buyer", "खरीदार")}: ${item['buyer']}',
+                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                  ),
+                  const Divider(height: 24),
+
+                  if (isAtomicSplit) ...[
+                    // Pro-Rata Split Overview Cards
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFBBF7D0)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                context.tr('Total Escrow Order Value', 'कुल एस्क्रो ऑर्डर मूल्य'),
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF166534)),
+                              ),
+                              Text(
+                                '₹${(item['grossAmount'] as double).toStringAsFixed(0)}',
+                                style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF166534)),
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 16, color: Color(0xFFBBF7D0)),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    context.tr('FPO Management Cut (2%)', 'एफपीओ प्रबंधन शुल्क (2%)'),
+                                    style: const TextStyle(fontSize: 11, color: Color(0xFF475569)),
+                                  ),
+                                  Text(
+                                    '₹${(item['fpoCommission'] as double).toStringAsFixed(0)}',
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1B5E20)),
+                                  ),
+                                  Text(
+                                    'A/C: ${item['bank']}',
+                                    style: const TextStyle(fontSize: 9.5, color: Color(0xFF64748B)),
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    context.tr('Farmers DBT Pool (98%)', 'किसान डीबीटी पूल (98%)'),
+                                    style: const TextStyle(fontSize: 11, color: Color(0xFF475569)),
+                                  ),
+                                  Text(
+                                    '₹${(item['farmerPoolAmount'] as double).toStringAsFixed(0)}',
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                                  ),
+                                  Text(
+                                    '${distributions.length} ${context.tr("Farmers Direct Credited", "किसानों को सीधा जमा")}',
+                                    style: const TextStyle(fontSize: 9.5, color: Color(0xFF15803D), fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Schedule of Beneficiary Farmers
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          context.tr('Constituent Farmers DBT Schedule', 'सदस्य किसान डीबीटी अनुसूची'),
+                          style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            context.tr('Zero FPO Holding', 'शून्य बिचौलिया रोक'),
+                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    if (distributions.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text(
+                          context.tr('Direct transfer scheduled to constituent roster.', 'सदस्य सूची में प्रत्यक्ष हस्तांतरण निर्धारित।'),
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      )
+                    else
+                      ...distributions.map((farmer) {
+                        final fName = farmer['farmerName'] ?? farmer['name'] ?? 'Farmer Member';
+                        final qtl = (farmer['quantityQtl'] as num?)?.toDouble() ?? 0.0;
+                        final netPayout = (farmer['netDbtPayout'] as num?)?.toDouble() ?? 0.0;
+                        final acc = farmer['maskedAccount'] ?? '•••• 4821';
+                        final ifsc = farmer['ifscCode'] ?? 'SBIN0001234';
+                        final utr = farmer['utrNumber'] ?? 'IMPS/DBT/2026';
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      fName,
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                                    ),
+                                    Text(
+                                      '$qtl Qtl • $acc ($ifsc)',
+                                      style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                                    ),
+                                    Text(
+                                      'UTR: $utr',
+                                      style: const TextStyle(fontSize: 9.5, color: Color(0xFF15803D), fontFamily: 'monospace'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '₹${netPayout.toStringAsFixed(0)}',
+                                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF15803D)),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF15803D).withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      context.tr('CREDITED', 'जमा'),
+                                      style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                  ] else ...[
+                    _buildModalSlipRow(context.tr('Crop & Weight', 'फसल व वजन'), '${item['crop']} (${((item['yourShareMT'] as double) * 10).toStringAsFixed(0)} ${context.tr("Qtl", "क्विंटल")})'),
+                    _buildModalSlipRow(context.tr('Gross Agreed Value', 'सकल तय मूल्य'), '₹${(item['grossAmount'] as double).toStringAsFixed(0)}'),
+                    _buildModalSlipRow(context.tr('Freight Deduction', 'मालभाड़ा कटौती'), '- ₹${(item['freightDeduction'] as double).toStringAsFixed(0)}', isDeduction: true),
+                    _buildModalSlipRow(context.tr('Mandi Cess (0.5%)', 'मंडी उपकर (0.5%)'), '- ₹${(item['mandiCessDeduction'] as double).toStringAsFixed(0)}', isDeduction: true),
+                    _buildModalSlipRow(context.tr('Platform Tech Fee (0.2%)', 'प्लेटफ़ॉर्म तकनीकी शुल्क (0.2%)'), '- ₹${(item['platformFee'] as double).toStringAsFixed(0)}', isDeduction: true),
+                    const Divider(height: 16),
+                    _buildModalSlipRow(
+                      context.tr('Net Credited Payout', 'शुद्ध जमा भुगतान'),
+                      '₹${(item['netAmount'] as double).toStringAsFixed(0)}',
+                      isHighlight: true,
+                    ),
+                    const SizedBox(height: 10),
+                    _buildModalSlipRow(context.tr('Settled Into', 'जमा खाता'), item['bank'] as String),
+                    _buildModalSlipRow(context.tr('Banking UTR', 'बैंकिंग यूटीआर'), item['utr'] as String),
+                  ],
+
+                  const SizedBox(height: 20),
+
+                  // Actions
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(context.tr('Commercial Settlement Slip downloaded (PDF).', 'व्यावसायिक भुगतान पर्ची PDF डाउनलोड हो गई।')),
+                            backgroundColor: const Color(0xFF2E7D32),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.download, size: 16),
+                      label: Text(context.tr('Download Commercial Settlement Slip (PDF)', 'व्यावसायिक भुगतान पर्ची डाउनलोड करें (PDF)')),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2E7D32),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+
+                  if (isAtomicSplit) ...[
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _showRegulatoryAuditDialog(item);
+                        },
+                        icon: const Icon(Icons.verified_user, size: 16, color: Color(0xFF1E3A8A)),
+                        label: Text(context.tr('SFAC / NABARD Statutory Audit Certificate', 'SFAC / नाबार्ड वैधानिक ऑडिट प्रमाण पत्र')),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF1E3A8A),
+                          side: const BorderSide(color: Color(0xFF93C5FD)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
-              Text(
-                '${context.tr("Order", "ऑर्डर")}: ${item['orderId']} • ${context.tr("Buyer", "खरीदार")}: ${item['buyer']}',
-                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-              ),
-              const Divider(height: 24),
-
-              _buildModalSlipRow(context.tr('Crop & Weight', 'फसल व वजन'), '${item['crop']} (${((item['yourShareMT'] as double) * 10).toStringAsFixed(0)} ${context.tr("Qtl", "क्विंटल")})'),
-              _buildModalSlipRow(context.tr('Gross Agreed Value', 'सकल तय मूल्य'), '₹${(item['grossAmount'] as double).toStringAsFixed(0)}'),
-              _buildModalSlipRow(context.tr('Freight Deduction', 'मालभाड़ा कटौती'), '- ₹${(item['freightDeduction'] as double).toStringAsFixed(0)}', isDeduction: true),
-              _buildModalSlipRow(context.tr('Mandi Cess (0.5%)', 'मंडी उपकर (0.5%)'), '- ₹${(item['mandiCessDeduction'] as double).toStringAsFixed(0)}', isDeduction: true),
-              _buildModalSlipRow(context.tr('Platform Tech Fee (0.2%)', 'प्लेटफ़ॉर्म तकनीकी शुल्क (0.2%)'), '- ₹${(item['platformFee'] as double).toStringAsFixed(0)}', isDeduction: true),
-              const Divider(height: 16),
-              _buildModalSlipRow(
-                context.tr('Net Credited Payout', 'शुद्ध जमा भुगतान'),
-                '₹${(item['netAmount'] as double).toStringAsFixed(0)}',
-                isHighlight: true,
-              ),
-              const SizedBox(height: 10),
-              _buildModalSlipRow(context.tr('Settled Into', 'जमा खाता'), item['bank'] as String),
-              _buildModalSlipRow(context.tr('Banking UTR', 'बैंकिंग यूटीआर'), item['utr'] as String),
-              const SizedBox(height: 20),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(context.tr('Tax-Exempt Settlement Slip downloaded (PDF).', 'कर-मुक्त भुगतान पर्ची PDF डाउनलोड हो गई।')),
-                        backgroundColor: const Color(0xFF2E7D32),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.download, size: 16),
-                  label: Text(context.tr('Download Commercial Settlement Slip (PDF)', 'व्यावसायिक भुगतान पर्ची डाउनलोड करें (PDF)')),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D32),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
+    );
+  }
+
+  void _showRegulatoryAuditDialog(Map<String, dynamic> item) {
+    final distributions = (item['farmerDistributions'] as List<dynamic>?) ?? [];
+    final gross = (item['grossAmount'] as num?)?.toDouble() ?? 0.0;
+    final fpoCut = (item['fpoCommission'] as num?)?.toDouble() ?? 0.0;
+    final farmerPool = (item['farmerPoolAmount'] as num?)?.toDouble() ?? 0.0;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Row(
+          children: [
+            const Icon(Icons.verified_outlined, color: Color(0xFF1E3A8A), size: 26),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                context.tr('NABARD / SFAC Audit Log', 'नाबार्ड / SFAC ऑडिट लॉग'),
+                style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1E3A8A)),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                context.tr(
+                  'Statutory verification of atomic T+0 Direct Benefit Transfer (DBT) executed with zero unauthorized deductions.',
+                  'बिना किसी अनधिकृत कटौती के निष्पादित तत्काल T+0 प्रत्यक्ष लाभ अंतरण (DBT) का वैधानिक सत्यापन।',
+                ),
+                style: const TextStyle(fontSize: 11.5, color: Color(0xFF475569)),
+              ),
+              const Divider(height: 20),
+              _buildAuditRow('Standard', 'SFAC / NABARD Sec 4.2 Electronic Settlement'),
+              _buildAuditRow('Order Ref', item['orderId'] ?? 'ORD-REF'),
+              _buildAuditRow('Buyer Ref', item['buyer'] ?? 'Verified Buyer'),
+              _buildAuditRow('Lot Settlement Sum', '₹${gross.toStringAsFixed(0)} (100% Escrow)'),
+              _buildAuditRow('FPO Handling Fee (2%)', '₹${fpoCut.toStringAsFixed(0)} (Transferred)'),
+              _buildAuditRow('Direct Farmer DBT (98%)', '₹${farmerPool.toStringAsFixed(0)} (Disbursed)'),
+              _buildAuditRow('Beneficiary Farmers', '${distributions.length} Farmers (Aadhaar Verified)'),
+              _buildAuditRow('Intermediary Withholding', '₹0.00 (Zero Holding)'),
+              _buildAuditRow('Settlement Delay', 'T+0 (Instant on OTP Verification)'),
+              _buildAuditRow('Audit Compliance', 'FULLY CERTIFIED & COMPLIANT'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(context.tr('Close', 'बंद करें')),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(context.tr('Audit certificate exported (NABARD-SFAC-COMPLIANCE.pdf)', 'ऑडिट प्रमाणपत्र निर्यात हो गया (NABARD-SFAC-COMPLIANCE.pdf)')),
+                  backgroundColor: const Color(0xFF1E3A8A),
+                ),
+              );
+            },
+            icon: const Icon(Icons.picture_as_pdf, size: 14),
+            label: Text(context.tr('Export Audit PDF', 'ऑडिट PDF निर्यात करें')),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E3A8A),
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuditRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

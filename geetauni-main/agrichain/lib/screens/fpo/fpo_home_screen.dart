@@ -13,6 +13,7 @@ import '../../services/fpo_inventory_service.dart';
 import '../../services/database_service.dart';
 import 'fpo_add_crop_screen.dart';
 import 'fpo_recurring_orders_screen.dart';
+import 'fpo_member_directory_screen.dart';
 
 class FpoHomeScreen extends StatefulWidget {
   final Function(int)? onNavigateTab;
@@ -79,7 +80,7 @@ class _FpoHomeScreenState extends State<FpoHomeScreen> {
           stream: _inventoryService.streamFpoInventory(fpoId),
           builder: (context, invSnapshot) {
             return StreamBuilder<List<Map<String, dynamic>>>(
-              stream: _dbService.streamFpoOrders(),
+              stream: _dbService.streamFpoOrders(fpoId: fpoId.isNotEmpty ? fpoId : null),
               builder: (context, orderSnapshot) {
                 final dbItems = invSnapshot.data ?? [];
                 final allOrders = orderSnapshot.data ?? [];
@@ -137,6 +138,10 @@ class _FpoHomeScreenState extends State<FpoHomeScreen> {
 
                     // 2b. 12-WEEK RECURRING CONTRACTS BANNER
                     _buildRecurringContractsBanner(),
+                    const SizedBox(height: 12),
+
+                    // 2c. MEMBER FARMER DIRECTORY & EXCEL IMPORT BANNER
+                    _buildMemberDirectoryBanner(),
                     const SizedBox(height: 14),
 
                     // 3. Simple Stats Overview (Stock in Qtl, Available, Confirmed Sales)
@@ -382,6 +387,96 @@ class _FpoHomeScreenState extends State<FpoHomeScreen> {
                         context.tr(
                           'Review incoming corporate buyer proposals & Monday dispatches',
                           'कॉर्पोरेट खरीदार प्रस्ताव व साप्ताहिक डिस्पैच देखें',
+                        ),
+                        style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Color(0xFF94A3B8), size: 14),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMemberDirectoryBanner() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF16A34A).withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FpoMemberDirectoryScreen()),
+            );
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCFCE7),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.people_alt, color: Color(0xFF15803D), size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            context.tr('Member Farmer Directory', 'सदस्य किसान प्रबंधन'),
+                            style: GoogleFonts.outfit(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDCFCE7),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'DBT Ready',
+                              style: TextStyle(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF15803D),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        context.tr(
+                          'Excel/CSV bulk onboarding, verified bank accounts & pro-rata DBT',
+                          'एक्सेल रोस्टर आयात, सत्यापित बैंक खाते और आनुपातिक डीबीटी',
                         ),
                         style: const TextStyle(fontSize: 11.5, color: Color(0xFF64748B)),
                       ),

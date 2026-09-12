@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../../services/database_service.dart';
 import '../../services/smart_contract_service.dart';
@@ -38,6 +40,9 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
 
   @override
   Widget build(BuildContext context) {
+    final appState = Provider.of<AppState>(context);
+    final buyerId = appState.currentUser?.id ?? '';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAF7),
       appBar: AppBar(
@@ -84,7 +89,7 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
         ),
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _dbService.streamRetailOrders(),
+        stream: _dbService.streamRetailOrders(buyerId: buyerId.isNotEmpty ? buyerId : null),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: AppTheme.primaryGreen));

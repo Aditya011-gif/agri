@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'crop_image_validator_service.dart';
 import '../models/crop.dart';
+import '../config/app_config.dart';
 
 class GeminiCropAssayResult {
   final double moisturePercentage;
@@ -251,11 +252,11 @@ class GeminiCropAssayService {
     ),
   );
 
-  // Gemini API key configured via environment variable
-  String _geminiApiKey = const String.fromEnvironment(
-    'GEMINI_API_KEY',
-    defaultValue: '',
-  );
+  // Gemini API key configured via environment variable with AppConfig fallback
+  String _geminiApiKey = AppConfig.geminiApiKey;
+
+  String get effectiveApiKey =>
+      _geminiApiKey.isNotEmpty ? _geminiApiKey : AppConfig.geminiApiKey;
 
   void setApiKey(String key) {
     _geminiApiKey = key;
@@ -266,8 +267,10 @@ class GeminiCropAssayService {
     required Uint8List imageBytes,
     String? fileName,
   }) async {
-    if (_geminiApiKey.isNotEmpty) {
+    final apiKey = effectiveApiKey;
+    if (apiKey.isNotEmpty) {
       try {
+        debugPrint('🌿 Initiating Gemini 2.5 Flash produce assay...');
         final base64Image = base64Encode(imageBytes);
         final prompt = '''
 You are an expert Government Agricultural Quality Inspector (AGMARK & FSSAI certified) and Senior Multimodal Computer Vision Assayer for the AgriChain agricultural marketplace.
@@ -332,7 +335,7 @@ Return ONLY a single valid raw JSON object (without markdown code blocks, backti
 ''';
 
         final response = await _dio.post(
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$_geminiApiKey',
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey',
           options: Options(headers: {'Content-Type': 'application/json'}),
           data: {
             "contents": [
@@ -362,7 +365,14 @@ Return ONLY a single valid raw JSON object (without markdown code blocks, backti
             if (contentParts != null && contentParts.isNotEmpty) {
               final text = contentParts[0]['text'] as String?;
               if (text != null && text.isNotEmpty) {
-                final cleanedText = text.replaceAll('```json', '').replaceAll('```', '').trim();
+                String cleanedText = text.trim();
+                if (cleanedText.contains('{') && cleanedText.contains('}')) {
+                  cleanedText = cleanedText.substring(
+                    cleanedText.indexOf('{'),
+                    cleanedText.lastIndexOf('}') + 1,
+                  );
+                }
+                debugPrint('✅ Gemini Vision Assay Raw Response: $cleanedText');
                 final parsed = jsonDecode(cleanedText) as Map<String, dynamic>;
                 return GeminiProduceInspection.fromJson(parsed);
               }

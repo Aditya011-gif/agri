@@ -11,6 +11,7 @@ import '../../utils/translation_helper.dart';
 import '../../models/recurring_order_model.dart';
 import '../../services/recurring_order_service.dart';
 import 'fpo_recurring_orders_screen.dart';
+import 'fpo_member_directory_screen.dart';
 import '../login_screen.dart';
 
 /// Screen 5: FPO Profile
@@ -179,6 +180,10 @@ class _FpoProfileScreenState extends State<FpoProfileScreen> {
                   _buildStatsRow(),
                   const SizedBox(height: 16),
 
+                  // 2a. Member Farmer Directory (Excel Onboarding & Pro-Rata DBT)
+                  _buildMemberFarmerDirectoryCard(fpoId),
+                  const SizedBox(height: 16),
+
                   // 2b. Institutional Contracts & Recurring Buyer Proposals Card
                   _buildRecurringOrdersCard(fpoId),
                   const SizedBox(height: 16),
@@ -308,6 +313,90 @@ class _FpoProfileScreenState extends State<FpoProfileScreen> {
         Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
         Text(label, style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B))),
       ],
+    );
+  }
+
+  /// Member Farmer Directory Card
+  Widget _buildMemberFarmerDirectoryCard(String fpoId) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: AppTheme.softShadow,
+        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FpoMemberDirectoryScreen()),
+            );
+          },
+          borderRadius: BorderRadius.circular(22),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCFCE7),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.people_alt, color: Color(0xFF15803D), size: 28),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              context.tr('Member Farmer Directory', 'सदस्य किसान प्रबंधन'),
+                              style: GoogleFonts.outfit(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textPrimary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDCFCE7),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'DBT Ready',
+                              style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        context.tr(
+                          'Excel/CSV bulk onboarding, verified bank accounts & pro-rata DBT mapping',
+                          'एक्सेल रोस्टर आयात, सत्यापित बैंक खाते और आनुपातिक डीबीटी प्रबंधन',
+                        ),
+                        style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFF15803D)),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

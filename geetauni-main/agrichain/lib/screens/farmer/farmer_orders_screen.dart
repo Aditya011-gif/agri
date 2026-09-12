@@ -26,7 +26,7 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -87,10 +87,6 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                       text: context.tr('Retail Orders', 'खुदरा ऑर्डर'),
                     ),
                     Tab(
-                      icon: const Icon(Icons.business_outlined, size: 18),
-                      text: context.tr('FPO Orders', 'एफपीओ खरीद'),
-                    ),
-                    Tab(
                       icon: const Icon(Icons.hub_outlined, size: 18),
                       text: context.tr('Buyer Demands', 'खरीदार मांगें'),
                     ),
@@ -104,7 +100,6 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
           controller: _tabController,
           children: [
             _buildRetailOrdersTab(farmerId),
-            _buildFpoProcurementOrdersTab(farmerId),
             _buildFarmerBulkDemandsTab(farmerId, farmerName),
           ],
         ),
@@ -772,172 +767,7 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
     );
   }
 
-  // TAB 2: Farmer -> FPO Procurement Orders
-  Widget _buildFpoProcurementOrdersTab(String farmerId) {
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _dbService.streamFarmerOrders(farmerId),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
 
-        final allOrders = snapshot.data ?? [];
-        final fpoOrders = allOrders.where((o) => o['orderType'] == 'fpo_procurement').toList();
-
-        if (fpoOrders.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.business_outlined, size: 60, color: AppTheme.textSecondary.withValues(alpha: 0.4)),
-                  const SizedBox(height: 12),
-                  Text(
-                    context.tr('No FPO Procurement Orders', 'कोई एफपीओ खरीद ऑर्डर नहीं'),
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    context.tr(
-                      'When an FPO procures directly from your listings or accepts your procurement offer, the orders and weighbridge slips will be listed here.',
-                      'जब कोई एफपीओ आपकी लिस्टिंग से सीधे खरीद करेगा या आपका प्रस्ताव स्वीकार करेगा, तो आदेश और तौल पर्ची यहां दिखाई देगी।',
-                    ),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 30),
-          itemCount: fpoOrders.length,
-          itemBuilder: (context, index) {
-            final order = fpoOrders[index];
-            final cropName = order['cropName'] ?? 'Commodity';
-            final buyerName = order['buyerName'] ?? 'Central FPO';
-            final qty = _toDouble(order['quantity']);
-            final price = _toDouble(order['price']);
-            final total = order['totalPrice'] != null ? _toDouble(order['totalPrice']) : (qty * price);
-            final slipNumber = order['weighbridgeSlipNumber'] ?? 'WB-${order['id']?.toString().substring(0, 6)}';
-            final paymentMethod = order['paymentMethod'] ?? 'Direct Bank Transfer (IMPS)';
-            final dateStr = order['createdAt'] != null ? order['createdAt'].toString().split('T').first : 'Recent';
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: AppTheme.softShadow,
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE8F5E9),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(Icons.corporate_fare, color: Color(0xFF2E7D32), size: 20),
-                          ),
-                          const SizedBox(width: 10),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(cropName, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16)),
-                              Text('FPO: $buyerName', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                            ],
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDCFCE7),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          context.tr('PROCURED & PAID', 'खरीद व भुगतान संपन्न'),
-                          style: const TextStyle(
-                            color: Color(0xFF15803D),
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('${context.tr('Weighbridge Slip', 'धर्मकांटा पर्ची')}: $slipNumber', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
-                        Text(paymentMethod, style: const TextStyle(fontSize: 11, color: Color(0xFF2563EB), fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 18, color: Color(0xFFF1F5F9)),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('${context.tr('Volume', 'मात्रा')}: $qty kg @ ₹$price', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                      Text('${context.tr('Total Payout', 'कुल भुगतान')}: ₹${total.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF2E7D32))),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        SmartContractPdfService.autoDownloadOrPreviewContract(
-                          context: context,
-                          order: order,
-                        );
-                      },
-                      icon: const Icon(Icons.picture_as_pdf, color: Color(0xFF1B5E20), size: 16),
-                      label: Text(
-                        context.tr('📄 View FPO Procurement Smart Contract (PDF)', '📄 एफपीओ खरीद स्मार्ट अनुबंध देखें (PDF)'),
-                        style: const TextStyle(
-                          color: Color(0xFF1B5E20),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 9),
-                        side: const BorderSide(color: Color(0xFF2E7D32)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        backgroundColor: const Color(0xFFF0FDF4),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text('${context.tr('Completed on', 'पूर्ण हुआ')}: $dateStr', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 
   Widget _buildFarmerBulkDemandsTab(String farmerId, String farmerName) {
     return StreamBuilder<List<Map<String, dynamic>>>(

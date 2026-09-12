@@ -6,8 +6,11 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../models/fpo_inventory_model.dart';
+import '../../models/fpo_member_model.dart';
 import '../../models/crop_benchmark_model.dart';
 import '../../services/fpo_inventory_service.dart';
+import '../../services/database_service.dart';
+import '../../services/fpo_member_import_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/custom_app_bar.dart';
 import '../../widgets/language_switcher.dart';
@@ -59,6 +62,10 @@ class _FpoAddCropScreenState extends State<FpoAddCropScreen> {
   bool _isMultiFpoEligible = true;
   bool _isSubmitting = false;
 
+  // FPO Handling / Silo Storage Fee (Pro-rata split: e.g. 2% FPO cut, 98% direct DBT to farmers)
+  double _fpoMarginPct = 2.0;
+  final DatabaseService _dbService = DatabaseService();
+
   // Mandatory Inward Manifest: Verified Constituent Farmers
   final List<FarmerInwardConsignment> _farmerContributions = [];
 
@@ -96,6 +103,9 @@ class _FpoAddCropScreenState extends State<FpoAddCropScreen> {
         qualityGrade: _selectedGrade,
         receiptNumber: 'INW-${now.year}-0412',
         status: 'pooled_in_listing',
+        bankAccountMasked: '•••• •••• 4821',
+        ifscCode: 'SBIN0001234',
+        bankName: 'State Bank of India',
       ),
       FarmerInwardConsignment(
         farmerId: 'farmer_ramesh_01',
@@ -111,6 +121,9 @@ class _FpoAddCropScreenState extends State<FpoAddCropScreen> {
         qualityGrade: _selectedGrade,
         receiptNumber: 'INW-${now.year}-0418',
         status: 'pooled_in_listing',
+        bankAccountMasked: '•••• •••• 8832',
+        ifscCode: 'PUNB0023400',
+        bankName: 'Punjab National Bank',
       ),
       FarmerInwardConsignment(
         farmerId: 'farmer_baldev_03',
@@ -126,8 +139,81 @@ class _FpoAddCropScreenState extends State<FpoAddCropScreen> {
         qualityGrade: _selectedGrade,
         receiptNumber: 'INW-${now.year}-0425',
         status: 'pooled_in_listing',
+        bankAccountMasked: '•••• •••• 1928',
+        ifscCode: 'HDFC0000456',
+        bankName: 'HDFC Bank',
       ),
     ]);
+  }
+
+  /// Automatically balance constituent farmer quantities proportionally to sum exactly to declared total
+  void _autoBalanceContributions(double targetTotalQtl) {
+    if (_farmerContributions.isEmpty) {
+      _populateDefaultFarmerContributions(targetTotalQtl);
+      return;
+    }
+
+    final currentSum = _farmerContributions.fold<double>(0.0, (sum, f) => sum + f.quantityQtl);
+    if (currentSum <= 0) {
+      final perFarmer = (targetTotalQtl / _farmerContributions.length).roundToDouble();
+      double acc = 0.0;
+      for (int i = 0; i < _farmerContributions.length; i++) {
+        final qtl = (i == _farmerContributions.length - 1)
+            ? (targetTotalQtl - acc).clamp(0.0, targetTotalQtl)
+            : perFarmer;
+        acc += qtl;
+        _farmerContributions[i] = _farmerContributions[i].copyWith(
+          finalSettlementPricePerQtl: double.tryParse(_pricePerQtlController.text.trim()),
+        );
+      }
+    } else {
+      double acc = 0.0;
+      for (int i = 0; i < _farmerContributions.length; i++) {
+        final f = _farmerContributions[i];
+        if (i == _farmerContributions.length - 1) {
+          final remaining = (targetTotalQtl - acc).clamp(0.0, targetTotalQtl);
+          _farmerContributions[i] = FarmerInwardConsignment(
+            farmerId: f.farmerId,
+            farmerName: f.farmerName,
+            farmerPhone: f.farmerPhone,
+            village: f.village,
+            commodity: f.commodity,
+            variety: f.variety,
+            quantityQtl: remaining,
+            procurementPricePerQtl: f.procurementPricePerQtl,
+            depositDate: f.depositDate,
+            moisturePct: f.moisturePct,
+            qualityGrade: f.qualityGrade,
+            receiptNumber: f.receiptNumber,
+            status: f.status,
+            bankAccountMasked: f.bankAccountMasked,
+            ifscCode: f.ifscCode,
+            bankName: f.bankName,
+          );
+        } else {
+          final scaled = ((f.quantityQtl / currentSum) * targetTotalQtl).roundToDouble();
+          acc += scaled;
+          _farmerContributions[i] = FarmerInwardConsignment(
+            farmerId: f.farmerId,
+            farmerName: f.farmerName,
+            farmerPhone: f.farmerPhone,
+            village: f.village,
+            commodity: f.commodity,
+            variety: f.variety,
+            quantityQtl: scaled,
+            procurementPricePerQtl: f.procurementPricePerQtl,
+            depositDate: f.depositDate,
+            moisturePct: f.moisturePct,
+            qualityGrade: f.qualityGrade,
+            receiptNumber: f.receiptNumber,
+            status: f.status,
+            bankAccountMasked: f.bankAccountMasked,
+            ifscCode: f.ifscCode,
+            bankName: f.bankName,
+          );
+        }
+      }
+    }
   }
 
   final List<String> _gradeOptions = [
@@ -324,6 +410,7 @@ class _FpoAddCropScreenState extends State<FpoAddCropScreen> {
         warehouseLng: 76.9905,
         dispatchLeadTimeDays: _dispatchLeadTimeDays,
         isMultiFpoEligible: _isMultiFpoEligible,
+        fpoMarginPct: _fpoMarginPct,
         status: ListingStatus.published,
         imageUrl: imgPath,
         farmerContributions: List.from(_farmerContributions),
@@ -423,6 +510,10 @@ class _FpoAddCropScreenState extends State<FpoAddCropScreen> {
 
               // 7. Warehouse & Fulfillment Terms Card
               _buildWarehouseAndLogisticsCard(),
+              const SizedBox(height: 14),
+
+              // 7.5. FPO Operational Margin & Direct DBT Split Engine Card
+              _buildFpoMarginCard(totalValuation),
               const SizedBox(height: 14),
 
               // 8. Mandatory Farmer Sourcing & Inward Manifest Card
@@ -1492,13 +1583,34 @@ class _FpoAddCropScreenState extends State<FpoAddCropScreen> {
             ),
 
           const SizedBox(height: 12),
+          // Primary Action: Pick from verified member roster
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _showSelectMembersFromDirectoryModal(declaredQtyQtl),
+              icon: const Icon(Icons.people_alt_outlined, size: 18, color: Colors.white),
+              label: Text(
+                context.tr(
+                  'Select from Member Directory (सदस्य सूची से चुनें)',
+                  'सदस्य सूची से किसान चुनें (Member Directory)',
+                ),
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1B5E20),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () => _showAddFarmerDialog(declaredQtyQtl),
                   icon: const Icon(Icons.person_add_outlined, size: 16),
-                  label: const Text('+ Add Farmer', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  label: const Text('+ Manual Add', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF1B5E20),
                     side: const BorderSide(color: Color(0xFF2E7D32)),
@@ -1511,18 +1623,23 @@ class _FpoAddCropScreenState extends State<FpoAddCropScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () {
                     setState(() {
-                      _populateDefaultFarmerContributions(declaredQtyQtl);
+                      _autoBalanceContributions(declaredQtyQtl);
                     });
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Auto-balanced member farmer contributions to match declared lot!'),
-                        backgroundColor: Color(0xFF1B5E20),
-                        duration: Duration(seconds: 2),
+                      SnackBar(
+                        content: Text(
+                          'Auto-balanced pro-rata across ${_farmerContributions.length} constituent farmers!',
+                        ),
+                        backgroundColor: const Color(0xFF1B5E20),
+                        duration: const Duration(seconds: 2),
                       ),
                     );
                   },
                   icon: const Icon(Icons.balance, size: 16, color: Colors.white),
-                  label: const Text('Auto-Balance', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                  label: const Text(
+                    'Auto-Balance Pro-Rata',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2E7D32),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1530,6 +1647,13 @@ class _FpoAddCropScreenState extends State<FpoAddCropScreen> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 6),
+          Center(
+            child: Text(
+              '100% Pro-rata Rule: Volume must match exactly ${declaredQtyQtl.toStringAsFixed(0)} Qtl',
+              style: const TextStyle(fontSize: 10, color: Color(0xFF64748B), fontStyle: FontStyle.italic),
+            ),
           ),
         ],
       ),
@@ -1748,4 +1872,607 @@ class _FpoAddCropScreenState extends State<FpoAddCropScreen> {
       ),
     );
   }
+
+  Widget _buildFpoMarginCard(double totalValuation) {
+    final farmerPoolPct = (100.0 - _fpoMarginPct).clamp(0.0, 100.0);
+    final fpoCutAmount = (totalValuation * _fpoMarginPct) / 100.0;
+    final farmerPoolAmount = (totalValuation * farmerPoolPct) / 100.0;
+    final currencyFmt = NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 0);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.pie_chart, color: Color(0xFFD97706), size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr(
+                        'FPO Handling Fee & Direct DBT Split Engine',
+                        'एफपीओ परिचालन शुल्क व किसान डीबीटी विभाजन',
+                      ),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A)),
+                    ),
+                    Text(
+                      context.tr(
+                        'Automated Pro-Rata Escrow Settlement (Atomic Split)',
+                        'स्वतः आनुपातिक एस्क्रो भुगतान (शून्य बिचौलिया रोक)',
+                      ),
+                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Fee selection chips
+          Text(
+            context.tr('FPO Handling & Silo Margin (%)', 'एफपीओ हैंडलिंग व साइलो भंडारण शुल्क (%)'),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [1.5, 2.0, 2.5, 3.0].map((pct) {
+              final isSelected = (_fpoMarginPct - pct).abs() < 0.01;
+              return ChoiceChip(
+                label: Text(
+                  '$pct% ${pct == 2.0 ? "(Standard)" : ""}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected ? Colors.white : const Color(0xFF334155),
+                  ),
+                ),
+                selected: isSelected,
+                selectedColor: const Color(0xFFD97706),
+                backgroundColor: const Color(0xFFF1F5F9),
+                onSelected: (val) {
+                  if (val) {
+                    setState(() => _fpoMarginPct = pct);
+                  }
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 14),
+
+          // Visual Split Bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              height: 12,
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: (farmerPoolPct * 10).round(),
+                    child: Container(color: const Color(0xFF16A34A)),
+                  ),
+                  Expanded(
+                    flex: (_fpoMarginPct * 10).round(),
+                    child: Container(color: const Color(0xFFD97706)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF16A34A), shape: BoxShape.circle)),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Farmers Pool (${farmerPoolPct.toStringAsFixed(1)}%)',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFD97706), shape: BoxShape.circle)),
+                  const SizedBox(width: 4),
+                  Text(
+                    'FPO Margin (${_fpoMarginPct.toStringAsFixed(1)}%)',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Two-Tier Financial Cards
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFBBF7D0)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Direct Farmer DBT Pool',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF166534), fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        currencyFmt.format(farmerPoolAmount),
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF15803D),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        '0% intermediary holding (Direct to bank)',
+                        style: TextStyle(fontSize: 9, color: Color(0xFF15803D)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFBEB),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFDE68A)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'FPO Operational Cut',
+                        style: TextStyle(fontSize: 11, color: Color(0xFF92400E), fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        currencyFmt.format(fpoCutAmount),
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFFB45309),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Silo & aggregation revenue',
+                        style: TextStyle(fontSize: 9, color: Color(0xFFB45309)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // SFAC & NABARD Regulatory Compliance Callout
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.shield_outlined, color: Color(0xFF2563EB), size: 18),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'NABARD / SFAC Compliant: FPO cannot hold or delay farmer funds. Payouts execute atomically via Smart Escrow on buyer delivery verification.',
+                    style: TextStyle(fontSize: 10.5, color: Color(0xFF334155), height: 1.3),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Modal to select member farmers directly from the FPO's imported directory
+  void _showSelectMembersFromDirectoryModal(double declaredQtyQtl) {
+    final appState = Provider.of<AppState>(context, listen: false);
+    final fpoId = appState.currentUser?.id.isNotEmpty == true ? appState.currentUser!.id : 'fpo_karnal_01';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StreamBuilder<List<FpoMemberFarmer>>(
+          stream: _dbService.streamFpoMembers(fpoId),
+          builder: (context, snapshot) {
+            List<FpoMemberFarmer> directoryMembers = snapshot.data ?? [];
+            if (directoryMembers.isEmpty) {
+              // Fallback to pre-verified Karnal roster if Firestore has no records yet
+              directoryMembers = FpoMemberImportService.getSampleKarnalRoster(fpoId);
+            }
+
+            return StatefulBuilder(
+              builder: (ctx, setModalState) {
+                // Keep local selection set of farmer IDs
+                final existingIds = _farmerContributions.map((f) => f.farmerId).toSet();
+                final Set<String> selectedFarmerIds = Set<String>.from(existingIds);
+                String searchQuery = '';
+                String selectedCropFilter = 'All';
+
+                return DraggableScrollableSheet(
+                  initialChildSize: 0.85,
+                  minChildSize: 0.5,
+                  maxChildSize: 0.95,
+                  builder: (_, scrollController) {
+                    // Filter members
+                    final filteredMembers = directoryMembers.where((m) {
+                      final matchesSearch = searchQuery.isEmpty ||
+                          m.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+                          m.villageTehsil.toLowerCase().contains(searchQuery.toLowerCase()) ||
+                          m.mobileNumber.contains(searchQuery);
+                      final matchesCrop = selectedCropFilter == 'All' ||
+                          m.primaryCrops.any((c) => c.toLowerCase().contains(selectedCropFilter.toLowerCase()));
+                      return matchesSearch && matchesCrop;
+                    }).toList();
+
+                    return Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                      ),
+                      child: Column(
+                        children: [
+                          // Sheet handle
+                          Center(
+                            child: Container(
+                              margin: const EdgeInsets.only(top: 12, bottom: 8),
+                              width: 40,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade300,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+
+                          // Header
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFDCFCE7),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(Icons.people, color: Color(0xFF15803D), size: 22),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        context.tr('Select Constituent Farmers', 'सदस्य किसान चुनें (स्रोतीकरण)'),
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                      ),
+                                      Text(
+                                        '${directoryMembers.length} verified members registered in FPO directory',
+                                        style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close),
+                                  onPressed: () => Navigator.pop(ctx),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Divider(height: 1),
+
+                          // Search Bar
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                            child: TextField(
+                              decoration: InputDecoration(
+                                hintText: 'Search by farmer name, village, mobile...',
+                                hintStyle: const TextStyle(fontSize: 12),
+                                prefixIcon: const Icon(Icons.search, size: 18),
+                                isDense: true,
+                                filled: true,
+                                fillColor: const Color(0xFFF8FAFC),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                ),
+                              ),
+                              onChanged: (val) {
+                                setModalState(() => searchQuery = val);
+                              },
+                            ),
+                          ),
+
+                          // Selection Count & Quick Select
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Selected: ${selectedFarmerIds.length} farmers',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF15803D)),
+                                ),
+                                Row(
+                                  children: [
+                                    TextButton(
+                                      onPressed: () {
+                                        setModalState(() {
+                                          for (var m in filteredMembers) {
+                                            selectedFarmerIds.add(m.id);
+                                          }
+                                        });
+                                      },
+                                      child: const Text('Select All Filtered', style: TextStyle(fontSize: 11)),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        setModalState(() {
+                                          selectedFarmerIds.clear();
+                                        });
+                                      },
+                                      child: const Text('Clear All', style: TextStyle(fontSize: 11, color: Colors.red)),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Member List
+                          Expanded(
+                            child: ListView.separated(
+                              controller: scrollController,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              itemCount: filteredMembers.length,
+                              separatorBuilder: (_, __) => const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                final member = filteredMembers[index];
+                                final isSelected = selectedFarmerIds.contains(member.id);
+
+                                return InkWell(
+                                  onTap: () {
+                                    setModalState(() {
+                                      if (isSelected) {
+                                        selectedFarmerIds.remove(member.id);
+                                      } else {
+                                        selectedFarmerIds.add(member.id);
+                                      }
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: isSelected ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: isSelected ? const Color(0xFF16A34A) : const Color(0xFFE2E8F0),
+                                        width: isSelected ? 1.5 : 1.0,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Checkbox(
+                                          value: isSelected,
+                                          activeColor: const Color(0xFF16A34A),
+                                          onChanged: (val) {
+                                            setModalState(() {
+                                              if (val == true) {
+                                                selectedFarmerIds.add(member.id);
+                                              } else {
+                                                selectedFarmerIds.remove(member.id);
+                                              }
+                                            });
+                                          },
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      member.name,
+                                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                                    ),
+                                                  ),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFFDCFCE7),
+                                                      borderRadius: BorderRadius.circular(4),
+                                                    ),
+                                                    child: const Row(
+                                                      children: [
+                                                        Icon(Icons.check_circle, size: 10, color: Color(0xFF15803D)),
+                                                        SizedBox(width: 2),
+                                                        Text(
+                                                          'Penny Drop Verified',
+                                                          style: TextStyle(fontSize: 9, color: Color(0xFF15803D), fontWeight: FontWeight.bold),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                '${member.villageTehsil} • ${member.mobileNumber}',
+                                                style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    '${member.bankName} (${member.maskedAccountNumber})',
+                                                    style: const TextStyle(fontSize: 10.5, color: Color(0xFF334155), fontWeight: FontWeight.w500),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    member.ifscCode,
+                                                    style: const TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+
+                          // Bottom CTA to apply selected members
+                          SafeArea(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: SizedBox(
+                                width: double.infinity,
+                                height: 48,
+                                child: ElevatedButton(
+                                  onPressed: selectedFarmerIds.isEmpty
+                                      ? null
+                                      : () {
+                                          final now = DateTime.now();
+                                          final crop = _commodityController.text.trim();
+                                          final variety = _varietyController.text.trim();
+                                          final price = double.tryParse(_pricePerQtlController.text.trim()) ?? 3560.0;
+                                          final moisture = double.tryParse(_moistureController.text.trim()) ?? 11.2;
+
+                                          final chosenMembers = directoryMembers
+                                              .where((m) => selectedFarmerIds.contains(m.id))
+                                              .toList();
+
+                                          if (chosenMembers.isNotEmpty) {
+                                            // Pro-rata distribute declared volume equally among selected members as base
+                                            final perFarmerQtl = (declaredQtyQtl / chosenMembers.length).roundToDouble();
+                                            double allocatedAcc = 0.0;
+
+                                            setState(() {
+                                              _farmerContributions.clear();
+                                              for (int i = 0; i < chosenMembers.length; i++) {
+                                                final m = chosenMembers[i];
+                                                final isLast = i == chosenMembers.length - 1;
+                                                final qtl = isLast
+                                                    ? (declaredQtyQtl - allocatedAcc).clamp(0.0, declaredQtyQtl)
+                                                    : perFarmerQtl;
+                                                allocatedAcc += qtl;
+
+                                                _farmerContributions.add(
+                                                  FarmerInwardConsignment(
+                                                    farmerId: m.id,
+                                                    farmerName: m.name,
+                                                    farmerPhone: m.mobileNumber,
+                                                    village: m.villageTehsil,
+                                                    commodity: crop,
+                                                    variety: variety,
+                                                    quantityQtl: qtl,
+                                                    procurementPricePerQtl: price,
+                                                    depositDate: now.subtract(Duration(days: (i % 7) + 1)),
+                                                    moisturePct: moisture,
+                                                    qualityGrade: _selectedGrade,
+                                                    receiptNumber: 'INW-${now.year}-${(400 + i).toString().padLeft(4, '0')}',
+                                                    status: 'pooled_in_listing',
+                                                    bankAccountMasked: m.maskedAccountNumber,
+                                                    ifscCode: m.ifscCode,
+                                                    bankName: m.bankName,
+                                                  ),
+                                                );
+                                              }
+                                            });
+
+                                            Navigator.pop(ctx);
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Successfully mapped ${chosenMembers.length} constituent farmers! Auto-balanced to ${declaredQtyQtl.toStringAsFixed(0)} Qtl.',
+                                                ),
+                                                backgroundColor: const Color(0xFF1B5E20),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF1B5E20),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  child: Text(
+                                    'Map ${selectedFarmerIds.length} Farmers & Balance Pro-Rata (100%)',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
 }
+

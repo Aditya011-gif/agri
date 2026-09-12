@@ -1,5 +1,5 @@
-/// Model: FPO Warehouse Inventory & Commercial Bulk Crop Listings
-/// Strictly enforces B2B wholesale operational source truth with atomic reservation states.
+// Model: FPO Warehouse Inventory & Commercial Bulk Crop Listings
+// Strictly enforces B2B wholesale operational source truth with atomic reservation states.
 
 enum InventoryStatus {
   available,
@@ -169,7 +169,7 @@ class FpoInventoryItem {
       inventoryStatus: inventoryStatus ?? this.inventoryStatus,
       listingStatus: listingStatus ?? this.listingStatus,
       activeListingId: activeListingId ?? this.activeListingId,
-      imageUrl: imageUrl ?? this.imageUrl,
+      imageUrl: imageUrl,
       createdAt: createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
     );
@@ -259,6 +259,7 @@ class BulkCropListing {
   final List<String> deliveryOptions; // 'Ex-Warehouse (FOB)', 'Delivered (FOR)'
   final int dispatchLeadTimeDays;
   final bool isMultiFpoEligible; // Can be pooled with 7 km neighbors
+  final double fpoMarginPct; // e.g. 2.0% FPO Handling / Silo storage fee
   final ListingStatus status;
   final String? imageUrl;
   final List<FarmerInwardConsignment> farmerContributions;
@@ -284,6 +285,7 @@ class BulkCropListing {
     this.deliveryOptions = const ['Ex-Warehouse (FOB)', 'Delivered (FOR)'],
     this.dispatchLeadTimeDays = 2,
     this.isMultiFpoEligible = true,
+    this.fpoMarginPct = 2.0,
     this.status = ListingStatus.published,
     this.imageUrl,
     this.farmerContributions = const [],
@@ -318,6 +320,7 @@ class BulkCropListing {
     'deliveryOptions': deliveryOptions,
     'dispatchLeadTimeDays': dispatchLeadTimeDays,
     'isMultiFpoEligible': isMultiFpoEligible,
+    'fpoMarginPct': fpoMarginPct,
     'status': status.name,
     'imageUrl': imageUrl,
     'farmerContributions': farmerContributions.map((f) => f.toMap()).toList(),
@@ -344,6 +347,7 @@ class BulkCropListing {
     deliveryOptions: List<String>.from(map['deliveryOptions'] ?? ['Ex-Warehouse (FOB)']),
     dispatchLeadTimeDays: (map['dispatchLeadTimeDays'] as num?)?.toInt() ?? 2,
     isMultiFpoEligible: map['isMultiFpoEligible'] ?? true,
+    fpoMarginPct: (map['fpoMarginPct'] as num?)?.toDouble() ?? 2.0,
     status: ListingStatus.values.firstWhere(
       (e) => e.name == map['status'],
       orElse: () => ListingStatus.published,
@@ -379,6 +383,9 @@ class FarmerInwardConsignment {
   final double? finalSettlementPricePerQtl;
   final String? dbtUtrNumber;
   final String? labCertificateId;
+  final String? bankAccountMasked;
+  final String? ifscCode;
+  final String? bankName;
 
   const FarmerInwardConsignment({
     required this.farmerId,
@@ -399,6 +406,9 @@ class FarmerInwardConsignment {
     this.finalSettlementPricePerQtl,
     this.dbtUtrNumber,
     this.labCertificateId,
+    this.bankAccountMasked,
+    this.ifscCode,
+    this.bankName,
   });
 
   double get quantityMT => quantityQtl / 10.0;
@@ -413,6 +423,9 @@ class FarmerInwardConsignment {
     double? finalSettlementPricePerQtl,
     String? dbtUtrNumber,
     String? labCertificateId,
+    String? bankAccountMasked,
+    String? ifscCode,
+    String? bankName,
   }) {
     return FarmerInwardConsignment(
       farmerId: farmerId,
@@ -434,6 +447,9 @@ class FarmerInwardConsignment {
           finalSettlementPricePerQtl ?? this.finalSettlementPricePerQtl,
       dbtUtrNumber: dbtUtrNumber ?? this.dbtUtrNumber,
       labCertificateId: labCertificateId ?? this.labCertificateId,
+      bankAccountMasked: bankAccountMasked ?? this.bankAccountMasked,
+      ifscCode: ifscCode ?? this.ifscCode,
+      bankName: bankName ?? this.bankName,
     );
   }
 
@@ -456,6 +472,9 @@ class FarmerInwardConsignment {
     'finalSettlementPricePerQtl': finalSettlementPricePerQtl,
     'dbtUtrNumber': dbtUtrNumber,
     'labCertificateId': labCertificateId,
+    'bankAccountMasked': bankAccountMasked,
+    'ifscCode': ifscCode,
+    'bankName': bankName,
   };
 
   factory FarmerInwardConsignment.fromMap(Map<String, dynamic> map) =>
@@ -483,5 +502,8 @@ class FarmerInwardConsignment {
             (map['finalSettlementPricePerQtl'] as num?)?.toDouble(),
         dbtUtrNumber: map['dbtUtrNumber'],
         labCertificateId: map['labCertificateId'],
+        bankAccountMasked: map['bankAccountMasked'],
+        ifscCode: map['ifscCode'],
+        bankName: map['bankName'],
       );
 }

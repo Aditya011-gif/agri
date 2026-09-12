@@ -7,3 +7,4 @@ export 'fpo_add_crop_screen.dart';
 export 'fpo_batch_pooling_screen.dart';
 export 'fpo_settlement_screen.dart';
 export 'fpo_recurring_orders_screen.dart';
+export 'fpo_member_directory_screen.dart';

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -84,7 +85,16 @@ class _DigilockerWebviewModalState extends State<DigilockerWebviewModal> {
     final uri = Uri.parse(_session!.authorizationUrl);
     try {
       if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        bool launched = false;
+        // On mobile, try in-app browser view (Chrome Custom Tabs / Safari View Controller)
+        if (!kIsWeb) {
+          try {
+            launched = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+          } catch (_) {}
+        }
+        if (!launched) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(

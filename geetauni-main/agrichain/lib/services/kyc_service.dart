@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'database_service.dart';
 import 'security_service.dart';
+import 'digilocker_service.dart';
 
 class KycResult {
   final bool success;
@@ -83,6 +84,56 @@ class KycService {
   static const String _aadhaarVerificationUrl =
       'https://api.aadhaarapi.com/verify';
   static const String _panVerificationUrl = 'https://api.panapi.com/verify';
+
+  /// Link real verified DigiLocker profile directly to user KYC in Firestore
+  Future<KycResult> verifyWithDigilockerProfile({
+    required String userId,
+    required DigilockerProfile profile,
+    String? phone,
+  }) async {
+    try {
+      final kycData = {
+        'id': 'kyc_${userId}_${DateTime.now().millisecondsSinceEpoch}',
+        'userId': userId,
+        'aadhaarNumber': profile.maskedAadhaar,
+        'fullName': profile.fullName,
+        'gender': profile.gender ?? '',
+        'dob': profile.dob ?? '',
+        'address': profile.address ?? '',
+        'sessionId': profile.sessionId,
+        'certificateId': profile.certificateId,
+        'kycStatus': 'verified',
+        'aadhaarVerified': 1,
+        'panVerified': 0,
+        'digiLockerVerified': 1,
+        'phone': phone ?? '',
+        'verifiedAt': profile.verifiedAt.toIso8601String(),
+        'createdAt': DateTime.now().toIso8601String(),
+        'updatedAt': DateTime.now().toIso8601String(),
+      };
+      await _databaseService.createKycData(kycData);
+
+      await _databaseService.updateUser(userId, {
+        'kycStatus': 'verified',
+        'isKycVerified': 1,
+        'isAadhaarVerified': true,
+        'digiLockerVerified': true,
+        'name': profile.fullName,
+        if (phone != null && phone.isNotEmpty) 'phone': phone,
+        'updatedAt': DateTime.now().toIso8601String(),
+      });
+
+      return KycResult(
+        success: true,
+        message: 'DigiLocker e-KYC verified successfully!',
+        data: profile.toJson(),
+        verificationId: profile.certificateId,
+      );
+    } catch (e) {
+      debugPrint('Error linking DigiLocker profile: $e');
+      return KycResult(success: false, message: e.toString());
+    }
+  }
 
   /// Initialize KYC process with Digi Locker
   Future<KycResult> initializeDigiLockerKyc({

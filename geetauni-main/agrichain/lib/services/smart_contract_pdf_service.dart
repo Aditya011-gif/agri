@@ -1209,23 +1209,23 @@ class SmartContractPdfService {
           pw.Table(
             border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
             columnWidths: {
-              0: const pw.FlexColumnWidth(2.2), // Farmer Name & Village
-              1: const pw.FlexColumnWidth(1.2), // Inward Date
-              2: const pw.FlexColumnWidth(1.2), // Qty (Qtl)
-              3: const pw.FlexColumnWidth(1.2), // Price/Qtl
-              4: const pw.FlexColumnWidth(1.4), // Farmer Share
-              5: const pw.FlexColumnWidth(1.4), // Inward Assay
+              0: const pw.FlexColumnWidth(2.0), // Constituent Farmer
+              1: const pw.FlexColumnWidth(1.2), // Inward Slip #
+              2: const pw.FlexColumnWidth(1.0), // Qty (Qtl)
+              3: const pw.FlexColumnWidth(1.4), // Verified Bank Mask & IFSC
+              4: const pw.FlexColumnWidth(1.1), // Gross Share
+              5: const pw.FlexColumnWidth(1.3), // Direct DBT Payout
             },
             children: [
               pw.TableRow(
                 decoration: const pw.BoxDecoration(color: PdfColors.grey100),
                 children: [
-                  _tableCell('Member Farmer & Location', boldFont),
-                  _tableCell('Intake Date', boldFont),
-                  _tableCell('Quantity (Qtl)', boldFont),
-                  _tableCell('Realized Rate', boldFont),
-                  _tableCell('Net Realization', boldFont),
-                  _tableCell('Lab Quality Spec', boldFont),
+                  _tableCell('Constituent Farmer', boldFont),
+                  _tableCell('Inward Slip #', boldFont),
+                  _tableCell('Qty (Qtl)', boldFont),
+                  _tableCell('Bank & IFSC Mask', boldFont),
+                  _tableCell('Gross Value', boldFont),
+                  _tableCell('Direct DBT (98%)', boldFont),
                 ],
               ),
               ..._buildFarmerBeneficiaryRows(contract, regularFont, boldFont),
@@ -1395,21 +1395,22 @@ class SmartContractPdfService {
       return contract.farmerBeneficiaries.map((b) {
         final name = (b['farmerName'] ?? b['name'] ?? 'Member Farmer').toString();
         final village = (b['village'] ?? 'Karnal').toString();
-        final date = (b['depositDate'] ?? b['intakeDate'] ?? 'Recent').toString();
-        final displayDate = date.contains('T') ? date.split('T').first : date;
+        final slip = (b['receiptNumber'] ?? b['receiptNo'] ?? b['inwardSlip'] ?? 'INW-2026-0412').toString();
         final qtl = (b['quantityQtl'] as num?)?.toDouble() ?? 0.0;
         final price = (b['procurementPricePerQtl'] as num?)?.toDouble() ?? contract.pricePerQtl;
-        final total = (b['totalPayout'] as num?)?.toDouble() ?? (qtl * price);
-        final grade = (b['qualityGrade'] ?? contract.qualityGrade).toString();
+        final gross = (b['totalPayout'] as num?)?.toDouble() ?? (qtl * price);
+        final netDbt = gross * 0.98; // 98% direct DBT to farmer, 2% FPO fee
+        final bankMask = (b['bankAccountMasked'] ?? b['bankMask'] ?? '•••• 4821').toString();
+        final ifsc = (b['ifscCode'] ?? b['ifsc'] ?? 'SBIN0001824').toString();
 
         return pw.TableRow(
           children: [
-            _tableCell('$name ($village)', regularFont),
-            _tableCell(displayDate, regularFont),
-            _tableCell('${qtl.toStringAsFixed(0)} Qtl', regularFont),
-            _tableCell('Rs ${price.toStringAsFixed(0)}', regularFont),
-            _tableCell('Rs ${total.toStringAsFixed(0)}', boldFont),
-            _tableCell(grade, regularFont),
+            _tableCell('$name\n($village)', regularFont),
+            _tableCell(slip, regularFont),
+            _tableCell('${qtl.toStringAsFixed(0)} Qtl', boldFont),
+            _tableCell('$bankMask\n$ifsc', regularFont),
+            _tableCell('Rs ${gross.toStringAsFixed(0)}', regularFont),
+            _tableCell('Rs ${netDbt.toStringAsFixed(0)}', boldFont),
           ],
         );
       }).toList();
@@ -1422,22 +1423,23 @@ class SmartContractPdfService {
     final share3 = (totalQtl - share1 - share2).clamp(0.0, totalQtl);
 
     final defaultFarmers = [
-      {'name': 'Sukhwinder Sandhu', 'village': 'Nilokheri, Karnal', 'date': '04 Nov 2025', 'qtl': share1, 'grade': 'Grade A (11.2% Moist)'},
-      {'name': 'Rameshwar Singh', 'village': 'Taraori, Karnal', 'date': '05 Nov 2025', 'qtl': share2, 'grade': 'Grade A (11.4% Moist)'},
-      {'name': 'Baldev Raj Chaudhary', 'village': 'Gharaunda, Karnal', 'date': '06 Nov 2025', 'qtl': share3, 'grade': 'Grade A (11.0% Moist)'},
+      {'name': 'Sukhwinder Sandhu', 'village': 'Nilokheri, Karnal', 'slip': 'INW-2026-0412', 'bank': '•••• 4821', 'ifsc': 'SBIN0001824', 'qtl': share1},
+      {'name': 'Rameshwar Singh', 'village': 'Taraori, Karnal', 'slip': 'INW-2026-0418', 'bank': '•••• 8832', 'ifsc': 'PUNB0182400', 'qtl': share2},
+      {'name': 'Baldev Raj Chaudhary', 'village': 'Gharaunda, Karnal', 'slip': 'INW-2026-0425', 'bank': '•••• 1928', 'ifsc': 'HDFC0001928', 'qtl': share3},
     ];
 
     return defaultFarmers.map((f) {
       final qtl = f['qtl'] as double;
-      final total = qtl * contract.pricePerQtl;
+      final gross = qtl * contract.pricePerQtl;
+      final netDbt = gross * 0.98;
       return pw.TableRow(
         children: [
-          _tableCell('${f['name']} (${f['village']})', regularFont),
-          _tableCell(f['date'] as String, regularFont),
-          _tableCell('${qtl.toStringAsFixed(0)} Qtl', regularFont),
-          _tableCell('Rs ${contract.pricePerQtl.toStringAsFixed(0)}', regularFont),
-          _tableCell('Rs ${total.toStringAsFixed(0)}', boldFont),
-          _tableCell(f['grade'] as String, regularFont),
+          _tableCell('${f['name']}\n(${f['village']})', regularFont),
+          _tableCell(f['slip'] as String, regularFont),
+          _tableCell('${qtl.toStringAsFixed(0)} Qtl', boldFont),
+          _tableCell('${f['bank']}\n${f['ifsc']}', regularFont),
+          _tableCell('Rs ${gross.toStringAsFixed(0)}', regularFont),
+          _tableCell('Rs ${netDbt.toStringAsFixed(0)}', boldFont),
         ],
       );
     }).toList();

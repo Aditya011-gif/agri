@@ -303,8 +303,8 @@ class CropImageValidatorService {
           necroticDarkRotCount++;
         }
 
-        // 2. Fungal Mold / Chalky Grey-White Mycelium on Fruit
-        if (brightness >= 95 && brightness <= 225 && delta < 25) {
+        // 2. Fungal Mold / Chalky Grey-White Mycelium on Fruit (excluding bright skin reflections/shine)
+        if (brightness >= 95 && brightness < 205 && delta < 18) {
           fungalMoldGrayCount++;
         }
 
@@ -426,10 +426,14 @@ class CropImageValidatorService {
           lowerName.contains('decay') ||
           lowerName.contains('damage');
 
-      // For potatoes, natural eyes and contact shadows exist; require genuine fungal mold or explicit rot
-      final bool isRotten = (detectedType == CropType.potato)
-          ? ((fungalMoldGrayCount > 35 || waterSoakedSoftRotCount > 50) && rotRatio > 0.15) || hasSpoilageIndicators
-          : (totalRotPixels >= 40 && (rotRatio > 0.08 || necroticDarkRotCount > 25 || fungalMoldGrayCount > 30)) || hasSpoilageIndicators;
+      // Distinguish natural shadows, glossy reflections, and stems from genuine rot
+      final bool isStrongAgriculturalPresence = produceReferenceBase > 80 || agriRatio > 0.25;
+      final bool isRotten = hasSpoilageIndicators ||
+          (detectedType == CropType.potato
+              ? ((fungalMoldGrayCount > 45 || waterSoakedSoftRotCount > 60) && rotRatio > 0.20)
+              : (isStrongAgriculturalPresence
+                  ? (rotRatio > 0.28 && totalRotPixels > 120)
+                  : (totalRotPixels >= 80 && rotRatio > 0.20)));
 
       if (isRotten) {
         final double calculatedDefect = min(78.0, max(38.0, rotRatio * 120));

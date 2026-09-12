@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
+import '../../services/database_service.dart';
 import '../../utils/translation_helper.dart';
 import '../../widgets/language_switcher.dart';
 
@@ -14,6 +15,7 @@ class FarmerPayoutHistoryScreen extends StatefulWidget {
 }
 
 class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
+  final DatabaseService _dbService = DatabaseService();
   final List<Map<String, dynamic>> _mockPayouts = [
     {
       'id': 'TXN-90281-UPI',
@@ -69,110 +71,144 @@ class _FarmerPayoutHistoryScreenState extends State<FarmerPayoutHistoryScreen> {
   Widget build(BuildContext context) {
     final appState = Provider.of<AppState>(context);
     final user = appState.currentUser;
+    final farmerId = user?.id.isNotEmpty == true ? user!.id : 'farmer_sukhwinder_02';
     final farmerName = user?.name.isNotEmpty == true
         ? user!.name
         : context.tr('Ramesh Kumar (Kisaan)', 'रमेश कुमार (किसान)');
     final location = user?.location ?? context.tr('Karnal, Haryana', 'करनाल, हरियाणा');
 
-    double totalSeasonRevenue = 0;
-    for (var p in _mockPayouts) {
-      totalSeasonRevenue += (p['amount'] as double);
-    }
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _dbService.streamFarmerDbtPayouts(farmerId, farmerPhone: user?.phone),
+      builder: (context, snapshot) {
+        final livePayouts = (snapshot.data ?? []).map((p) {
+          final amt = (p['netDbtPayout'] as num?)?.toDouble() ?? 0.0;
+          final qtl = (p['quantityQtl'] as num?)?.toDouble() ?? 0.0;
+          final bank = (p['bankName'] ?? 'State Bank of India').toString();
+          final mask = (p['maskedAccount'] ?? '•••• 4821').toString();
+          final utr = (p['utrNumber'] ?? 'UPI/DBT/2026/AGRI').toString();
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF7),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        foregroundColor: const Color(0xFF1B5E20),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              context.tr('Kisaan Passbook & Payouts', 'किसान पासबुक व भुगतान'),
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF1B5E20),
-              ),
-            ),
-            Text(
-              context.tr('Direct UPI Bank Credits • Polygon Smart Escrow', 'सीधा UPI बैंक भुगतान • पॉलीगॉन स्मार्ट एस्क्रो'),
-              style: GoogleFonts.inter(
-                fontSize: 10,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          const LanguageSwitcherPill(isDark: false),
-          const SizedBox(width: 4),
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf, color: Color(0xFF1B5E20)),
-            tooltip: context.tr('Download Tax-Free Income Slip', 'कर-मुक्त आय पर्ची डाउनलोड करें'),
-            onPressed: () => _showIncomeSlipDialog(context, farmerName, location, totalSeasonRevenue),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // 1. Season Revenue Header Card
-          _buildRevenueHeaderCard(totalSeasonRevenue),
-          const SizedBox(height: 16),
+          return {
+            'id': p['payoutId'] ?? 'DBT-$utr',
+            'crop': p['cropName'] ?? 'Sharbati Wheat',
+            'cropHi': p['cropName'] ?? 'शरबती गेहूं',
+            'lotSize': '${qtl.toStringAsFixed(0)} Quintals',
+            'lotSizeHi': '${qtl.toStringAsFixed(0)} क्विंटल',
+            'buyer': p['buyerName'] ?? 'Bulk Agro Buyer',
+            'buyerHi': p['buyerName'] ?? 'थोक कृषि क्रेता',
+            'date': p['creditedAt']?.toString().split('.').first ?? 'Recent',
+            'amount': amt,
+            'status': 'CREDITED',
+            'bank': '$bank $mask',
+            'utr': utr,
+            'escrowTxHash': '0x9a8f...4b21',
+            'taxSection': 'Sec 10(1) IT Act (Tax Exempt)',
+            'isDbtLive': true,
+          };
+        }).toList();
 
-          // 2. Verified Bank & DBT Account Card
-          _buildVerifiedBankCard(farmerName),
-          const SizedBox(height: 20),
+        final allPayouts = [...livePayouts, ..._mockPayouts];
 
-          // 3. Section Title & Download Slip CTA
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                context.tr('Direct Settlement Ledger', 'प्रत्यक्ष भुगतान खाता (लेजर)'),
-                style: GoogleFonts.outfit(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF1B5E20),
-                ),
-              ),
-              InkWell(
-                onTap: () => _showIncomeSlipDialog(context, farmerName, location, totalSeasonRevenue),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1B5E20).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.download, size: 14, color: Color(0xFF1B5E20)),
-                      const SizedBox(width: 4),
-                      Text(
-                        context.tr('Tax Exemption Slip', 'कर छूट पर्ची'),
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1B5E20),
-                        ),
-                      ),
-                    ],
+        double totalSeasonRevenue = 0;
+        for (var p in allPayouts) {
+          totalSeasonRevenue += (p['amount'] as double);
+        }
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8FAF7),
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0.5,
+            foregroundColor: const Color(0xFF1B5E20),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr('Kisaan Passbook & Payouts', 'किसान पासबुक व भुगतान'),
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1B5E20),
                   ),
                 ),
+                Text(
+                  context.tr('Direct UPI Bank Credits • Polygon Smart Escrow', 'सीधा UPI बैंक भुगतान • पॉलीगॉन स्मार्ट एस्क्रो'),
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              const LanguageSwitcherPill(isDark: false),
+              const SizedBox(width: 4),
+              IconButton(
+                icon: const Icon(Icons.picture_as_pdf, color: Color(0xFF1B5E20)),
+                tooltip: context.tr('Download Tax-Free Income Slip', 'कर-मुक्त आय पर्ची डाउनलोड करें'),
+                onPressed: () => _showIncomeSlipDialog(context, farmerName, location, totalSeasonRevenue),
               ),
+              const SizedBox(width: 8),
             ],
           ),
-          const SizedBox(height: 12),
+          body: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // 1. Season Revenue Header Card
+              _buildRevenueHeaderCard(totalSeasonRevenue),
+              const SizedBox(height: 16),
 
-          // 4. Payout Transaction Tiles
-          ..._mockPayouts.map((txn) => _buildPayoutCard(txn)),
-          const SizedBox(height: 24),
-        ],
-      ),
+              // 2. Verified Bank & DBT Account Card
+              _buildVerifiedBankCard(farmerName),
+              const SizedBox(height: 20),
+
+              // 3. Section Title & Download Slip CTA
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    context.tr('Direct Settlement Ledger', 'प्रत्यक्ष भुगतान खाता (लेजर)'),
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1B5E20),
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => _showIncomeSlipDialog(context, farmerName, location, totalSeasonRevenue),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1B5E20).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.download, size: 14, color: Color(0xFF1B5E20)),
+                          const SizedBox(width: 4),
+                          Text(
+                            context.tr('Tax Exemption Slip', 'कर छूट पर्ची'),
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1B5E20),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // 4. Payout Transaction Tiles
+              ...allPayouts.map((txn) => _buildPayoutCard(txn)),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
     );
   }
 

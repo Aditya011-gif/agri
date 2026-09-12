@@ -176,6 +176,22 @@ class AppConfig {
     defaultValue: 'your-razorpay-key-secret');
   static const Duration paymentTimeout = Duration(minutes: 10);
 
+  // Multimodal AI Configuration (Google Gemini 2.5 Flash)
+  static const String geminiApiKey = String.fromEnvironment('GEMINI_API_KEY',
+    defaultValue: '');
+
+  // Fast2SMS API Configuration (Real Cellular SMS OTP Delivery)
+  static const String fast2smsApiKey = String.fromEnvironment('FAST2SMS_API_KEY',
+    defaultValue: '');
+
+  // Twilio Verify API Configuration (Real Cellular SMS OTP Delivery)
+  static const String twilioAccountSid = String.fromEnvironment('TWILIO_ACCOUNT_SID',
+    defaultValue: '');
+  static const String twilioAuthToken = String.fromEnvironment('TWILIO_AUTH_TOKEN',
+    defaultValue: '');
+  static const String twilioVerifyServiceSid = String.fromEnvironment('TWILIO_VERIFY_SERVICE_SID',
+    defaultValue: '');
+
   // Feature flags
   static const bool enableKycVerification = true;
   static const bool enableBiometricAuth = true;
