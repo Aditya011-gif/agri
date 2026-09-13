@@ -521,26 +521,27 @@ class _LoginScreenState extends State<LoginScreen>
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 480),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(24),
-                          gradient: isDark
-                              ? null
-                              : LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    AppTheme.white,
-                                    AppTheme.white.withOpacity(0.96),
-                                  ],
-                                ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(28.0),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 420),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(24),
+                            gradient: isDark
+                                ? null
+                                : LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      AppTheme.white,
+                                      AppTheme.white.withOpacity(0.96),
+                                    ],
+                                  ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
                               // Language Switcher at Top
                               Align(
                                 alignment: Alignment.topRight,
@@ -689,8 +690,9 @@ class _LoginScreenState extends State<LoginScreen>
                               const SizedBox(height: 8),
 
                               // Register Link
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                              Wrap(
+                                alignment: WrapAlignment.center,
+                                crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
                                   Text(
                                     l10n?.dontHaveAccount ?? "Don't have an account? ",
@@ -751,6 +753,7 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                       ),
+                     ),
                     ),
                   ),
                 ),
