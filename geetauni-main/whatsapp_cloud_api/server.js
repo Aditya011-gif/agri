@@ -46,6 +46,9 @@ const MANDI_BENCHMARK_RATES = {
   maize: { nameHindi: 'मक्का (Maize)', msp: 2090, mandiRate: 2240, trend: 'स्थिर' }
 };
 
+// In-memory conversation state for pending crop listings & mandatory photo validation
+const pendingCropListings = {};
+
 // ---------------------------------------------------------------------------
 // 1. Meta Webhook Verification (GET /webhook)
 // ---------------------------------------------------------------------------
@@ -533,21 +536,45 @@ UNIT CONVERSIONS & PRICING:
 
 // B. Computer Vision Crop Quality Assay & Disease Detection (Gemini Flash Vision)
 async function processImageWithGemini(base64Image, mimeType, caption, farmer) {
-  const prompt = `You are AgriChain AI, an expert agricultural quality inspector & plant pathologist.
+  const prompt = `You are AgriChain AI, an expert agricultural quality inspector (AGMARK & FSSAI certified) and plant pathologist.
 Analyze this photo sent by an Indian farmer. Optional caption: "${caption || 'None'}".
 Farmer: ${farmer ? `${farmer.name} from ${farmer.location}` : 'Farmer'}.
 
-Determine if this is:
-A) HARVESTED PRODUCE / GRAINS (Wheat, Rice/Paddy, Mustard, Tomato, Potato, Onion, Soybean, Cotton, etc.)
-B) STANDING CROP / PLANT DISEASE (Leaves, stem, pests, blight, rust, deficiency)
+TASK 1 - STRICT CROP VALIDATION:
+Check whether the image contains genuine agricultural crop/produce (harvested grains, pulses, oilseeds, vegetables, fruits, or a standing farm crop/plant).
+If the image shows ANY non-agricultural subject such as:
+- Human face, selfie, person, crowd, hands holding non-produce items
+- Vehicle, tractor, motorcycle, car, bicycle
+- Paper document, receipt, bill, newspaper, certificate, computer screen, screenshot
+- Domestic animal, pet, dog, cat, bird (unless farm cattle eating fodder, but not a crop)
+- Indoor room, bed, chair, furniture, building, wall, road, sky/landscape without close-up crop
+- Random inanimate object, tool, bottle, meme, packaging without crop
+THEN YOU MUST SET "isCrop": false, "category": "non_crop", and "purityScorePercent": 0.
+
+TASK 2 - PRODUCE QUALITY & PURITY EVALUATION (IF isCrop is true):
+Carefully inspect the visual quality of the crop/grain sample:
+- Check for foreign matter (dust, stones, weed seeds, chaff, straw).
+- Check for insect infestation, boreholes, weevil damage, broken/shriveled grains.
+- Check for rot, mold mycelium, fungal discoloration, water-soaked soft rot, or blackening.
+- If genuine rot, mold, extreme impurity, or severe spoilage is detected:
+  * "purityScorePercent" MUST be evaluated strictly below 50 (e.g. 15 to 45).
+  * "rejectionReason" MUST explain the specific defect in detail.
+  * "qualityGrade": "Sub-standard (<50%)".
+- If the produce is healthy, sound, and clean:
+  * "purityScorePercent" MUST be between 50 and 100 (e.g. 75 to 98%).
+  * "qualityGrade": "Grade 1 (Premium A+)" or "Grade 2 (Standard)".
 
 Return ONLY pure JSON (no markdown fences):
 {
-  "category": "produce_quality_assay" | "crop_disease_advisory",
+  "isCrop": boolean,
+  "detectedObject": string,
+  "rejectionReason": string | null,
+  "category": "produce_quality_assay" | "crop_disease_advisory" | "non_crop",
   "crop": "wheat" | "rice" | "mustard" | "cotton" | "soybean" | "potato" | "onion" | "tomato" | "maize" | "other",
   "variety": string | null,
-  "qualityGrade": "Grade 1 (Premium A+)" | "Grade 2 (Standard)" | "Grade 3 (Fair)",
+  "qualityGrade": "Grade 1 (Premium A+)" | "Grade 2 (Standard)" | "Grade 3 (Fair)" | "Sub-standard (<50%)",
   "purityScorePercent": number,
+  "hasRotOrSpoilage": boolean,
   "lusterAndGrainQuality": string,
   "estimatedMoisturePercent": number,
   "recommendedPricePerQuintalMin": number,
@@ -571,7 +598,16 @@ Return ONLY pure JSON (no markdown fences):
       prompt
     ]);
     const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(cleanJson);
+    const result = JSON.parse(cleanJson);
+
+    // Fallback safety checks
+    if (result.isCrop === undefined) {
+      result.isCrop = result.category !== 'non_crop';
+    }
+    if (result.purityScorePercent === undefined) {
+      result.purityScorePercent = result.hasRotOrSpoilage ? 35 : 88;
+    }
+    return result;
   } catch (err) {
     console.error('Image Vision AI Parse error:', err.message);
     return null;
@@ -1403,15 +1439,56 @@ async function handleParsedAiResult(from, aiResult, farmer) {
 
   // 6. Crop Listing Intent
   if (aiResult.intent === 'listing' && aiResult.quantityQuintals > 0) {
-    await saveAndConfirmCropListing(from, farmer, {
-      crop: aiResult.crop,
+    const farmerName = farmer ? farmer.name : 'किसान भाई';
+
+    // Check if user has an existing verified photo (with quality >= 50%) waiting in pending state
+    const pending = pendingCropListings[from];
+    if (pending && pending.photoVerified && pending.purityScorePercent >= 50) {
+      delete pendingCropListings[from];
+      await saveAndConfirmCropListing(from, farmer, {
+        crop: aiResult.crop || pending.crop || 'wheat',
+        variety: aiResult.variety || pending.variety || null,
+        quantityQuintals: aiResult.quantityQuintals,
+        expectedPricePerQuintal: aiResult.expectedPricePerQuintal || pending.maxPrice || 2400,
+        location: aiResult.location || pending.location || (farmer ? farmer.location : 'Haryana'),
+        qualityGrade: pending.qualityGrade || 'grade1',
+        qualityAssay: `⭐ ${pending.qualityGrade} | Purity: ${pending.purityScorePercent}% | Moisture: ${pending.moisture || 12}%`,
+        voiceNote: aiResult.transcriptionHindi ? `🎙️ "${aiResult.transcriptionHindi}"` : null,
+        isPhotoVerified: true,
+        purityScore: pending.purityScorePercent
+      });
+      return;
+    }
+
+    // MANDATORY PHOTO GATE: No crop can be listed without a photo!
+    pendingCropListings[from] = {
+      crop: aiResult.crop || 'wheat',
       variety: aiResult.variety,
       quantityQuintals: aiResult.quantityQuintals,
       expectedPricePerQuintal: aiResult.expectedPricePerQuintal,
       location: aiResult.location,
-      qualityGrade: 'grade1',
-      voiceNote: aiResult.transcriptionHindi ? `🎙️ "${aiResult.transcriptionHindi}"` : null
-    });
+      voiceNote: aiResult.transcriptionHindi ? `🎙️ "${aiResult.transcriptionHindi}"` : null,
+      photoVerified: false,
+      timestamp: Date.now()
+    };
+
+    const photoCompulsoryMsg = 
+`📷 *फसल का फोटो भेजना अनिवार्य है (Photo Compulsory)!* 🌾
+
+नमस्ते ${farmerName}! AgriChain डिजिटल मंडी पर फसल दर्ज करने के लिए वास्तविक फसल का फोटो भेजना अनिवार्य है। बिना फोटो के कोई भी फसल लिस्ट नहीं हो सकती।
+
+📝 *आपकी दर्ज जानकारी:*
+🌾 *फसल*: ${(aiResult.crop || 'फसल').toUpperCase()} ${aiResult.variety ? `(${aiResult.variety})` : ''}
+⚖️ *मात्रा*: ${aiResult.quantityQuintals} क्विंटल (${Math.round(aiResult.quantityQuintals * 100)} kg)
+💰 *अपेक्षित भाव*: ${aiResult.expectedPricePerQuintal ? `₹${aiResult.expectedPricePerQuintal}/क्विंटल` : 'मंडी भाव'}
+
+📸 *कृपया अभी अपनी फसल/अनाज का एक साफ फोटो यहाँ WhatsApp पर भेजें।*
+
+⚠️ *अनिवार्य नियम:*
+1️⃣ केवल वास्तविक फसल (अनाज/सब्जी/फल) की फोटो ही मान्य होगी (चेहरे, गाड़ियाँ, कागज़ या अन्य वस्तुएं स्वीकार नहीं होंगी)।
+2️⃣ AI गुणवत्ता व शुद्धता जांच में न्यूनतम 50% स्कोर होना अनिवार्य है (50% से कम गुणवत्ता वाली फसल लिस्ट नहीं होगी)।`;
+
+    await sendWhatsAppMessage(from, photoCompulsoryMsg);
     return;
   }
 
@@ -1435,7 +1512,25 @@ AgriChain कृषि-साथी में आपका स्वागत �
 
 // Visual Crop Quality Inspection Handler
 async function handleImageAssayResult(from, assay, farmer, caption) {
-  // A. Plant Disease Advisory
+  // A. Non-Crop Validation Check (STRICT REJECTION OF NON-CROPS)
+  if (!assay.isCrop || assay.category === 'non_crop') {
+    const nonCropMsg = 
+`❌ *अमान्य फोटो! केवल फसल का फोटो स्वीकार्य है* 🌾🚫
+
+AgriChain AI ने इस फोटो में फसल नहीं पहचानी।
+🔍 *पहचानी गई वस्तु:* ${assay.detectedObject || 'गैर-कृषि वस्तु'}
+${assay.rejectionReason ? `⚠️ *कारण:* ${assay.rejectionReason}\n` : ''}
+📋 *AgriChain अनिवार्य नियम:*
+• केवल वास्तविक खेत की फसल, कटी उपज, अनाज, दलहन, फल या सब्जियों की फोटो ही स्वीकार की जाती है।
+• चेहरे, सेल्फी, वाहन, रसीद, कागज़ात या पालतू जानवरों की फोटो से फसल दर्ज नहीं हो सकती।
+
+👉 *कृपया अपनी असली फसल का स्पष्ट फोटो पुनः भेजें।*`;
+
+    await sendWhatsAppMessage(from, nonCropMsg);
+    return;
+  }
+
+  // B. Plant Disease Advisory
   if (assay.category === 'crop_disease_advisory' && assay.diseaseNameHindi) {
     const diseaseMsg = 
 `🔬 *AgriChain AI फसल रोग निदान (Plant Pathology)* 🔬
@@ -1452,44 +1547,92 @@ ${assay.diseaseTreatmentHindi || 'कृषि विशेषज्ञ से �
     return;
   }
 
-  // B. Harvested Produce Quality Assay
+  // C. Strict Quality Threshold Gate (< 50% Purity / Quality)
+  const purity = Number(assay.purityScorePercent) || 0;
   const cropName = (assay.crop || 'फसल').toUpperCase();
+
+  if (purity < 50 || assay.hasRotOrSpoilage) {
+    // Clear any pending draft listing since the quality failed the gate
+    if (pendingCropListings[from]) {
+      delete pendingCropListings[from];
+    }
+
+    const lowQualityMsg = 
+`⚠️ *गुणवत्ता 50% से कम - फसल लिस्ट नहीं की जा सकती!* ❌🌾
+
+AgriChain AI गुणवत्ता परख रिपोर्ट:
+🌾 *पहचानी गई फसल*: ${cropName} ${assay.variety ? `(${assay.variety})` : ''}
+📊 *AI गुणवत्ता व शुद्धता स्कोर*: *${purity}%* (न्यूनतम आवश्यक: 50%)
+⭐ *ग्रेड*: Sub-standard (<50%)
+⚠️ *अस्वीकृति कारण*: ${assay.rejectionReason || assay.summaryHindi || 'फसल में अत्यधिक कचरा, नमी, कीट या खराबी पाई गई है।'}
+
+💡 *किसान भाई के लिए सुधार सलाह (Quality Improvement Tips):*
+1️⃣ दाने/उपज को अच्छी तरह छानकर धूल, खरपतवार और मिट्टी अलग करें।
+2️⃣ धूप में सुखाकर नमी 12% से नीचे लाएं।
+3️⃣ सड़े व दागदार दाने अलग करने के बाद दोबारा नई फोटो भेजें।
+
+🛡️ _AgriChain डिजिटल मंडी पर केवल 50% या अधिक शुद्धता वाली फसलें ही लिस्ट की जा सकती हैं।_`;
+
+    await sendWhatsAppMessage(from, lowQualityMsg);
+    return;
+  }
+
+  // D. Harvested Produce Quality Assay (Quality >= 50% Approved)
   const qualityGrade = assay.qualityGrade || 'Grade 1 (Premium A+)';
-  const purity = assay.purityScorePercent || 92;
   const moisture = assay.estimatedMoisturePercent || 12;
   const minPrice = assay.recommendedPricePerQuintalMin || 2400;
   const maxPrice = assay.recommendedPricePerQuintalMax || 2650;
 
-  // Check if caption contains quantity to auto-list
-  if (assay.quantityQuintals && assay.quantityQuintals > 0) {
+  // Check if there was a pending draft from earlier text/voice, or if caption has quantity
+  const pending = pendingCropListings[from];
+  let quantityToUse = pending?.quantityQuintals || assay.quantityQuintals || null;
+  let priceToUse = pending?.expectedPricePerQuintal || assay.expectedPricePerQuintal || maxPrice;
+
+  if (quantityToUse && quantityToUse > 0) {
+    if (pending) delete pendingCropListings[from];
+
     await saveAndConfirmCropListing(from, farmer, {
-      crop: assay.crop,
-      variety: assay.variety,
-      quantityQuintals: assay.quantityQuintals,
-      expectedPricePerQuintal: assay.expectedPricePerQuintal || maxPrice,
-      location: assay.location,
+      crop: assay.crop || pending?.crop || 'wheat',
+      variety: assay.variety || pending?.variety || null,
+      quantityQuintals: quantityToUse,
+      expectedPricePerQuintal: priceToUse,
+      location: pending?.location || assay.location || (farmer ? farmer.location : 'Karnal, Haryana'),
       qualityGrade: qualityGrade.toLowerCase().includes('grade 1') ? 'grade1' : 'standard',
-      qualityAssay: `⭐ ${qualityGrade} | Purity: ${purity}% | Moisture: ${moisture}%`
+      qualityAssay: `⭐ ${qualityGrade} | Purity: ${purity}% | Moisture: ${moisture}%`,
+      voiceNote: pending?.voiceNote || null,
+      isPhotoVerified: true,
+      purityScore: purity
     });
     return;
   }
 
-  // Otherwise, send the comprehensive AI Quality Assay Report
-  const assayCard = 
-`🌾 *AgriChain AI फसल गुणवत्ता परख रिपोर्ट* 🌾
+  // Save the verified assay in pending state and prompt for quantity & price
+  pendingCropListings[from] = {
+    crop: assay.crop,
+    variety: assay.variety,
+    qualityGrade: qualityGrade,
+    purityScorePercent: purity,
+    moisture: moisture,
+    minPrice: minPrice,
+    maxPrice: maxPrice,
+    location: assay.location,
+    photoVerified: true,
+    timestamp: Date.now()
+  };
 
-फोटो विश्लेषण परिणाम:
+  const assayCard = 
+`✅ *AgriChain AI फसल गुणवत्ता स्वीकृत (Purity: ${purity}%)* ⭐
+
+फोटो विश्लेषण सफल रहा:
 🔍 *पहचानी गई फसल*: ${cropName} ${assay.variety ? `(${assay.variety})` : ''}
 ⭐ *AI गुणवत्ता ग्रेड*: ${qualityGrade}
-✨ *दाने की चमक व शुद्धता*: ${purity}%
+✨ *दाने की शुद्धता*: *${purity}%* (सत्यापित ✅)
 💧 *अनुमानित नमी*: ${moisture}%
+💰 *अनुशंसित मंडी भाव*: ₹${minPrice.toLocaleString('en-IN')} - ₹${maxPrice.toLocaleString('en-IN')} / क्विंटल
 
-💰 *अनुशंसित मंडी भाव*:
-👉 ₹${minPrice.toLocaleString('en-IN')} - ₹${maxPrice.toLocaleString('en-IN')} / क्विंटल
-
-🤝 *क्या आप इस गुणवत्ता पर फसल बेचना चाहते हैं?*
-मात्रा और अपना भाव लिखकर या वॉइस नोट में भेजें:
-👉 *"50 क्विंटल गेहूं भाव ${maxPrice}"*`;
+📝 *फसल को मंडी में लिस्ट करने के लिए:*
+कृपया मात्रा और अपना भाव लिखकर या बोलकर (Voice Note) भेजें:
+👉 *"50 क्विंटल गेहूं भाव ${maxPrice}"* या *"100 kg ₹35/kg"*`;
 
   await sendWhatsAppMessage(from, assayCard);
 }
@@ -1505,6 +1648,7 @@ async function saveAndConfirmCropListing(from, farmer, details) {
   const totalKg = Math.round(details.quantityQuintals * 100);
   const totalValuation = Math.round(totalKg * pricePerKg).toLocaleString('en-IN');
   const qualityGrade = details.qualityGrade || 'grade1';
+  const purityScore = details.purityScore || 88;
 
   // Save directly to Google Cloud Firestore
   await firestorePatch('crops', listingId, {
@@ -1519,6 +1663,9 @@ async function saveAndConfirmCropListing(from, farmer, details) {
     status: { stringValue: 'active' },
     isActive: { booleanValue: true },
     location: { stringValue: location },
+    isPhotoVerified: { booleanValue: true },
+    purityScore: { doubleValue: Number(purityScore) },
+    qualityAssay: { stringValue: details.qualityAssay || `⭐ ${qualityGrade} | Purity: ${purityScore}%` },
     createdAt: { timestampValue: new Date().toISOString() }
   });
 
@@ -1535,6 +1682,8 @@ async function saveAndConfirmCropListing(from, farmer, details) {
 💰 *आपका भाव*: ₹${pricePerKg}/kg (₹${pricePerQuintal}/क्विंटल)
 💵 *कुल मूल्य*: ₹${totalValuation}
 ⭐ *AI गुणवत्ता ग्रेड*: ${qualityGrade.toUpperCase()}
+✨ *AI शुद्धता स्कोर*: ${purityScore}% (सत्यापित ✅)
+📷 *फोटो सत्यापन*: ✅ असली फसल फोटो सत्यापित (≥50% गुणवत्ता)
 📍 *स्थान*: ${location}
 👤 *खाता*: ✅ ${farmerName}`;
 

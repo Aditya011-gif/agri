@@ -169,6 +169,7 @@ class _AddCropScreenState extends State<AddCropScreen> {
               _isAnalyzingWithAi = false;
               _cropImageFile = null;
               _selectedImagePath = null;
+              _aiAssayResult = null;
             });
             _showInvalidCropImageDialog(
               CropValidationResult.invalid(
@@ -176,6 +177,24 @@ class _AddCropScreenState extends State<AddCropScreen> {
                 hindiReason: inspection.hindiRejectionReason ?? 'यह फोटो फसल की नहीं लग रही है।',
                 detectedSubject: inspection.cropName,
               ),
+            );
+          }
+          return;
+        }
+
+        // STRICT QUALITY GATE: Block produce with quality / purity < 50%
+        if (inspection.purityScore < 50.0 || inspection.hasRotOrSpoilage) {
+          if (mounted) {
+            setState(() {
+              _isAnalyzingWithAi = false;
+              _cropImageFile = null;
+              _selectedImagePath = null;
+              _aiAssayResult = null;
+            });
+            _showLowQualityRejectionDialog(
+              purityScore: inspection.purityScore,
+              cropName: inspection.cropName,
+              reason: inspection.assessmentSummary,
             );
           }
           return;
@@ -324,6 +343,142 @@ class _AddCropScreenState extends State<AddCropScreen> {
     );
   }
 
+  void _showLowQualityRejectionDialog({
+    required double purityScore,
+    required String cropName,
+    required String reason,
+  }) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'गुणवत्ता 50% से कम / Quality < 50%',
+                style: GoogleFonts.outfit(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red.shade900,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'गुणवत्ता स्कोर (Purity):',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red.shade900,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade700,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${purityScore.toStringAsFixed(1)}% / 100%',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    value: (purityScore / 100.0).clamp(0.0, 1.0),
+                    backgroundColor: Colors.red.shade100,
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.red),
+                    minHeight: 6,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '⚠️ फसल ($cropName) की गुणवत्ता 50% से कम है। AgriChain नियमों के अनुसार 50% से कम शुद्धता या खराब फसल लिस्ट नहीं की जा सकती।',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF991B1B),
+                      height: 1.4,
+                    ),
+                  ),
+                  if (reason.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      reason,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: Colors.grey.shade800,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              '💡 किसान के लिए सुधार सलाह (Quality Tips):',
+              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            const Text('• दानों को अच्छी तरह छानकर धूल, खरपतवार और मिट्टी अलग करें।',
+                style: TextStyle(fontSize: 11.5, color: Colors.black87)),
+            const Text('• धूप में सुखाकर नमी की मात्रा 12% से नीचे लाएं।',
+                style: TextStyle(fontSize: 11.5, color: Colors.black87)),
+            const Text('• सड़े या दागदार दानों को अलग करने के बाद नई फोटो अपलोड करें।',
+                style: TextStyle(fontSize: 11.5, color: Colors.black87)),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('समझ गया (Understood)'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAutoAiAssayPromptDialog() {
     showDialog(
       context: context,
@@ -417,6 +572,15 @@ class _AddCropScreenState extends State<AddCropScreen> {
           message: inspection.rejectionReason ?? 'Non-crop image detected.',
           hindiMessage: inspection.hindiRejectionReason ?? 'यह फोटो फसल की नहीं लग रही है।',
           title: 'अमान्य फोटो / Image Rejected',
+        );
+      }
+
+      // STRICT QUALITY THRESHOLD GATE (< 50% PURITY)
+      if (inspection.purityScore < 50.0 || inspection.hasRotOrSpoilage) {
+        throw CropValidationException(
+          message: 'Crop purity/quality score is ${inspection.purityScore.toStringAsFixed(1)}%, which is below the minimum required 50% threshold.',
+          hindiMessage: 'फसल की गुणवत्ता व शुद्धता केवल ${inspection.purityScore.toStringAsFixed(1)}% है (न्यूनतम 50% आवश्यक)। 50% से कम गुणवत्ता वाली फसल AgriChain पर लिस्ट नहीं की जा सकती।',
+          title: 'गुणवत्ता 50% से कम / Quality Below 50%',
         );
       }
 
@@ -680,23 +844,35 @@ class _AddCropScreenState extends State<AddCropScreen> {
   Future<void> _uploadCrop() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_selectedImagePath == null || _aiAssayResult == null) {
-      if (_selectedImagePath == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please select an image for your crop'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      } else {
-        _showAutoAiAssayPromptDialog();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('⚠️ AI Assaying Required: Please run automated AI quality assay first.'),
-            backgroundColor: Colors.deepOrange,
-          ),
-        );
-      }
+    if (_selectedImagePath == null || _cropImageFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ फसल का फोटो लगाना अनिवार्य है (Crop photo is compulsory). बिना फोटो के फसल लिस्ट नहीं की जा सकती।'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
+    if (_aiAssayResult == null) {
+      _showAutoAiAssayPromptDialog();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ AI Assaying Required: Please run automated AI quality assay first.'),
+          backgroundColor: Colors.deepOrange,
+        ),
+      );
+      return;
+    }
+
+    // STRICT QUALITY GATE: Cannot list produce with quality / purity < 50%
+    if (_aiAssayResult!.purityScore < 50.0) {
+      _showLowQualityRejectionDialog(
+        purityScore: _aiAssayResult!.purityScore,
+        cropName: _nameController.text.isNotEmpty ? _nameController.text : 'Crop',
+        reason: _aiAssayResult!.assessmentSummary,
+      );
       return;
     }
 
@@ -817,7 +993,7 @@ class _AddCropScreenState extends State<AddCropScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAssayVerified = _aiAssayResult != null && _cropImageFile != null;
+    final isAssayVerified = _aiAssayResult != null && _cropImageFile != null && _aiAssayResult!.purityScore >= 50.0;
 
     return Scaffold(
       appBar: const EnhancedAppBar(
@@ -1534,7 +1710,11 @@ class _AddCropScreenState extends State<AddCropScreen> {
                             Icon(isAssayVerified ? Icons.verified : Icons.lock_outline, size: 18),
                             const SizedBox(width: 8),
                             Text(
-                              isAssayVerified ? 'List Crop for Sale (Verified)' : 'Complete AI Assaying to List',
+                              isAssayVerified
+                                  ? 'List Crop for Sale (Verified)'
+                                  : (_cropImageFile == null
+                                      ? 'Add Crop Photo to List (Compulsory)'
+                                      : 'Complete AI Assaying (≥50% Quality) to List'),
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,

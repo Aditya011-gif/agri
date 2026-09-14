@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'crop_image_validator_service.dart';
@@ -188,7 +189,9 @@ class GeminiProduceInspection {
       moisturePercentage: (json['moisture_percentage'] as num?)?.toDouble() ?? (isRotten ? 24.8 : 12.0),
       defectPercentage: defect,
       foreignMatterPercentage: (json['foreign_matter_percentage'] as num?)?.toDouble() ?? 0.4,
-      purityScore: (json['purity_score'] as num?)?.toDouble() ?? (isRotten ? 62.0 : 98.4),
+      purityScore: isRotten
+          ? min(38.0, (json['purity_score'] as num?)?.toDouble() ?? 32.0)
+          : ((json['purity_score'] as num?)?.toDouble() ?? 98.4),
       assessmentSummary: json['assessment_summary'] as String? ?? 'Gemini Vision assay analysis complete.',
       storageRecommendation: json['storage_recommendation'] as String? ?? 'Store in well-ventilated dry bays.',
       suggestedPricePremiumPercent: (json['suggested_price_premium_percent'] as num?)?.toDouble() ?? (isRotten ? -50.0 : 8.0),
@@ -408,6 +411,15 @@ Return ONLY a single valid raw JSON object (without markdown code blocks, backti
         message: inspection.rejectionReason ?? 'Invalid produce image detected.',
         hindiMessage: inspection.hindiRejectionReason ?? 'अमान्य फोटो। कृपया असली फसल की फोटो अपलोड करें।',
         title: 'अमान्य फोटो / Image Rejected',
+      );
+    }
+
+    // STRICT QUALITY GATE: Threshold of 50% purity
+    if (inspection.purityScore < 50.0 || inspection.hasRotOrSpoilage) {
+      throw CropValidationException(
+        message: 'Crop purity score is ${inspection.purityScore.toStringAsFixed(1)}%, which is below the minimum required 50% quality threshold.',
+        hindiMessage: 'फसल की गुणवत्ता ${inspection.purityScore.toStringAsFixed(1)}% है, जो न्यूनतम आवश्यक 50% से कम है। कृपया सफाई के बाद पुनः प्रयास करें।',
+        title: 'गुणवत्ता 50% से कम / Quality Below 50%',
       );
     }
 

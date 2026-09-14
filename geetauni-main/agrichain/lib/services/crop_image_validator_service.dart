@@ -452,7 +452,7 @@ class CropImageValidatorService {
           qualityGrade: QualityGrade.standard,
           moisturePercentage: 24.8,
           defectPercentage: calculatedDefect,
-          purityScore: max(25.0, 100.0 - calculatedDefect),
+          purityScore: min(38.0, max(12.0, 100.0 - calculatedDefect * 1.5)),
           assessmentSummary:
               '⚠️ AI Quality Alert: Severe surface fungal rot, mold mycelium, and necrotic decay detected on $detectedName. This lot fails AGMARK and food safety standards and is REJECTED for commercial consumption.',
           hindiAssessmentSummary:
