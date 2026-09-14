@@ -287,20 +287,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ? _passwordController.text.trim()
           : 'AgriChain@123';
 
-      User? firebaseUser = FirebaseAuth.instance.currentUser;
-      if (firebaseUser == null) {
+      // Always disconnect any previous session before registering a fresh user profile
+      if (FirebaseAuth.instance.currentUser != null) {
         try {
-          final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          await FirebaseAuth.instance.signOut();
+        } catch (_) {}
+      }
+
+      User? firebaseUser;
+      try {
+        final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+        firebaseUser = cred.user;
+      } catch (authErr) {
+        debugPrint('Firebase Auth notice: $authErr. Attempting sign-in binding...');
+        try {
+          final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
             email: email,
             password: password,
           );
           firebaseUser = cred.user;
-        } catch (authErr) {
-          debugPrint('Firebase Auth notice: $authErr. Continuing with Firestore profile creation...');
-        }
+        } catch (_) {}
       }
 
-      final userId = firebaseUser?.uid ?? 'user_phone_$last10';
+      // Unique non-colliding user ID per account and role
+      final userId = firebaseUser?.uid ?? 'user_${last10}_${_selectedUserType.name}';
       final fullName =
           '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'
               .trim();
@@ -387,12 +400,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final created = await DatabaseService().createUser(userData);
       debugPrint('Firestore User Creation: $created');
 
-      // Clean up any obsolete temporary dummy profile from before signup
-      if (userId != 'user_phone_$last10') {
-        try {
-          await DatabaseService().hardDeleteUser('user_phone_$last10');
-        } catch (_) {}
-      }
+
 
       // Link real KYC Document
       if (_digilockerProfile != null || _isKycVerified) {

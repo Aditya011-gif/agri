@@ -233,9 +233,14 @@ async function markMessageAsRead(messageId) {
 async function firestorePatch(collection, docId, fields) {
   return new Promise((resolve) => {
     const data = JSON.stringify({ fields });
+    const maskParams = Object.keys(fields)
+      .map(k => `updateMask.fieldPaths=${encodeURIComponent(k)}`)
+      .join('&');
+    const path = `/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/${collection}/${docId}?key=${FIREBASE_WEB_API_KEY}&${maskParams}`;
+
     const req = https.request({
       hostname: 'firestore.googleapis.com',
-      path: `/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/${collection}/${docId}?key=${FIREBASE_WEB_API_KEY}`,
+      path: path,
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

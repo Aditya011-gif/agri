@@ -150,14 +150,26 @@ class AppState extends ChangeNotifier {
         userData = await _databaseService.getUserByFirebaseUid(firebaseUid);
       }
 
+      // Robust fallback: if identifier contains a 10-digit phone number, lookup by phone
+      if (userData == null && RegExp(r'\d{10}').hasMatch(firebaseUid)) {
+        final match = RegExp(r'\d{10}').firstMatch(firebaseUid)?.group(0);
+        if (match != null) {
+          userData = await _databaseService.getUserByPhone(match);
+        }
+      }
+
       if (userData != null) {
         debugPrint('✅ User data loaded successfully: ${userData['email']}');
         final userTypeString = userData['userType'] as String? ?? 'farmer';
+        final rawName = (userData['name'] as String?)?.trim() ?? '';
+        final firstLast = ('${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}').trim();
+        final resolvedName = rawName.isNotEmpty
+            ? rawName
+            : (firstLast.isNotEmpty ? firstLast : 'AgriChain Farmer');
+
         _currentUser = FirestoreUser(
           id: userData['id'] ?? firebaseUid,
-          name: ((userData['name'] as String?)?.trim().isNotEmpty == true)
-              ? (userData['name'] as String).trim()
-              : ('${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}').trim(),
+          name: resolvedName,
           email: userData['email'] ?? '',
           phone: userData['phone'],
           userType: UserType.values.firstWhere(

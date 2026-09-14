@@ -59,7 +59,10 @@ class DatabaseService {
   Future<bool> createUser(Map<String, dynamic> userData) async {
     try {
       final userId = userData['id'] as String;
-      await _firestore.collection(_usersCollection).doc(userId).set(userData);
+      await _firestore.collection(_usersCollection).doc(userId).set(
+        userData,
+        SetOptions(merge: true),
+      );
 
       debugPrint('✅ User created successfully: $userId');
       return true;
@@ -122,12 +125,20 @@ class DatabaseService {
 
       // Filter and prioritize:
       // 1. DigiLocker verified or KYC verified users
-      // 2. Real names (not placeholder 'Kisan Farmer')
-      // 3. Document ID not starting with 'user_phone_'
+      // 1. Profiles with real non-empty names over empty profiles
+      // 2. DigiLocker verified or KYC verified users
+      // 3. Real names (not placeholder 'Kisan Farmer')
       // 4. Most recent updated/created timestamp
       allDocs.sort((a, b) {
         final aData = a.data() ?? {};
         final bData = b.data() ?? {};
+
+        // Valid name check: Never pick an empty/null profile over one with a name!
+        final aName = (aData['name'] ?? aData['firstName'] ?? '').toString().trim();
+        final bName = (bData['name'] ?? bData['firstName'] ?? '').toString().trim();
+        final aHasName = aName.isNotEmpty;
+        final bHasName = bName.isNotEmpty;
+        if (aHasName != bHasName) return aHasName ? -1 : 1;
 
         final aVerified = (aData['digiLockerVerified'] == 1 ||
                 aData['isKycVerified'] == 1 ||
@@ -155,14 +166,6 @@ class DatabaseService {
       final bestDoc = allDocs.first;
       final bestData = Map<String, dynamic>.from(bestDoc.data()!);
       bestData['id'] ??= bestDoc.id;
-
-      // If an obsolete dummy user_phone_ document exists alongside a real verified profile, clean it up
-      if (allDocs.length > 1 && bestDoc.id != 'user_phone_$last10') {
-        try {
-          await _firestore.collection(_usersCollection).doc('user_phone_$last10').delete();
-          debugPrint('🧹 Cleaned up obsolete dummy user_phone_$last10 doc in favor of real profile: ${bestDoc.id}');
-        } catch (_) {}
-      }
 
       return bestData;
     } catch (e) {
