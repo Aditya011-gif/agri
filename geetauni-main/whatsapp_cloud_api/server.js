@@ -604,8 +604,14 @@ Return ONLY pure JSON (no markdown fences):
     if (result.isCrop === undefined) {
       result.isCrop = result.category !== 'non_crop';
     }
-    if (result.purityScorePercent === undefined) {
-      result.purityScorePercent = result.hasRotOrSpoilage ? 35 : 88;
+    const hasRot = result.hasRotOrSpoilage === true ||
+      (result.qualityGrade && result.qualityGrade.includes('<50%')) ||
+      (result.rejectionReason && /rot|mold|fungal|decay|spoil/i.test(result.rejectionReason));
+    if (hasRot) {
+      result.hasRotOrSpoilage = true;
+      result.purityScorePercent = Math.min(Number(result.purityScorePercent) || 30, 38);
+    } else if (result.purityScorePercent === undefined) {
+      result.purityScorePercent = 88;
     }
     return result;
   } catch (err) {
@@ -1558,18 +1564,19 @@ ${assay.diseaseTreatmentHindi || 'कृषि विशेषज्ञ से �
     }
 
     const lowQualityMsg = 
-`⚠️ *गुणवत्ता 50% से कम - फसल लिस्ट नहीं की जा सकती!* ❌🌾
+`⚠️ *पहचानी गई फसल: ${cropName}* ❌🌾
+*गुणवत्ता 50% से कम - फसल लिस्ट नहीं की जा सकती!*
 
 AgriChain AI गुणवत्ता परख रिपोर्ट:
-🌾 *पहचानी गई फसल*: ${cropName} ${assay.variety ? `(${assay.variety})` : ''}
+🌾 *पहचानी गई फसल*: *${cropName}* ${assay.variety ? `(${assay.variety})` : ''}
 📊 *AI गुणवत्ता व शुद्धता स्कोर*: *${purity}%* (न्यूनतम आवश्यक: 50%)
 ⭐ *ग्रेड*: Sub-standard (<50%)
-⚠️ *अस्वीकृति कारण*: ${assay.rejectionReason || assay.summaryHindi || 'फसल में अत्यधिक कचरा, नमी, कीट या खराबी पाई गई है।'}
+⚠️ *अस्वीकृति कारण*: ${assay.rejectionReason || assay.summaryHindi || `फसल (${cropName}) में अत्यधिक फंगल सड़ांध, दाग, नमी या कचरा पाया गया है।`}
 
-💡 *किसान भाई के लिए सुधार सलाह (Quality Improvement Tips):*
-1️⃣ दाने/उपज को अच्छी तरह छानकर धूल, खरपतवार और मिट्टी अलग करें।
+💡 *किसान भाई के लिए सुधार सलाह (${cropName} Quality Improvement):*
+1️⃣ सड़े, दागदार या फफूंद लगे दानों/फलों को तुरंत अलग करें।
 2️⃣ धूप में सुखाकर नमी 12% से नीचे लाएं।
-3️⃣ सड़े व दागदार दाने अलग करने के बाद दोबारा नई फोटो भेजें।
+3️⃣ केवल स्वस्थ व साफ ${cropName} की नई फोटो भेजकर दोबारा जांच कराएं।
 
 🛡️ _AgriChain डिजिटल मंडी पर केवल 50% या अधिक शुद्धता वाली फसलें ही लिस्ट की जा सकती हैं।_`;
 

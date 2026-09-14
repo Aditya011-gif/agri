@@ -299,17 +299,18 @@ class CropImageValidatorService {
 
         // Spoilage / Rot / Fungal Decay Analysis (Specifically inside or adjacent to produce):
         // 1. Necrotic Black Rot (Dark, sunken, decaying flesh / black mold spots)
-        if (brightness < 45 && (r < 55 && g < 45 && b < 45)) {
+        if (brightness < 60 && (r < 65 && g < 60 && b < 60)) {
           necroticDarkRotCount++;
         }
 
-        // 2. Fungal Mold / Chalky Grey-White Mycelium on Fruit (excluding bright skin reflections/shine)
-        if (brightness >= 95 && brightness < 205 && delta < 18) {
+        // 2. Fungal Mold / Chalky Grey-White Mycelium on Fruit (including bright fuzzy white mold on red tomato)
+        if ((brightness >= 80 && brightness < 220 && delta < 25) ||
+            (r > 135 && g > 135 && b > 135 && delta < 25 && brightness < 240)) {
           fungalMoldGrayCount++;
         }
 
         // 3. Water-soaked Soft Brown Rot (Decayed pulp, olive-brown rot lesion)
-        if (r >= 65 && r <= 150 && g >= 40 && g <= 100 && b < 65 && (r >= g) && (r - b) < 45 && (r - g) < 25) {
+        if (r >= 55 && r <= 160 && g >= 35 && g <= 110 && b < 75 && (r >= g) && (r - b) < 55 && (r - g) < 35) {
           waterSoakedSoftRotCount++;
         }
       }
@@ -427,13 +428,10 @@ class CropImageValidatorService {
           lowerName.contains('damage');
 
       // Distinguish natural shadows, glossy reflections, and stems from genuine rot
-      final bool isStrongAgriculturalPresence = produceReferenceBase > 80 || agriRatio > 0.25;
       final bool isRotten = hasSpoilageIndicators ||
           (detectedType == CropType.potato
-              ? ((fungalMoldGrayCount > 45 || waterSoakedSoftRotCount > 60) && rotRatio > 0.20)
-              : (isStrongAgriculturalPresence
-                  ? (rotRatio > 0.28 && totalRotPixels > 120)
-                  : (totalRotPixels >= 80 && rotRatio > 0.20)));
+              ? ((fungalMoldGrayCount > 35 || waterSoakedSoftRotCount > 40) && rotRatio > 0.15)
+              : (fungalMoldGrayCount > 30 || necroticDarkRotCount > 35 || waterSoakedSoftRotCount > 40 || rotRatio > 0.12));
 
       if (isRotten) {
         final double calculatedDefect = min(78.0, max(38.0, rotRatio * 120));

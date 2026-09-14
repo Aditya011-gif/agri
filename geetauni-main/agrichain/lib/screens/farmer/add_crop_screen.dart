@@ -191,6 +191,15 @@ class _AddCropScreenState extends State<AddCropScreen> {
               _selectedImagePath = null;
               _aiAssayResult = null;
             });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  '⚠️ AI जांच: पहचानी गई फसल (${inspection.cropName}) की गुणवत्ता केवल ${inspection.purityScore.toStringAsFixed(1)}% है (न्यूनतम 50% अनिवार्य)',
+                ),
+                backgroundColor: Colors.red.shade900,
+                duration: const Duration(seconds: 5),
+              ),
+            );
             _showLowQualityRejectionDialog(
               purityScore: inspection.purityScore,
               cropName: inspection.cropName,
@@ -366,7 +375,7 @@ class _AddCropScreenState extends State<AddCropScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'गुणवत्ता 50% से कम / Quality < 50%',
+                '🌾 $cropName: गुणवत्ता 50% से कम',
                 style: GoogleFonts.outfit(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -380,6 +389,33 @@ class _AddCropScreenState extends State<AddCropScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Prominent Detected Crop Header
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFF87171)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.eco, color: Color(0xFFB91C1C), size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'पहचानी गई फसल (Detected Crop): $cropName',
+                      style: GoogleFonts.outfit(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFFB91C1C),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -428,7 +464,7 @@ class _AddCropScreenState extends State<AddCropScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '⚠️ फसल ($cropName) की गुणवत्ता 50% से कम है। AgriChain नियमों के अनुसार 50% से कम शुद्धता या खराब फसल लिस्ट नहीं की जा सकती।',
+                    '⚠️ AI Vision ने इस फोटो में "$cropName" की पहचान की है, लेकिन इसमें अत्यधिक फंगल सड़ांध (Fungal Rot / Mold) व खराबी पाई गई है।\n\nAgriChain नियमों के अनुसार 50% से कम शुद्धता वाली फसल ($cropName) को डिजिटल मंडी पर लिस्ट नहीं किया जा सकता।',
                     style: const TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,

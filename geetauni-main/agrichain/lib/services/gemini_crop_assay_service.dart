@@ -123,7 +123,6 @@ class GeminiProduceInspection {
     final bool isValid = json['is_valid_produce'] as bool? ?? true;
     final String cropTypeStr = (json['crop_type'] as String? ?? 'wheat').toLowerCase();
     final String catStr = (json['category'] as String? ?? 'Vegetables').toLowerCase();
-    final bool isRotten = json['has_rot_or_spoilage'] as bool? ?? false;
 
     CropType type = CropType.wheat;
     if (cropTypeStr.contains('potato') || cropTypeStr.contains('aloo') || cropTypeStr.contains('potat')) {
@@ -167,20 +166,51 @@ class GeminiProduceInspection {
       category = CropDataHelper.getCategoryForCropType(type);
     }
 
-    final double defect = (json['defect_percentage'] as num?)?.toDouble() ?? (isRotten ? 38.0 : 1.4);
+    final String agmark = (json['agmark_grade'] as String? ?? '').toUpperCase();
+    final String summary = (json['assessment_summary'] as String? ?? '').toLowerCase();
+    final String desc = (json['description'] as String? ?? '').toLowerCase();
+    final bool rawRot = (json['has_rot_or_spoilage'] as bool?) ?? (json['is_spoiled'] as bool?) ?? false;
+    final bool isRotten = rawRot ||
+        agmark.contains('REJECT') ||
+        agmark.contains('SUB-STANDARD') ||
+        agmark.contains('सड़ा') ||
+        summary.contains('rot') ||
+        summary.contains('mold') ||
+        summary.contains('fungal') ||
+        summary.contains('spoil') ||
+        summary.contains('decay') ||
+        desc.contains('rot') ||
+        desc.contains('mold');
+
+    final String cropName = json['crop_name'] as String? ??
+        (type == CropType.potato ? 'Kufri Jyoti Potato / आलू' : (type == CropType.tomato ? 'Hybrid Tomato / टमाटर' : 'Farm Produce'));
+
+    final double defect = (json['defect_percentage'] as num?)?.toDouble() ?? (isRotten ? 45.0 : 1.4);
     final String defaultAgmark = isRotten
         ? 'REJECTED / SUB-STANDARD (सड़ा हुआ माल)'
         : 'AGMARK Grade A (Fresh Quality)';
 
+    final double rawPurity = (json['purity_score'] as num?)?.toDouble() ?? (isRotten ? 30.0 : 98.4);
+    final double purityScore = isRotten
+        ? min(35.0, rawPurity >= 50.0 ? 30.0 : rawPurity)
+        : min(100.0, max(0.0, rawPurity));
+
+    String? rejectionReason = json['rejection_reason'] as String?;
+    String? hindiRejectionReason = json['hindi_rejection_reason'] as String?;
+    if (isRotten && (rejectionReason == null || rejectionReason.isEmpty)) {
+      rejectionReason = 'Severe fungal rot, mold mycelium, and decay detected on $cropName. Purity score (${purityScore.toStringAsFixed(1)}%) is below 50% threshold.';
+      hindiRejectionReason = '$cropName में फंगल सड़ांध व फफूंद पाई गई है। गुणवत्ता 50% से कम (${purityScore.toStringAsFixed(1)}%) होने के कारण यह माल रिजेक्ट किया गया।';
+    }
+
     return GeminiProduceInspection(
       isValidProduce: isValid,
-      rejectionReason: json['rejection_reason'] as String?,
-      hindiRejectionReason: json['hindi_rejection_reason'] as String?,
+      rejectionReason: rejectionReason,
+      hindiRejectionReason: hindiRejectionReason,
       detectedCropType: type,
       detectedCategory: category,
-      cropName: json['crop_name'] as String? ?? (type == CropType.potato ? 'Kufri Jyoti Potato / आलू' : 'Hybrid Tomato / टमाटर'),
-      variety: json['variety'] as String? ?? 'Export Milling / Table Grade',
-      description: json['description'] as String? ?? 'Sorted and graded farm harvest.',
+      cropName: cropName,
+      variety: json['variety'] as String? ?? (type == CropType.tomato ? 'Hybrid Tomato (Abhinav / US-440)' : 'Export Grade Produce'),
+      description: json['description'] as String? ?? (isRotten ? 'Spoiled/rotten produce lot rejected for consumption.' : 'Clean sorted and graded farm harvest.'),
       hasRotOrSpoilage: isRotten,
       healthStatus: isRotten ? 'Severe Fungal Spoilage & Rot (सड़ा हुआ)' : 'Fresh Grade A Harvest (स्वस्थ फसल)',
       hindiHealthStatus: isRotten ? 'गंभीर फंगल सड़ांध (सड़ा हुआ माल)' : 'ताज़ा व उत्तम फसल',
@@ -189,11 +219,13 @@ class GeminiProduceInspection {
       moisturePercentage: (json['moisture_percentage'] as num?)?.toDouble() ?? (isRotten ? 24.8 : 12.0),
       defectPercentage: defect,
       foreignMatterPercentage: (json['foreign_matter_percentage'] as num?)?.toDouble() ?? 0.4,
-      purityScore: isRotten
-          ? min(38.0, (json['purity_score'] as num?)?.toDouble() ?? 32.0)
-          : ((json['purity_score'] as num?)?.toDouble() ?? 98.4),
-      assessmentSummary: json['assessment_summary'] as String? ?? 'Gemini Vision assay analysis complete.',
-      storageRecommendation: json['storage_recommendation'] as String? ?? 'Store in well-ventilated dry bays.',
+      purityScore: purityScore,
+      assessmentSummary: json['assessment_summary'] as String? ?? (isRotten
+          ? '⚠️ AI Quality Alert: Severe surface fungal rot and mold mycelium detected on $cropName. This lot fails AGMARK standards.'
+          : 'Gemini Vision detected fresh, firm $cropName conforming to AGMARK Grade A standards.'),
+      storageRecommendation: json['storage_recommendation'] as String? ?? (isRotten
+          ? 'DISCARD IMMEDIATELY. Do not store or mix with sound produce.'
+          : 'Store in well-ventilated dry bays at ambient conditions.'),
       suggestedPricePremiumPercent: (json['suggested_price_premium_percent'] as num?)?.toDouble() ?? (isRotten ? -50.0 : 8.0),
       isMspCompliant: !isRotten,
     );
@@ -290,23 +322,29 @@ Identify the exact agricultural commodity visible:
 - Set "category" to one of: "Vegetables", "Grains & Cereals", "Fruits", "Legumes & Pulses", "Oilseeds", "Spices".
 - Provide a clean display name (e.g. "Kufri Jyoti Potato / आलू" or "Hybrid Tomato / टमाटर") and commercial variety (e.g. "Kufri Chipsona 50mm+" or "Abhinav / US-440").
 
-TASK 3 - SPOILAGE & ROT ASSESSMENT:
+TASK 3 - SPOILAGE & ROT ASSESSMENT & STRICT PURITY SCORE:
 Carefully distinguish between healthy produce and spoiled/rotten produce:
 - For Potatoes: Distinguish normal skin eyes/lenticels and shadow crevices from real rot, bacterial soft rot, late blight, or greening. If firm and sound, it is HEALTHY!
-- For Tomatoes: Check for wrinkled sunken black decay, powdery white/grey fungal mold mycelium, water-soaked brown rot.
-- If genuine fungal rot, mold, or decay is present:
+- For Tomatoes: Check for wrinkled sunken black decay, powdery white/grey fungal mold mycelium, water-soaked soft brown rot. If white fluffy mold or dark necrotic rot is visible on tomatoes, IT IS ROTTEN/SPOILED!
+- IF GENUINE FUNGAL ROT, MOLD, BLIGHT, OR SPOILAGE IS PRESENT:
   * "has_rot_or_spoilage": true
+  * "purity_score": MUST BE STRICTLY LESS THAN 50.0 (e.g. 20.0 to 38.0)! Never give >=50 to spoiled, rotten, or moldy produce!
   * "agmark_grade": "REJECTED / SUB-STANDARD (सड़ा हुआ माल)"
   * "quality_grade": "standard"
   * "is_msp_compliant": false
-  * "defect_percentage": 38.0
-  * "assessment_summary": "⚠️ AI Quality Alert: <specific description of rot/mold observed>"
-- If healthy:
+  * "defect_percentage": 45.0
+  * "rejection_reason": "Severe fungal rot and mold detected on <Crop Name>. Purity score is below 50% threshold."
+  * "hindi_rejection_reason": "<Crop Name> में गंभीर फंगल सड़ांध व फफूंद पाई गई है। 50% से कम गुणवत्ता होने के कारण माल अस्वीकृत।"
+  * "assessment_summary": "⚠️ AI Quality Alert: Severe surface fungal rot and mold mycelium detected on <Crop Name>. This lot fails AGMARK standards."
+- IF HEALTHY (Clean, sound, fresh produce without rot):
   * "has_rot_or_spoilage": false
+  * "purity_score": between 88.0 and 99.0
   * "agmark_grade": "AGMARK Grade A (Fresh Quality)"
   * "quality_grade": "premium"
   * "is_msp_compliant": true
   * "defect_percentage": 1.2
+  * "rejection_reason": null
+  * "hindi_rejection_reason": null
   * "assessment_summary": "Gemini Vision detected fresh, firm produce conforming to AGMARK Grade A standards."
 
 Return ONLY a single valid raw JSON object (without markdown code blocks, backticks, or other text):
