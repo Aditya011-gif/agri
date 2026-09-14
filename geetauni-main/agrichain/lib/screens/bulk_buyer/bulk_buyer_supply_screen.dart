@@ -285,6 +285,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
 
         final rawClusters = _clusterEngine.clusterFpoNodes(nodes, maxRadiusKm: _maxDistanceKm);
         final clusters = rawClusters.map((c) => {
+          'id': c.clusterId,
           'clusterId': c.clusterId,
           'commodity': c.commodity,
           'variety': c.variety,
@@ -306,6 +307,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
           'fpos': c.participatingFpos.map((f) => {
             'name': f.fpoName,
             'qtl': f.availableQuantityQtl,
+            'volume': f.availableQuantityQtl,
             'lat': f.latitude,
             'lng': f.longitude,
             'location': f.warehouseName,
@@ -490,18 +492,18 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
 
   // Detailed, un-clustered Multi-FPO Card (Cleaned to match Farmer Pooling screen)
   Widget _buildCombinedClusterCard(Map<String, dynamic> cluster) {
-    final clusterId = cluster['id'] as String;
-    final commodity = cluster['commodity'] as String;
-    final variety = cluster['variety'] as String;
-    final targetVolumeMT = cluster['targetVolumeMT'] as double;
-    final defaultOrderMT = cluster['defaultOrderMT'] as double;
-    final clusterName = cluster['clusterName'] as String;
-    final hubLocation = cluster['hubLocation'] as String;
-    final radiusKm = cluster['radiusKm'] as double;
-    final avgPriceQtl = cluster['avgPriceQtl'] as double;
-    final moisture = cluster['moisture'] as String;
-    final purity = cluster['purity'] as String;
-    final fpos = cluster['fpos'] as List<dynamic>;
+    final clusterId = (cluster['id'] ?? cluster['clusterId'] ?? 'cluster_1').toString();
+    final commodity = (cluster['commodity'] ?? 'Produce').toString();
+    final variety = (cluster['variety'] ?? 'Standard').toString();
+    final targetVolumeMT = (cluster['targetVolumeMT'] as num?)?.toDouble() ?? 100.0;
+    final defaultOrderMT = (cluster['defaultOrderMT'] as num?)?.toDouble() ?? 25.0;
+    final clusterName = (cluster['clusterName'] ?? 'FPO Cluster').toString();
+    final hubLocation = (cluster['hubLocation'] ?? 'Hub').toString();
+    final radiusKm = (cluster['radiusKm'] as num?)?.toDouble() ?? 7.0;
+    final avgPriceQtl = (cluster['avgPriceQtl'] as num?)?.toDouble() ?? 2400.0;
+    final moisture = (cluster['moisture'] ?? '12%').toString();
+    final purity = (cluster['purity'] ?? '98%').toString();
+    final fpos = (cluster['fpos'] as List<dynamic>?) ?? [];
 
     // Current selected quantity for this card (in Quintals / Qtl)
     final selectedMT = _getSelectedQuantity(clusterId, defaultOrderMT);
@@ -760,7 +762,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
 
                 // 6. Interactive Custom Quantity Box Directly on Card
                 _buildCardQuantitySelector(
-                  cluster['id'] as String,
+                  clusterId,
                   commodity,
                   targetVolumeMT,
                   selectedMT,
@@ -1161,18 +1163,20 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        final hubLat = cluster['hubLat'] as double;
-        final hubLng = cluster['hubLng'] as double;
+        final hubLat = (cluster['hubLat'] as num?)?.toDouble() ?? 28.6139;
+        final hubLng = (cluster['hubLng'] as num?)?.toDouble() ?? 77.2090;
         final hubPos = LatLng(hubLat, hubLng);
-        final fpos = cluster['fpos'] as List<dynamic>;
-        final clusterName = cluster['clusterName'] as String;
-        final commodity = cluster['commodity'] as String;
-        final radiusKm = cluster['radiusKm'] as double;
-        final targetVolumeMT = cluster['targetVolumeMT'] as double;
-        final avgPriceQtl = cluster['avgPriceQtl'] as double;
+        final fpos = (cluster['fpos'] as List<dynamic>?) ?? [];
+        final clusterName = (cluster['clusterName'] ?? 'Cluster').toString();
+        final commodity = (cluster['commodity'] ?? 'Produce').toString();
+        final radiusKm = (cluster['radiusKm'] as num?)?.toDouble() ?? 7.0;
+        final targetVolumeMT = (cluster['targetVolumeMT'] as num?)?.toDouble() ?? 100.0;
+        final avgPriceQtl = (cluster['avgPriceQtl'] as num?)?.toDouble() ?? 2400.0;
         final ratePerMT = avgPriceQtl * 10;
-        final destPlant = cluster['destinationPlant'] as Map<String, dynamic>;
-        final destPos = LatLng(destPlant['lat'] as double, destPlant['lng'] as double);
+        final destPlant = (cluster['destinationPlant'] as Map<String, dynamic>?) ?? {};
+        final destLat = (destPlant['lat'] as num?)?.toDouble() ?? 28.4595;
+        final destLng = (destPlant['lng'] as num?)?.toDouble() ?? 77.0266;
+        final destPos = LatLng(destLat, destLng);
 
         int mapTypeIndex = 0;
         RoadRouteResult? roadRoute;
@@ -1184,7 +1188,7 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
             // Build route points: FPO 1 -> FPO 2 -> ... -> Destination Plant
             final routePoints = <LatLng>[];
             for (final f in fpos) {
-              routePoints.add(LatLng(f['lat'] as double, f['lng'] as double));
+              routePoints.add(LatLng((f['lat'] as num?)?.toDouble() ?? 0.0, (f['lng'] as num?)?.toDouble() ?? 0.0));
             }
             routePoints.add(destPos);
 
@@ -1376,14 +1380,14 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
                                       ...fpos.asMap().entries.map((entry) {
                                         final idx = entry.key;
                                         final f = entry.value;
-                                        final pos = LatLng(f['lat'] as double, f['lng'] as double);
+                                        final pos = LatLng((f['lat'] as num?)?.toDouble() ?? 0.0, (f['lng'] as num?)?.toDouble() ?? 0.0);
 
                                         return Marker(
                                           point: pos,
                                           width: 38,
                                           height: 38,
                                           child: Tooltip(
-                                            message: '${f['name']} (${(f['volume'] as num).toStringAsFixed(0)} Qtl)',
+                                            message: '${f['name'] ?? 'FPO'} (${((f['volume'] ?? f['qtl'] ?? 0) as num).toStringAsFixed(0)} Qtl)',
                                             child: Container(
                                               decoration: BoxDecoration(
                                                 color: const Color(0xFF15803D),
@@ -1724,15 +1728,15 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
           itemCount: filteredLots.length,
           itemBuilder: (context, index) {
             final lot = filteredLots[index];
-            final fpoName = lot['fpoName'] as String;
-            final location = lot['location'] as String;
-            final commodity = lot['commodity'] as String;
-            final variety = lot['variety'] as String;
-            final qty = lot['availableQtyMT'] as double;
-            final price = lot['pricePerQtl'] as double;
-            final moisture = lot['moisture'] as String;
-            final rating = lot['rating'] as double;
-            final siloType = lot['siloType'] as String;
+            final fpoName = (lot['fpoName'] ?? 'FPO Warehouse').toString();
+            final location = (lot['location'] ?? 'Location').toString();
+            final commodity = (lot['commodity'] ?? 'Produce').toString();
+            final variety = (lot['variety'] ?? 'Standard').toString();
+            final qty = (lot['availableQtyMT'] as num?)?.toDouble() ?? 0.0;
+            final price = (lot['pricePerQtl'] as num?)?.toDouble() ?? 0.0;
+            final moisture = (lot['moisture'] ?? '12%').toString();
+            final rating = (lot['rating'] as num?)?.toDouble() ?? 4.5;
+            final siloType = (lot['siloType'] ?? 'Storage').toString();
 
             return InkWell(
               borderRadius: BorderRadius.circular(20),
@@ -1952,13 +1956,13 @@ class _BulkBuyerSupplyScreenState extends State<BulkBuyerSupplyScreen>
   }
 
   void _openLotPassportModal(Map<String, dynamic> lot) {
-    final commodity = lot['commodity'] as String;
-    final variety = lot['variety'] as String;
-    final fpoName = lot['fpoName'] as String;
-    final location = lot['location'] as String;
-    final qty = (lot['availableQtyMT'] as num).toDouble();
-    final price = (lot['pricePerQtl'] as num).toDouble();
-    final moisture = lot['moisture'] as String;
+    final commodity = (lot['commodity'] ?? 'Produce').toString();
+    final variety = (lot['variety'] ?? 'Standard').toString();
+    final fpoName = (lot['fpoName'] ?? 'FPO Warehouse').toString();
+    final location = (lot['location'] ?? 'Location').toString();
+    final qty = (lot['availableQtyMT'] as num?)?.toDouble() ?? 0.0;
+    final price = (lot['pricePerQtl'] as num?)?.toDouble() ?? 0.0;
+    final moisture = (lot['moisture'] ?? '12%').toString();
 
     final availableMt = qty / 10.0;
     final totalMt = (availableMt * 1.25).clamp(availableMt, 2000.0);

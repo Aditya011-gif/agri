@@ -579,6 +579,6 @@ class _RetailBuyerOrdersScreenState extends State<RetailBuyerOrdersScreen>
   }
 
   void _showTrackingDetails(BuildContext context, Map<String, dynamic> order) {
-    CropTrackingMapSheet.show(context, order);
+    CropTrackingMapSheet.show(context, order, isFarmer: false);
   }
 }

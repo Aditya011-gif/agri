@@ -457,7 +457,7 @@ class _FarmerOrdersScreenState extends State<FarmerOrdersScreen>
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
-                            onPressed: () => CropTrackingMapSheet.show(context, order),
+                            onPressed: () => CropTrackingMapSheet.show(context, order, isFarmer: true),
                             icon: const Icon(Icons.map_outlined, color: Color(0xFF1D4ED8), size: 18),
                             label: Text(
                               context.tr('🗺️ Track Live Route & Delivery Map', '🗺️ लाइव रूट और डिलीवरी मैप ट्रैक करें'),
