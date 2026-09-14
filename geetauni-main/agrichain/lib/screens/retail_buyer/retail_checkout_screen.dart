@@ -1150,7 +1150,10 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen> {
 
       final fullDeliveryAddress = '${_addressController.text.trim()}, ${_cityController.text.trim()} - ${_pincodeController.text.trim()}';
 
-      final farmerId = widget.crop['farmerId'] ?? widget.crop['sellerId'] ?? widget.crop['userId'] ?? 'farmer_demo';
+      final currentBuyer = Provider.of<AppState>(context, listen: false).currentUser;
+      final buyerId = currentBuyer?.id.isNotEmpty == true ? currentBuyer!.id : 'demo_retailBuyer_001';
+      final buyerEmail = currentBuyer?.email.isNotEmpty == true ? currentBuyer!.email : 'retail@agrichain.com';
+      final farmerId = widget.crop['farmerId'] ?? widget.crop['sellerId'] ?? widget.crop['userId'] ?? 'demo_farmer_001';
 
       final orderData = {
         'orderId': orderId,
@@ -1178,6 +1181,9 @@ class _RetailCheckoutScreenState extends State<RetailCheckoutScreen> {
         'digiLockerCertId': widget.crop['digiLockerCertId'] ?? 'DL-ESIGN-8921-HRY',
         'buyerSignatureUrl': buyerSignatureUrl,
         'isBuyerDigiLockerVerified': true,
+        'buyerId': buyerId,
+        'userId': buyerId,
+        'buyerEmail': buyerEmail,
         'buyerName': _nameController.text.trim(),
         'buyerPhone': _phoneController.text.trim(),
         'deliveryAddress': fullDeliveryAddress,

@@ -18,6 +18,7 @@ import 'farmer/mint_crop_nft_screen.dart';
 import '../config/app_config.dart';
 import '../services/profile_service.dart';
 import '../services/wallet_service.dart';
+import '../services/whatsapp_kisan_service.dart';
 import '../widgets/language_switcher.dart';
 import 'package:agrichain/l10n/app_localizations.dart';
 
@@ -145,6 +146,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             children: [
               _buildProfileHeader(),
+              const SizedBox(height: 24),
+              _buildWhatsAppConnectSection(),
               const SizedBox(height: 24),
               _buildProfileDetailsSection(),
               const SizedBox(height: 24),
@@ -299,6 +302,164 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildWhatsAppConnectSection() {
+    return Consumer<AppState>(
+      builder: (context, appState, child) {
+        final user = appState.currentUser;
+        if (user == null) return const SizedBox.shrink();
+
+        final isHindi = appState.locale.languageCode == 'hi';
+        final kisanService = WhatsAppKisanService();
+
+        String roleDescription = isHindi
+            ? '1-टैप ऑटो लॉगिन के लिए व्हाट्सएप कनेक्ट करें। आपके ऑर्डर्स, ट्रैकिंग और मार्केट अपडेट सीधे व्हाट्सएप पर मिलेंगे।'
+            : 'Connect WhatsApp for 1-Tap Auto Login. Get real-time order tracking, live prices, and smart assistant updates directly on WhatsApp.';
+
+        if (user.userType == UserType.retailBuyer) {
+          roleDescription = isHindi
+              ? 'व्हाट्सएप कनेक्ट करें: आपके रिटेल ऑर्डर्स की लाइव ट्रैकिंग, डिलीवरी स्थिति और ताज़ा मंडी भाव सीधे व्हाट्सएप पर मिलेंगे।'
+              : 'Connect WhatsApp: Track your retail orders, delivery status, and discover fresh farm harvests directly on WhatsApp.';
+        } else if (user.userType == UserType.fpo || user.userType == UserType.fpoMemberFarmer) {
+          roleDescription = isHindi
+              ? 'व्हाट्सएप कनेक्ट करें: FPO सामूहिक लॉट लिस्टिंग, बल्क खरीदार मांग और प्रोक्योरमेंट ऑर्डर्स की जानकारी प्राप्त करें।'
+              : 'Connect WhatsApp: Manage FPO pooled stock, view bulk buyer demand, and track procurement orders via WhatsApp.';
+        } else if (user.userType == UserType.buyer) {
+          roleDescription = isHindi
+              ? 'व्हाट्सएप कनेक्ट करें: आपके बल्क स्मार्ट कॉन्ट्रैक्ट्स, RFQ स्टेटस और एस्क्रो भुगतान की लाइव ट्रैकिंग WhatsApp पर पाएँ।'
+              : 'Connect WhatsApp: Track your bulk smart contracts, RFQ updates, and escrow settlements directly on WhatsApp.';
+        }
+
+        return StreamBuilder<bool>(
+          stream: kisanService.isWhatsAppLinkedStream(user.id),
+          builder: (context, snapshot) {
+            final isLinked = snapshot.data ?? (user.metadata['isWhatsAppLinked'] == true);
+
+            return Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isLinked ? const Color(0xFF25D366).withOpacity(0.4) : const Color(0xFFE2E8F0),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: (isLinked ? const Color(0xFF25D366) : Colors.black).withOpacity(0.04),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF25D366).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.chat, color: Color(0xFF25D366), size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isHindi ? 'व्हाट्सएप असिस्टेंट (AgriChain Bot)' : 'AgriChain WhatsApp Assistant',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.darkGreen),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              isLinked
+                                  ? (isHindi ? 'खाता सक्रिय रूप से जुड़ा हुआ है' : 'Account linked & active')
+                                  : (isHindi ? '1-टैप में खाता लिंक करें' : 'Link account in 1-tap'),
+                              style: TextStyle(fontSize: 12, color: isLinked ? const Color(0xFF15803D) : AppTheme.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isLinked ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isLinked ? Icons.check_circle : Icons.link_off,
+                              size: 13,
+                              color: isLinked ? const Color(0xFF15803D) : const Color(0xFFD97706),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              isLinked
+                                  ? (isHindi ? 'लिंक है' : 'Linked')
+                                  : (isHindi ? 'अनलिंक्ड' : 'Not Linked'),
+                              style: TextStyle(
+                                color: isLinked ? const Color(0xFF15803D) : const Color(0xFFD97706),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    roleDescription,
+                    style: const TextStyle(fontSize: 12, color: AppTheme.darkGrey, height: 1.4),
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final launched = await kisanService.launchConnectWhatsApp(user);
+                        if (!launched && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                isHindi
+                                    ? '✅ कोड कॉपी हो गया! व्हाट्सएप चैट में पेस्ट करें।'
+                                    : '✅ Code copied! Paste into WhatsApp chat to link.',
+                              ),
+                              backgroundColor: const Color(0xFF075E54),
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.link, size: 18),
+                      label: Text(
+                        isLinked
+                            ? (isHindi ? 'व्हाट्सएप चैट खोलें' : 'Open WhatsApp Chat')
+                            : (isHindi ? 'व्हाट्सएप कनेक्ट करें (Auto Link)' : 'Connect WhatsApp (Auto Link)'),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF25D366),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );

@@ -88,20 +88,21 @@ app.post('/webhook', async (req, res) => {
     // Mark message as read
     await markMessageAsRead(messageId);
 
-    // Lookup Verified Farmer Profile
-    const farmer = await getLinkedFarmer(from);
+    // Lookup Verified User Profile (Farmer, Retail Buyer, FPO, Bulk Buyer)
+    const user = await getLinkedUser(from);
+    const farmer = user; // backwards compatibility
 
     // =========================================================================
     // CASE A: Voice Note / Audio Message (Regional Voice AI Processing)
     // =========================================================================
     if (type === 'audio') {
-      console.log(`🎙️ Voice Note received from +${from}. Downloading media...`);
+      console.log(`🎙️ Voice Note received from +${from} [Role: ${user?.role || 'unlinked'}]. Downloading media...`);
       const media = await downloadMetaMedia(messageObj.audio.id);
       if (media) {
-        const voiceResult = await processVoiceWithGemini(media.base64Data, media.mimeType, farmer);
+        const voiceResult = await processVoiceWithGemini(media.base64Data, media.mimeType, user);
         if (voiceResult) {
           console.log(`🎙️ Voice Note transcribed: "${voiceResult.transcriptionHindi || ''}"`);
-          await handleParsedAiResult(from, voiceResult, farmer);
+          await handleParsedAiResult(from, voiceResult, user);
           return;
         }
       }
@@ -112,12 +113,12 @@ app.post('/webhook', async (req, res) => {
     // =========================================================================
     if (type === 'image') {
       const caption = messageObj.image?.caption || '';
-      console.log(`📸 Image received from +${from}. Caption: "${caption}". Downloading...`);
+      console.log(`📸 Image received from +${from} [Role: ${user?.role || 'unlinked'}]. Caption: "${caption}". Downloading...`);
       const media = await downloadMetaMedia(messageObj.image.id);
       if (media) {
-        const assayResult = await processImageWithGemini(media.base64Data, media.mimeType, caption, farmer);
+        const assayResult = await processImageWithGemini(media.base64Data, media.mimeType, caption, user);
         if (assayResult) {
-          await handleImageAssayResult(from, assayResult, farmer, caption);
+          await handleImageAssayResult(from, assayResult, user, caption);
           return;
         }
       }
@@ -134,16 +135,16 @@ app.post('/webhook', async (req, res) => {
     }
 
     if (!textBody) return;
-    console.log(`💬 Content: "${textBody}"`);
+    console.log(`💬 Content: "${textBody}" from +${from} [Role: ${user?.role || 'unlinked'}]`);
 
     // STEP 1: Handshake Check - 1-Tap Account Linking
     if (textBody.includes('#UID:')) {
-      await handleFarmerHandshake(from, textBody, senderProfileName);
+      await handleUserHandshake(from, textBody, senderProfileName);
       return;
     }
 
     // STEP 2: Agronomic & Trade Parsing with Gemini 2.5 Flash
-    await processFarmerTextMessage(from, textBody, farmer);
+    await processUserTextMessage(from, textBody, user);
 
   } catch (err) {
     console.error('❌ Error in WhatsApp webhook handler:', err.message);
@@ -267,77 +268,195 @@ async function firestoreGet(collection, docId) {
 // ---------------------------------------------------------------------------
 // 6. Account Linking & Verification
 // ---------------------------------------------------------------------------
-async function handleFarmerHandshake(phone, text, profileName) {
+// ---------------------------------------------------------------------------
+// 6. Multi-Role Account Linking & Verification (Farmer, Retail Buyer, FPO, Bulk Buyer)
+// ---------------------------------------------------------------------------
+async function handleUserHandshake(phone, text, profileName) {
   const uidMatch = text.match(/#UID:([^\s#]+)/);
   const nameMatch = text.match(/#NAME:([^\n#]+)/);
   const phoneMatch = text.match(/#PHONE:([^\s#]+)/);
+  const roleMatch = text.match(/#ROLE:([^\s#]+)/);
   const locMatch = text.match(/#LOC:([^\n#]+)/);
 
-  const userId = uidMatch ? uidMatch[1].trim() : 'farmer';
+  const userId = uidMatch ? uidMatch[1].trim() : ('user_' + phone.slice(-6));
   const name = nameMatch ? nameMatch[1].trim() : profileName;
   const userPhone = phoneMatch ? phoneMatch[1].trim() : phone;
   const location = locMatch ? locMatch[1].trim() : 'Haryana';
 
-  // 1. Sync in whatsapp_farmers collection
-  await firestorePatch('whatsapp_farmers', phone, {
+  let role = roleMatch ? roleMatch[1].trim().toLowerCase() : null;
+
+  // If role wasn't in text payload, query /users/{userId} directly from Firestore
+  if (!role && userId) {
+    try {
+      const userDoc = await firestoreGet('users', userId);
+      if (userDoc && userDoc.fields) {
+        role = (userDoc.fields.userType?.stringValue || '').toLowerCase();
+      }
+    } catch (_) {}
+  }
+
+  // Normalize role
+  if (role && (role.includes('retail') || role === 'retailbuyer')) {
+    role = 'retailBuyer';
+  } else if (role && (role.includes('fpo') || role === 'fpomemberfarmer')) {
+    role = 'fpo';
+  } else if (role && (role.includes('bulk') || role === 'buyer' || role === 'bulkbuyer')) {
+    role = 'buyer';
+  } else {
+    role = 'farmer';
+  }
+
+  const userPayload = {
     userId: { stringValue: userId },
     name: { stringValue: name },
     phone: { stringValue: userPhone },
     whatsappNumber: { stringValue: phone },
+    role: { stringValue: role },
     location: { stringValue: location },
     linkedAt: { timestampValue: new Date().toISOString() }
-  });
+  };
+
+  // 1. Sync in both whatsapp_users and whatsapp_farmers collections
+  await firestorePatch('whatsapp_users', phone, userPayload);
+  await firestorePatch('whatsapp_farmers', phone, userPayload);
 
   // 2. Update user profile in users collection
   await firestorePatch('users', userId, {
     whatsappNumber: { stringValue: phone },
     isWhatsAppLinked: { booleanValue: true },
+    whatsappRole: { stringValue: role },
     whatsappLinkedAt: { timestampValue: new Date().toISOString() }
   });
 
-  console.log(`✅ Linked WhatsApp +${phone} to Farmer ${name} (${userId})`);
+  console.log(`✅ Successfully Linked WhatsApp +${phone} to [${role.toUpperCase()}] ${name} (${userId})`);
 
-  const welcomeMsg = 
+  let welcomeMsg = '';
+  if (role === 'retailBuyer') {
+    welcomeMsg = 
+`🎉 *नमस्ते ${name} जी!* 🛒
+
+आपका AgriChain *रिटेल खरीदार (Retail Buyer)* खाता आधिकारिक WhatsApp से जुड़ गया है!
+
+✅ *कस्टमर ID*: #${userId.slice(0, 8)}
+📍 *स्थान*: ${location}
+📱 *WhatsApp फ़ोन*: +${phone}
+🏷️ *खाता प्रकार*: रिटेल खरीदार (Buyer)
+
+🤝 *आप WhatsApp पर क्या कर सकते हैं?*
+👉 *"मेरे ऑर्डर"* या *"status"*: आपके खरीदे गए ताज़ा ऑर्डर और लाइव डिलीवरी स्थिति।
+👉 *"टमाटर का भाव"* या *"गेहूं"* : किसानों से सीधे ताज़ा उपलब्ध फसलों के भाव।
+👉 *"सब्जियां"* : नजदीकी किसानों से सीधे खेत की ताज़ा जैविक फसलें खोजें।
+👉 *"पेमेंट"*: आपकी एस्क्रो सुरक्षा व डिलीवरी संतुष्टि गारंटी।`;
+  } else if (role === 'fpo') {
+    welcomeMsg = 
+`🎉 *नमस्ते ${name} जी!* 🏢
+
+आपका AgriChain *FPO (किसान उत्पादक संगठन)* खाता आधिकारिक WhatsApp से जुड़ गया है!
+
+✅ *FPO ID*: #${userId.slice(0, 8)}
+📍 *स्थान*: ${location}
+📱 *WhatsApp फ़ोन*: +${phone}
+🏷️ *खाता प्रकार*: FPO एग्रीगेटर
+
+🤝 *आप WhatsApp पर क्या कर सकते हैं?*
+👉 *"हमारा स्टॉक"* या *"status"*: FPO के सामूहिक लॉट्स की स्थिति और मात्रा।
+👉 *बल्क लॉट लिस्ट करने के लिए बोलें/लिखें*: "करनाल में 200 क्विंटल गेहूं 2550 भाव"
+👉 *"बल्क ऑर्डर"* या *"orders"*: फ्लोर मिलों और कॉर्पोरेट खरीदारों से आए ऑर्डर देखें।
+👉 *"किसान सदस्य"*: FPO से जुड़े सदस्य किसानों की सूची।`;
+  } else if (role === 'buyer') {
+    welcomeMsg = 
+`🎉 *नमस्ते ${name} जी!* 🏭
+
+आपका AgriChain *बल्क खरीदार (Institutional / Mill Buyer)* खाता आधिकारिक WhatsApp से जुड़ गया है!
+
+✅ *Buyer ID*: #${userId.slice(0, 8)}
+📍 *स्थान*: ${location}
+📱 *WhatsApp फ़ोन*: +${phone}
+🏷️ *खाता प्रकार*: बल्क प्रोक्योरर
+
+🤝 *आप WhatsApp पर क्या कर सकते हैं?*
+👉 *"मेरे कॉन्ट्रैक्ट"* या *"status"*: आपके सक्रिय लीगल स्मार्ट कॉन्ट्रैक्ट और एस्क्रो फंड्स।
+👉 *"मेरे ऑर्डर"* या *"my orders"*: आपके बल्क प्रोक्योरमेंट ऑर्डर्स की ट्रैकिंग।
+👉 *"500 क्विंटल गेहूं चाहिए"*: उपलब्ध FPO क्लस्टर और फार्मर लॉट्स से तत्काल मिलान।
+👉 *"RFQ स्थिति"*: आपके जारी टेंडर और कोट्स की स्थिति।`;
+  } else {
+    welcomeMsg = 
 `🎉 *नमस्ते ${name} जी!* 🌾
 
-आपका AgriChain किसान खाता आधिकारिक WhatsApp Business से जुड़ गया है!
+आपका AgriChain *किसान खाता (Farmer Account)* आधिकारिक WhatsApp से जुड़ गया है!
 
 ✅ *किसान ID*: #${userId.slice(0, 8)}
 📍 *स्थान*: ${location}
 📱 *WhatsApp फ़ोन*: +${phone}
+🏷️ *खाता प्रकार*: किसान (Seller)
 
-🤝 *अब क्या होगा?*
-इस चैट में आप बोलकर (Voice Note) या फोटो भेजकर फसल बेच सकते हैं:
-👉 फसल की फोटो भेजें: AI गुणवत्ता परखेगा और भाव सुझाएगा।
-👉 वॉइस नोट भेजें: "करनाल में 50 क्विंटल गेहूं 2600 भाव"
-👉 सीधे **आपके AgriChain ऐप खाते** में दर्ज होगी और 'My Crops' में दिखेगी!`;
+🤝 *आप WhatsApp पर क्या कर सकते हैं?*
+👉 *फसल बेचें*: बोलकर (Voice Note) या लिखकर भेजें: "करनाल में 50 क्विंटल शरबती गेहूं 2600 भाव"
+👉 *फोटो भेजें*: AI फसल की गुणवत्ता (प्योरिटी, नमी) परखेगा और ग्रेड तय करेगा।
+👉 *"मेरी फसलें"* या *"status"*: आपकी एक्टिव फसलें और उनकी वर्तमान स्थिति।
+👉 *"ऑर्डर"* या *"my orders"*: खरीदारों से आए ताज़ा ऑर्डर और पेमेंट स्टेटस।`;
+  }
 
   await sendWhatsAppMessage(phone, welcomeMsg);
 }
 
-async function getLinkedFarmer(phone) {
-  let doc = await firestoreGet('whatsapp_farmers', phone);
+const handleFarmerHandshake = handleUserHandshake;
+
+async function getLinkedUser(phone) {
+  let doc = await firestoreGet('whatsapp_users', phone);
+  if (!doc) {
+    const alt = phone.startsWith('91') ? phone.slice(2) : `91${phone}`;
+    doc = await firestoreGet('whatsapp_users', alt);
+  }
+  if (!doc) {
+    doc = await firestoreGet('whatsapp_farmers', phone);
+  }
   if (!doc) {
     const alt = phone.startsWith('91') ? phone.slice(2) : `91${phone}`;
     doc = await firestoreGet('whatsapp_farmers', alt);
   }
+
+  let user = null;
   if (doc && doc.fields) {
-    return {
-      userId: doc.fields.userId?.stringValue,
-      name: doc.fields.name?.stringValue,
-      location: doc.fields.location?.stringValue || 'Haryana'
+    const f = doc.fields;
+    user = {
+      userId: f.userId?.stringValue,
+      name: f.name?.stringValue,
+      role: f.role?.stringValue || 'farmer',
+      location: f.location?.stringValue || 'Haryana',
+      phone: f.phone?.stringValue || phone
     };
-  }
-  // Automatic mapping for Aryan Kisan
-  if (phone.endsWith('8307165924') || phone.endsWith('38732065468642')) {
-    return {
+  } else if (phone.endsWith('8307165924') || phone.endsWith('38732065468642')) {
+    user = {
       userId: '90Eajo6VcCRtbzxthkWCxAwHsBs2',
       name: 'aryan sharma',
-      location: 'Karnal, Haryana'
+      role: 'farmer',
+      location: 'Karnal, Haryana',
+      phone: phone
     };
   }
-  return null;
+
+  // Ensure role is up-to-date with Firestore /users collection if possible
+  if (user && user.userId) {
+    try {
+      const userDoc = await firestoreGet('users', user.userId);
+      if (userDoc && userDoc.fields) {
+        const rawType = (userDoc.fields.userType?.stringValue || '').toLowerCase();
+        if (rawType.includes('retail')) user.role = 'retailBuyer';
+        else if (rawType.includes('fpo')) user.role = 'fpo';
+        else if (rawType.includes('buyer') || rawType.includes('bulk')) user.role = 'buyer';
+        else if (rawType) user.role = 'farmer';
+
+        if (userDoc.fields.name?.stringValue) user.name = userDoc.fields.name.stringValue;
+        if (userDoc.fields.location?.stringValue) user.location = userDoc.fields.location.stringValue;
+      }
+    } catch (_) {}
+  }
+
+  return user;
 }
+
+const getLinkedFarmer = getLinkedUser;
 
 // ---------------------------------------------------------------------------
 // 7. Multimodal AI Processing (Voice Notes, Images & Text with Multi-Model Fallback)
@@ -459,11 +578,14 @@ Return ONLY pure JSON (no markdown fences):
   }
 }
 
-// C. Text & Multi-turn Message Processing
-async function processFarmerTextMessage(from, text, farmer) {
+// C. Text & Multi-turn Message Processing (Multi-Role Aware)
+async function processUserTextMessage(from, text, user) {
+  const role = user?.role || 'farmer';
+  const name = user?.name || 'AgriChain User';
+
   // Fast check for Highest Orders & Demand Prediction
   if (/highest order|highest demand|sabse zyada order|sabse bada order|agla order|kahan se order|kahan order|where order|where demand|next order|predict order|forecast|bhav predict|demand|kahan bechun|highest sale/i.test(text)) {
-    console.log(`🎯 Detected demand/order prediction query from +${from}: "${text}"`);
+    console.log(`🎯 Detected demand/order prediction query from +${from} [${role}]: "${text}"`);
     let matchedCrop = null;
     for (const c of ['tomato', 'onion', 'wheat', 'rice', 'mustard', 'potato', 'soybean', 'cotton', 'maize']) {
       if (new RegExp(`\\b${c}\\b|${c}`, 'i').test(text)) {
@@ -471,29 +593,75 @@ async function processFarmerTextMessage(from, text, farmer) {
         break;
       }
     }
-    await handleHighestOrdersPrediction(from, matchedCrop, farmer, text);
+    await handleHighestOrdersPrediction(from, matchedCrop, user, text);
     return;
   }
 
-  // Fast keyword check for status / my crops inquiry
-  if (/status|mera status|meri fasal|my crop|active crop|listings|my orders/i.test(text)) {
-    await handleStatusInquiry(from, farmer);
+  // Fast keyword check for status / my crops / my orders / stock inquiry
+  if (/status|mera status|meri fasal|my crop|active crop|listings|my orders|meri kharid|orders|order|stock|hamara stock|my contracts|contracts|contract|rfq/i.test(text)) {
+    await handleStatusInquiry(from, user);
     return;
   }
 
   // Fast keyword check for payment / escrow inquiry
-  if (/escrow|payment|paisa|paise|paise kaise|bank|payment secure/i.test(text)) {
-    await handleEscrowInquiry(from, farmer);
+  if (/escrow|payment|paisa|paise|paise kaise|bank|payment secure|refund/i.test(text)) {
+    await handleEscrowInquiry(from, user);
     return;
   }
 
-  const prompt = `You are AgriChain Kisan AI, the smart assistant for Indian farmers.
-Parse this Hindi/English message from an Indian farmer: "${text}".
-Farmer Profile: ${farmer ? `${farmer.name} from ${farmer.location}` : 'Unlinked Farmer'}.
+  // RETAIL BUYER SPECIFIC: Searching produce to buy
+  if (role === 'retailBuyer') {
+    if (/chahiye|kharidna|buy|purchase|rate|bhav|tamatar|wheat|rice|gehu|pyaz|onion|potato|aloo|mustard|sarson|sabji|sabzi|vegetable|fresh/i.test(text)) {
+      console.log(`🛒 Retail Buyer +${from} looking to buy crops: "${text}"`);
+      let cropSearch = null;
+      for (const c of ['wheat', 'rice', 'mustard', 'cotton', 'soybean', 'potato', 'onion', 'tomato', 'maize']) {
+        if (new RegExp(`\\b${c}\\b|${c}`, 'i').test(text)) {
+          cropSearch = c;
+          break;
+        }
+      }
+      const available = await searchAvailableCropsForBuyer(cropSearch, 4);
+      if (available.length > 0) {
+        let reply = `🛒 *AgriChain ताज़ा खेत उपज (Direct Farm Fresh)* 🛒\n\n`;
+        reply += `नमस्ते ${name}! आपके लिए नजदीकी सत्यापित किसानों से उपलब्ध ताज़ा फसलें:\n\n`;
+        available.forEach((c, idx) => {
+          const p = c.price > 300 ? Math.round(c.price / 100) : c.price;
+          reply += `${idx + 1}. 🌾 *${c.name}*\n   💰 भाव: ₹${p}/kg (₹${p * 100}/क्विंटल)\n   👨‍🌾 किसान: ${c.farmerName} (${c.location})\n   ⚖️ उपलब्ध स्टॉक: ${c.quantity || 'स्टॉक में'}\n\n`;
+        });
+        reply += `📲 *ऑर्डर बुक करने के लिए:*\nअपने **AgriChain Mobile App** में 'Retail Market' खोलें और 1-क्लिक में सुरक्षित एस्क्रो ऑर्डर दें! 🚚✨`;
+        await sendWhatsAppMessage(from, reply);
+        return;
+      }
+    }
+  }
+
+  // BULK BUYER SPECIFIC: Bulk procurement inquiry
+  if (role === 'buyer') {
+    if (/quintal|ton|b2b|bulk|mill|procurement|supply|contract|chahiye/i.test(text)) {
+      console.log(`🏭 Bulk Buyer +${from} procurement inquiry: "${text}"`);
+      const available = await searchAvailableCropsForBuyer(null, 3);
+      let reply = `🏭 *AgriChain बल्क मंडी व संस्थागत प्रोक्योरमेंट* 🏭\n\n`;
+      reply += `नमस्ते ${name}! बल्क खरीदारों के लिए वर्तमान में उपलब्ध FPO क्लस्टर और किसान लॉट्स:\n\n`;
+      available.forEach((c, idx) => {
+        const pPerQtl = c.price <= 300 ? c.price * 100 : c.price;
+        reply += `${idx + 1}. 🌾 *${c.name}*\n   💰 बेंचमार्क भाव: ₹${pPerQtl}/क्विंटल\n   🏢 स्रोत: ${c.farmerName} (${c.location})\n   📦 कुल लॉट: ${c.quantity}\n\n`;
+      });
+      reply += `📝 *नया RFQ / टेंडर जारी करने के लिए:* AgriChain ऐप में 'Bulk Procurement' सेक्शन में जाएँ।\n📄 *अपने कॉन्ट्रैक्ट देखने के लिए लिखें:* *"my contracts"*`;
+      await sendWhatsAppMessage(from, reply);
+      return;
+    }
+  }
+
+  // GENERAL AI NLP (Gemini Flash) with Role Context
+  const roleLabel = role === 'retailBuyer' ? 'Retail Consumer Buyer' : (role === 'buyer' ? 'Institutional Bulk Buyer' : (role === 'fpo' ? 'FPO Aggregator' : 'Smallholder Farmer'));
+  const prompt = `You are AgriChain AI, the multilingual assistant for India's digital agricultural marketplace.
+Parse this Hindi/English message from a user: "${text}".
+User Profile: ${user ? `${user.name} (${roleLabel}) from ${user.location}` : 'Unlinked User'}.
+User Role: ${role}.
 
 Return ONLY pure JSON (no markdown fences):
 {
-  "intent": "listing" | "price_inquiry" | "demand_prediction" | "escrow_inquiry" | "agronomic_advisory" | "status_inquiry" | "general",
+  "intent": "listing" | "buy_inquiry" | "price_inquiry" | "demand_prediction" | "escrow_inquiry" | "agronomic_advisory" | "status_inquiry" | "general",
   "crop": "wheat" | "rice" | "mustard" | "cotton" | "soybean" | "potato" | "onion" | "tomato" | "maize" | null,
   "variety": string | null,
   "quantityQuintals": number | null,
@@ -503,28 +671,28 @@ Return ONLY pure JSON (no markdown fences):
 }
 
 INTENT RULES:
-- If the message asks where the highest orders, maximum demand, or next high-demand market/mandi will come from (e.g. "sabse zyada order kahan aayenge", "where will highest orders come next", "demand prediction", "kahan bechun jahan order zyada milein"), set "intent": "demand_prediction".
-- If listing a crop to sell, set "intent": "listing".
-- If asking for current market bhav/price, set "intent": "price_inquiry".
-
-UNIT CONVERSIONS & PRICING:
-- 100 kg = 1 Quintal (e.g. 20 kg = 0.2 Quintals, 30 kg = 0.3 Quintals, 50 kg = 0.5 Quintals)
-- 1 Ton = 10 Quintals, 1 Bori = 0.5 Quintals (50 kg), 1 Mann = 0.4 Quintals (40 kg)
-- If the price is given per kg (e.g. "30/kg", "38/kg", "38 per kg"), multiply by 100 to get expectedPricePerQuintal (3800). expectedPricePerQuintal MUST ALWAYS be in ₹/quintal.`;
+- If User is a retailBuyer or buyer asking to buy/get a crop, set "intent": "buy_inquiry" or "price_inquiry".
+- If User is a farmer or fpo listing crops to sell, set "intent": "listing".
+- If asking for prices/rates, set "intent": "price_inquiry".
+- 100 kg = 1 Quintal. If quoted per kg (e.g. 38/kg), multiply by 100 to get expectedPricePerQuintal (3800).`;
 
   try {
     const rawText = await callGemini([prompt]);
     const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
     const aiResult = JSON.parse(cleanJson);
-    await handleParsedAiResult(from, aiResult, farmer);
+    await handleParsedAiResult(from, aiResult, user);
   } catch (err) {
     console.error('Text NLP Error:', err.message);
   }
 }
 
+const processFarmerTextMessage = processUserTextMessage;
+
 // ---------------------------------------------------------------------------
-// 8. Shared Decision Router & Automated Firestore Listing
+// 8. Role-Differentiated Firestore Data Queries & Strict Data Isolation
 // ---------------------------------------------------------------------------
+
+// A. Farmer Active Listings (Strictly where farmerId == userId)
 async function getFarmerActiveListings(farmerId) {
   try {
     const res = await axios.post(
@@ -564,32 +732,346 @@ async function getFarmerActiveListings(farmerId) {
   }
 }
 
-async function handleStatusInquiry(from, farmer) {
-  const farmerId = farmer?.userId || '90Eajo6VcCRtbzxthkWCxAwHsBs2';
-  const farmerName = farmer?.name || 'aryan sharma';
-  const location = farmer?.location || 'Karnal, Haryana';
+// B. Retail Buyer Orders (Strictly where buyerId == userId)
+async function getRetailOrdersForBuyer(buyerId) {
+  try {
+    const res = await axios.post(
+      `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery?key=${FIREBASE_WEB_API_KEY}`,
+      {
+        structuredQuery: {
+          from: [{ collectionId: 'retail_orders' }],
+          where: {
+            fieldFilter: {
+              field: { fieldPath: 'buyerId' },
+              op: 'EQUAL',
+              value: { stringValue: buyerId }
+            }
+          },
+          limit: 10
+        }
+      }
+    );
+    if (!res.data || !Array.isArray(res.data)) return [];
+    return res.data
+      .filter(item => item.document && item.document.fields)
+      .map(item => {
+        const f = item.document.fields;
+        return {
+          id: f.id?.stringValue || item.document.name.split('/').pop(),
+          orderId: f.orderId?.stringValue || f.id?.stringValue,
+          cropName: f.cropName?.stringValue || 'उपज',
+          quantity: f.quantity?.stringValue || (f.quantityKg?.doubleValue ? `${f.quantityKg.doubleValue} kg` : ''),
+          totalPrice: Number(f.totalPrice?.doubleValue || f.totalAmount?.doubleValue || f.price?.doubleValue || 0),
+          status: f.status?.stringValue || 'in_transit',
+          farmerName: f.farmerName?.stringValue,
+          eta: f.eta?.stringValue
+        };
+      });
+  } catch (err) {
+    console.warn('⚠️ Error fetching retail buyer orders:', err.message);
+    return [];
+  }
+}
 
-  const listings = await getFarmerActiveListings(farmerId);
+// C. Farmer Incoming Sales Orders (Strictly where farmerId == userId)
+async function getFarmerIncomingOrders(farmerId) {
+  try {
+    const res = await axios.post(
+      `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery?key=${FIREBASE_WEB_API_KEY}`,
+      {
+        structuredQuery: {
+          from: [{ collectionId: 'retail_orders' }],
+          where: {
+            fieldFilter: {
+              field: { fieldPath: 'farmerId' },
+              op: 'EQUAL',
+              value: { stringValue: farmerId }
+            }
+          },
+          limit: 5
+        }
+      }
+    );
+    if (!res.data || !Array.isArray(res.data)) return [];
+    return res.data
+      .filter(item => item.document && item.document.fields)
+      .map(item => {
+        const f = item.document.fields;
+        return {
+          id: f.id?.stringValue || item.document.name.split('/').pop(),
+          cropName: f.cropName?.stringValue || 'फसल',
+          quantity: f.quantity?.stringValue || '',
+          totalPrice: Number(f.totalPrice?.doubleValue || f.totalAmount?.doubleValue || 0),
+          buyerName: f.buyerName?.stringValue || 'खरीदार',
+          status: f.status?.stringValue || 'in_transit'
+        };
+      });
+  } catch (err) {
+    return [];
+  }
+}
+
+// D. FPO Incoming Orders & Shipments (Strictly where fpoId == userId or sellerId == userId)
+async function getOrdersForFpo(fpoId) {
+  try {
+    const res = await axios.post(
+      `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery?key=${FIREBASE_WEB_API_KEY}`,
+      {
+        structuredQuery: {
+          from: [{ collectionId: 'fpo_orders' }],
+          where: {
+            fieldFilter: {
+              field: { fieldPath: 'fpoId' },
+              op: 'EQUAL',
+              value: { stringValue: fpoId }
+            }
+          },
+          limit: 5
+        }
+      }
+    );
+    if (!res.data || !Array.isArray(res.data)) return [];
+    return res.data
+      .filter(item => item.document && item.document.fields)
+      .map(item => {
+        const f = item.document.fields;
+        return {
+          id: f.id?.stringValue || item.document.name.split('/').pop(),
+          cropName: f.cropName?.stringValue || 'लॉट',
+          quantity: f.quantity?.stringValue || '',
+          totalAmount: Number(f.totalAmount?.doubleValue || 0),
+          status: f.status?.stringValue || 'pending'
+        };
+      });
+  } catch (err) {
+    return [];
+  }
+}
+
+// E. Bulk Buyer RFQs (Strictly where buyerId == userId)
+async function getRfqsForBuyer(buyerId) {
+  try {
+    const res = await axios.post(
+      `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery?key=${FIREBASE_WEB_API_KEY}`,
+      {
+        structuredQuery: {
+          from: [{ collectionId: 'bulk_rfqs' }],
+          where: {
+            fieldFilter: {
+              field: { fieldPath: 'buyerId' },
+              op: 'EQUAL',
+              value: { stringValue: buyerId }
+            }
+          },
+          limit: 5
+        }
+      }
+    );
+    if (!res.data || !Array.isArray(res.data)) return [];
+    return res.data
+      .filter(item => item.document && item.document.fields)
+      .map(item => {
+        const f = item.document.fields;
+        return {
+          id: f.id?.stringValue || item.document.name.split('/').pop(),
+          crop: f.crop?.stringValue || f.commodity?.stringValue || 'फसल',
+          quantity: f.quantity?.stringValue || '',
+          targetPrice: Number(f.targetPrice?.doubleValue || f.targetPrice?.integerValue || 0),
+          quotesCount: Number(f.quotesCount?.integerValue || 0),
+          status: f.status?.stringValue || 'open'
+        };
+      });
+  } catch (err) {
+    return [];
+  }
+}
+
+// F. Search Available Active Crops from Verified Farmers (for Buyers)
+async function searchAvailableCropsForBuyer(cropType, limit = 4) {
+  try {
+    const res = await axios.post(
+      `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery?key=${FIREBASE_WEB_API_KEY}`,
+      {
+        structuredQuery: {
+          from: [{ collectionId: 'crops' }],
+          where: {
+            fieldFilter: {
+              field: { fieldPath: 'status' },
+              op: 'EQUAL',
+              value: { stringValue: 'active' }
+            }
+          },
+          limit: 20
+        }
+      }
+    );
+    if (!res.data || !Array.isArray(res.data)) return [];
+    let crops = res.data
+      .filter(item => item.document && item.document.fields)
+      .map(item => {
+        const f = item.document.fields;
+        const p = Number(f.price?.doubleValue || f.price?.integerValue || 0);
+        return {
+          id: f.id?.stringValue || item.document.name.split('/').pop(),
+          name: f.name?.stringValue || 'फसल',
+          cropType: f.cropType?.stringValue || '',
+          farmerName: f.farmerName?.stringValue || 'प्रमाणित किसान',
+          location: f.location?.stringValue || 'हरियाणा',
+          quantity: f.quantity?.stringValue || '',
+          price: p
+        };
+      });
+
+    if (cropType) {
+      const match = crops.filter(c => 
+        c.cropType.toLowerCase().includes(cropType.toLowerCase()) || 
+        c.name.toLowerCase().includes(cropType.toLowerCase())
+      );
+      if (match.length > 0) crops = match;
+    }
+    return crops.slice(0, limit);
+  } catch (e) {
+    console.warn('⚠️ Error searching available crops:', e.message);
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 8.5 Strict Role-Differentiated Status Inquiry Handler
+// ---------------------------------------------------------------------------
+async function handleStatusInquiry(from, user) {
+  const role = user?.role || 'farmer';
+  const userId = user?.userId || '90Eajo6VcCRtbzxthkWCxAwHsBs2';
+  const name = user?.name || 'AgriChain User';
+  const location = user?.location || 'Haryana';
+
+  console.log(`🔍 Handling Role-Isolated Status Inquiry for +${from} [${role}] ${name} (${userId})`);
+
+  // =========================================================================
+  // CASE 1: RETAIL BUYER (Show strictly THEIR orders, NOT crops)
+  // =========================================================================
+  if (role === 'retailBuyer') {
+    const orders = await getRetailOrdersForBuyer(userId);
+    let msg = `🛒 *AgriChain रिटेल खरीदार स्थिति (My Orders)* 🛒\n\n`;
+    msg += `👤 *खरीदार*: ${name} ✅ (सत्यापित उपभोक्ता)\n`;
+    msg += `📍 *स्थान*: ${location}\n`;
+    msg += `📱 *WhatsApp*: +${from}\n\n`;
+
+    if (orders.length > 0) {
+      msg += `📦 *आपके हाल के ऑर्डर (Your Active Orders):*\n`;
+      orders.slice(0, 5).forEach((ord, idx) => {
+        const orderId = ord.orderId || ord.id;
+        const cropName = ord.cropName || 'कृषि उपज';
+        const qty = ord.quantity || '';
+        const amt = Number(ord.totalPrice || 0).toLocaleString('en-IN');
+        const st = (ord.status || 'in_transit').toUpperCase();
+        const farmerName = ord.farmerName ? `\n   👨‍🌾 किसान: ${ord.farmerName}` : '';
+        const eta = ord.eta ? `\n   ⏱️ ETA: ${ord.eta}` : '';
+        msg += `${idx + 1}. 🛍️ *${cropName}* (${orderId})\n   ⚖️ मात्रा: ${qty} | 💰 कुल: ₹${amt}\n   🚚 स्थिति: *${st}*${farmerName}${eta}\n\n`;
+      });
+      msg += `🔒 *एस्क्रो सुरक्षा:* आपका भुगतान सुरक्षित एस्क्रो में है और डिलीवरी मिलने के बाद ही किसान को जारी होगा।\n\n`;
+      msg += `💡 *नया सामान खोजने के लिए लिखें:*\n👉 *"ताज़ा सब्जियां"* या *"गेहूं का भाव"*`;
+    } else {
+      msg += `📦 *वर्तमान में आपका कोई सक्रिय ऑर्डर नहीं है।*\n\n`;
+      msg += `💡 *किसानों से सीधे ताज़ा फसल खरीदने के लिए लिखें:*\n👉 *"ताज़ा गेहूं खरीदना है"* या *"सब्जियों का रेट"*`;
+    }
+    await sendWhatsAppMessage(from, msg);
+    return;
+  }
+
+  // =========================================================================
+  // CASE 2: FPO (Show strictly THEIR pooled lots & FPO orders)
+  // =========================================================================
+  if (role === 'fpo') {
+    const listings = await getFarmerActiveListings(userId);
+    const fpoOrders = await getOrdersForFpo(userId);
+
+    let msg = `🏢 *AgriChain FPO सामूहिक स्टॉक व स्थिति* 🏢\n\n`;
+    msg += `👤 *FPO*: ${name} ✅ (क्लस्टर एग्रीगेटर)\n`;
+    msg += `📍 *स्थान*: ${location}\n`;
+    msg += `📱 *WhatsApp*: +${from}\n\n`;
+
+    if (listings.length > 0) {
+      msg += `📦 *आपके FPO के सामूहिक लॉट्स (Pooled Lots):*\n`;
+      listings.slice(0, 5).forEach((item, idx) => {
+        const numPrice = Number(item.price) || 0;
+        const priceStr = numPrice > 300 ? `₹${numPrice}/क्विंटल` : `₹${numPrice}/kg`;
+        msg += `${idx + 1}. 🌾 *${item.name}*\n   ⚖️ मात्रा: ${item.quantity || 'दर्ज है'}\n   💰 भाव: ${priceStr}\n   ⭐ स्थिति: *${item.status.toUpperCase()}*\n\n`;
+      });
+    } else {
+      msg += `📦 *वर्तमान में कोई FPO बल्क लॉट सक्रिय नहीं है।*\n\n`;
+    }
+
+    if (fpoOrders.length > 0) {
+      msg += `🏭 *आगामी बल्क प्रोक्योरमेंट ऑर्डर्स:*\n`;
+      fpoOrders.slice(0, 3).forEach((ord, idx) => {
+        msg += `${idx + 1}. 📋 *${ord.cropName}*: ${ord.quantity} | ₹${Number(ord.totalAmount).toLocaleString('en-IN')}\n   🚚 स्थिति: *${(ord.status).toUpperCase()}*\n\n`;
+      });
+    }
+
+    msg += `💡 *नया सामूहिक लॉट जोड़ने के लिए बोलें या लिखें:*\n👉 *"करनाल में 200 क्विंटल गेहूं 2550 भाव"*`;
+    await sendWhatsAppMessage(from, msg);
+    return;
+  }
+
+  // =========================================================================
+  // CASE 3: BULK BUYER (Show strictly THEIR contracts & RFQs)
+  // =========================================================================
+  if (role === 'buyer') {
+    const buyerRfqs = await getRfqsForBuyer(userId);
+
+    let msg = `🏭 *AgriChain बल्क प्रोक्योरमेंट स्थिति (Contracts & RFQ)* 🏭\n\n`;
+    msg += `👤 *खरीदार*: ${name} ✅ (संस्थागत)\n`;
+    msg += `📍 *स्थान*: ${location}\n`;
+    msg += `📱 *WhatsApp*: +${from}\n\n`;
+
+    if (buyerRfqs.length > 0) {
+      msg += `📋 *आपके सक्रिय बल्क टेंडर / RFQs:*\n`;
+      buyerRfqs.slice(0, 4).forEach((rfq, idx) => {
+        msg += `${idx + 1}. 🌾 *${rfq.crop}*\n   ⚖️ आवश्यक मात्रा: ${rfq.quantity} | लक्ष्य भाव: ₹${rfq.targetPrice}/क्विंटल\n   📊 FPO बोलियां: ${rfq.quotesCount} | स्थिति: *${rfq.status.toUpperCase()}*\n\n`;
+      });
+    } else {
+      msg += `📋 *वर्तमान में कोई सक्रिय RFQ या बल्क टेंडर नहीं है।*\n\n`;
+    }
+
+    msg += `💡 *बल्क आवश्यकता दर्ज करने के लिए लिखें:*\n👉 *"500 क्विंटल बासमती 1121 करनाल चाहिए"*`;
+    await sendWhatsAppMessage(from, msg);
+    return;
+  }
+
+  // =========================================================================
+  // CASE 4: FARMER (Show strictly THEIR listed crops and sales orders)
+  // =========================================================================
+  const listings = await getFarmerActiveListings(userId);
+  const incomingOrders = await getFarmerIncomingOrders(userId);
   const activeListings = listings.filter(l => l.status !== 'sold' && l.status !== 'cancelled');
 
-  let msg = `🌾 *AgriChain खाता व फसल स्थिति (Live Status)* 🌾\n\n`;
-  msg += `👤 *किसान*: ${farmerName} ✅ (सत्यापित)\n`;
+  let msg = `🌾 *AgriChain किसान खाता व फसल स्थिति (Live Status)* 🌾\n\n`;
+  msg += `👤 *किसान*: ${name} ✅ (सत्यापित)\n`;
   msg += `📍 *स्थान*: ${location}\n`;
   msg += `📱 *WhatsApp*: +${from}\n\n`;
 
   if (activeListings.length > 0) {
-    msg += `📦 *आपकी सक्रिय फसलें (Active Market Listings):*\n`;
+    msg += `📦 *आपकी सक्रिय फसलें (Your Active Listings):*\n`;
     activeListings.forEach((item, idx) => {
       const numPrice = Number(item.price) || 0;
       const priceStr = numPrice > 300 ? `₹${numPrice}/क्विंटल` : `₹${numPrice}/kg`;
       msg += `${idx + 1}. 🌾 *${item.name}*\n   ⚖️ मात्रा: ${item.quantity || 'दर्ज है'}\n   💰 भाव: ${priceStr}\n   ⭐ स्थिति: *${item.status.toUpperCase()}*\n\n`;
     });
-    msg += `🔒 *एस्क्रो सुरक्षा:* खरीदार द्वारा बोली लगाने या ऑर्डर लॉक होने पर आपको WhatsApp पर तुरंत सूचना मिलेगी।\n\n`;
-    msg += `💡 *नई फसल जोड़ने के लिए बोलें या लिखें:*\n👉 *"50 kg wheat 40/kg"*`;
   } else {
-    msg += `📦 *वर्तमान में कोई सक्रिय फसल दर्ज नहीं है।*\n\n`;
-    msg += `💡 *फसल बेचने के लिए बोलकर (Voice Note) या लिखकर भेजें:*\n👉 *"30 kg wheat 38/kg"*`;
+    msg += `📦 *वर्तमान में आपकी कोई सक्रिय फसल दर्ज नहीं है।*\n\n`;
   }
+
+  if (incomingOrders.length > 0) {
+    msg += `🛍️ *खरीदारों से आए नए ऑर्डर (Incoming Orders):*\n`;
+    incomingOrders.slice(0, 3).forEach((ord, idx) => {
+      const amt = Number(ord.totalPrice || 0).toLocaleString('en-IN');
+      msg += `${idx + 1}. 📦 *${ord.cropName}*: ${ord.quantity}\n   💰 मूल्य: ₹${amt} | खरीदार: ${ord.buyerName}\n   🚚 स्थिति: *${ord.status.toUpperCase()}*\n\n`;
+    });
+  }
+
+  msg += `🔒 *एस्क्रो सुरक्षा:* खरीदार द्वारा ऑर्डर लॉक होने पर आपको WhatsApp पर तुरंत सूचना मिलेगी।\n\n`;
+  msg += `💡 *नई फसल जोड़ने के लिए बोलें या लिखें:*\n👉 *"50 kg wheat 40/kg"*`;
 
   await sendWhatsAppMessage(from, msg);
 }

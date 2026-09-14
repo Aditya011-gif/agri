@@ -9,8 +9,6 @@ import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../models/firestore_models.dart';
 import '../services/database_service.dart';
-import '../services/fast2sms_service.dart';
-import '../services/twilio_verify_service.dart';
 import '../widgets/language_switcher.dart';
 import 'signup_screen.dart';
 
@@ -150,86 +148,29 @@ class _LoginScreenState extends State<LoginScreen>
 
     HapticFeedback.lightImpact();
     final fullNumber = _formattedPhoneNumber;
-    final clean10 = phone.length > 10 ? phone.substring(phone.length - 10) : phone;
-    debugPrint('📲 Initiating Phone OTP verification for: $fullNumber');
+    debugPrint('📲 Demo Phone OTP dispatch for: $fullNumber');
 
-    // Method 1: Twilio Verify Service (Primary real cellular SMS delivery)
-    try {
-      final twilio = TwilioVerifyService();
-      final twilioResult = await twilio.sendOtp(phoneNumber: fullNumber);
+    // Default Demo OTP Mode (drops external SMS delays/blocks for hackathon)
+    const demoOtp = '123456';
+    _sentOtpCode = demoOtp;
 
-      if (twilioResult.success) {
-        if (mounted) {
-          setState(() {
-            _isOtpSent = true;
-            _isLoading = false;
-            _errorMessage = null;
-          });
-          _startResendCountdown();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('✅ Real SMS OTP sent to $fullNumber!'),
-              backgroundColor: AppTheme.primaryColor,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-        return;
-      } else {
-        debugPrint('⚠️ Twilio Verify status: ${twilioResult.error}');
-      }
-    } catch (twilioErr) {
-      debugPrint('⚠️ Twilio exception: $twilioErr');
-    }
+    await Future.delayed(const Duration(milliseconds: 300));
 
-    // Method 2: Fallback to Fast2SMS
-    try {
-      final fast2sms = Fast2SmsService();
-      final result = await fast2sms.sendOtp(phoneNumber: clean10);
-      _sentOtpCode = result.otp;
-
-      if (result.success) {
-        if (mounted) {
-          setState(() {
-            _isOtpSent = true;
-            _isLoading = false;
-            _errorMessage = null;
-          });
-          _startResendCountdown();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('✅ OTP sent to +91 $clean10 via Fast2SMS!'),
-              backgroundColor: AppTheme.primaryColor,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-        return;
-      } else {
-        debugPrint('⚠️ Fast2SMS status: ${result.statusCode} - ${result.error}');
-        if (mounted) {
-          setState(() {
-            _isOtpSent = true;
-            _isLoading = false;
-            _errorMessage = '${result.error ?? "SMS delivery notice"}. Test OTP: ${result.otp}';
-          });
-          _startResendCountdown();
-        }
-        return;
-      }
-    } catch (e) {
-      debugPrint('⚠️ Fast2SMS error: $e');
-    }
-
-    // Method 3: Test fallback
     if (mounted) {
-      _sentOtpCode = '123456';
       setState(() {
         _isOtpSent = true;
         _isLoading = false;
-        _errorMessage = 'Notice: Test mode active. Use code 123456.';
+        _errorMessage = null;
       });
       _startResendCountdown();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚡ Demo Mode Active: Use OTP 123456 or tap Auto-fill!'),
+          backgroundColor: AppTheme.primaryGreen,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 4),
+        ),
+      );
     }
   }
 
@@ -249,24 +190,15 @@ class _LoginScreenState extends State<LoginScreen>
     });
 
     HapticFeedback.lightImpact();
-    final fullNumber = _formattedPhoneNumber;
 
     try {
-      // 1. Check developer test code or Fast2SMS generated OTP
+      // 1. Check developer test code / Demo OTP (123456)
       if (code == _sentOtpCode || code == '123456') {
         await _handleDemoPhoneLogin();
         return;
       }
 
-      // 2. Verify with Twilio Verify API
-      final twilio = TwilioVerifyService();
-      final twilioResult = await twilio.verifyOtp(phoneNumber: fullNumber, code: code);
-      if (twilioResult.success) {
-        await _handleDemoPhoneLogin();
-        return;
-      }
-
-      // 3. If live Firebase confirmation handle is available
+      // 2. If live Firebase confirmation handle is available
       if (kIsWeb && _webConfirmationResult != null) {
         final userCredential = await _webConfirmationResult!.confirm(code);
         if (userCredential.user != null && mounted) {
@@ -288,7 +220,7 @@ class _LoginScreenState extends State<LoginScreen>
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = twilioResult.error ?? 'Invalid OTP code. Please enter the code sent to your phone.';
+          _errorMessage = 'Invalid OTP. Please use Demo OTP: 123456';
         });
       }
     } catch (e) {
@@ -935,7 +867,34 @@ class _LoginScreenState extends State<LoginScreen>
             ],
           ),
         ),
-        const SizedBox(height: 18),
+        // Demo OTP helper badge
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(top: 10, bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0FDF4),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFF86EFAC)),
+          ),
+          child: Row(
+            children: [
+              const Text('⚡', style: TextStyle(fontSize: 16)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Default Demo OTP: 123456 (Tap auto-fill below)',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF166534),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
 
         // 6-digit OTP Field
         TextFormField(

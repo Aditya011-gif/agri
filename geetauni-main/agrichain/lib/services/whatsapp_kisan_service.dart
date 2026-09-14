@@ -26,17 +26,38 @@ class WhatsAppKisanService {
     await prefs.setString(_botNumberKey, clean);
   }
 
-  /// Generates the secure handshake payload for auto-login & attribution
+  /// Generates the secure handshake payload for auto-login & role-based attribution
   String generateHandshakePayload(FirestoreUser user) {
     final cleanPhone = (user.phone ?? '').replaceAll(RegExp(r'\D'), '');
     final location = user.location ?? 'Haryana';
-    return '🌾 *AgriChain किसान खाता लिंक (Account Link)* 🌾\n\n'
+    final role = user.userType.name;
+
+    String roleHeaderHindi = 'किसान';
+    String roleHeaderEng = 'Farmer';
+    String benefitHindi = 'आपकी फसलें सीधे आपके ऐप खाते में जुड़ेंगी और WhatsApp से लाइव अपडेट मिलेंगे।';
+
+    if (user.userType == UserType.retailBuyer) {
+      roleHeaderHindi = 'रिटेल खरीदार';
+      roleHeaderEng = 'Retail Buyer';
+      benefitHindi = 'आपके सभी रीटेल ऑर्डर्स, ट्रैकिंग और ताज़ा कृषि उपज की जानकारी WhatsApp पर मिलेगी।';
+    } else if (user.userType == UserType.fpo || user.userType == UserType.fpoMemberFarmer) {
+      roleHeaderHindi = 'FPO / संस्था';
+      roleHeaderEng = 'FPO Aggregator';
+      benefitHindi = 'सामूहिक लॉट लिस्टिंग और बल्क प्रोक्योरमेंट ऑर्डर्स सीधे आपके FPO खाते से लिंक होंगे।';
+    } else if (user.userType == UserType.buyer) {
+      roleHeaderHindi = 'बल्क खरीदार';
+      roleHeaderEng = 'Bulk Buyer';
+      benefitHindi = 'आपके बल्क स्मार्ट कॉन्ट्रैक्ट, RFQ और एस्क्रो भुगतान सीधे आपके खाते से लिंक होंगे।';
+    }
+
+    return '🌾 *AgriChain $roleHeaderHindi खाता लिंक ($roleHeaderEng Link)* 🌾\n\n'
         'नमस्ते! मेरा AgriChain खाता WhatsApp से लिंक करें:\n'
         '#UID:${user.id}\n'
         '#NAME:${user.name}\n'
         '#PHONE:$cleanPhone\n'
+        '#ROLE:$role\n'
         '#LOC:$location\n\n'
-        '⚠️ _यह संदेश भेजते ही आपकी फसलें सीधे आपके ऐप खाते में जुड़ेंगी।_';
+        '⚠️ _${benefitHindi}_';
   }
 
   /// Launches WhatsApp on the user's mobile device with the prefilled handshake

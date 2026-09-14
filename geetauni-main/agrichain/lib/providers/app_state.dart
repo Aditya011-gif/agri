@@ -72,14 +72,6 @@ class AppState extends ChangeNotifier {
       // Listen to auth state changes
       _auth.authStateChanges().listen(_onAuthStateChanged);
 
-      // Automatically purge all Gmail-registered users and orphaned test data
-      _databaseService.deleteGmailUsersAndAssociatedData().catchError((e) {
-        debugPrint('⚠️ Gmail users cleanup background notice: $e');
-        return <String, int>{'users': 0, 'orders': 0, 'crops': 0};
-      });
-
-      // Mock data initialization removed to avoid permission errors
-      
       // Check if user is already signed in
       _firebaseUser = _auth.currentUser;
       if (_firebaseUser != null) {
@@ -171,7 +163,8 @@ class AppState extends ChangeNotifier {
           userType: UserType.values.firstWhere(
             (e) {
               final str = userTypeString.toLowerCase();
-              if (e == UserType.retailBuyer && (str == 'retailbuyer' || str == 'retail_buyer')) return true;
+              if (e == UserType.retailBuyer &&
+                  (str == 'retailbuyer' || str == 'retail_buyer' || str == 'retail')) return true;
               if (e == UserType.buyer && (str == 'buyer' || str == 'bulk_buyer' || str == 'bulkbuyer')) return true;
               if (e == UserType.fpoMemberFarmer &&
                   (str == 'fpomemberfarmer' ||

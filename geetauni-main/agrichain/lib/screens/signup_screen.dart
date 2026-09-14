@@ -26,13 +26,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _pageController = PageController();
 
   // Role Selection
-  // 'farmer' | 'trader' | 'fpo' | 'buyer'
+  // 'farmer' | 'retail' | 'fpo' | 'buyer'
   String _selectedRole = 'farmer';
   UserType _selectedUserType = UserType.farmer;
-  bool _isTraderSelected = false;
 
   bool get _isIndividualRole =>
-      _selectedRole == 'farmer' || _selectedRole == 'trader';
+      _selectedRole == 'farmer' || _selectedRole == 'retail';
 
   // Form Controllers
   final _firstNameController = TextEditingController();
@@ -50,12 +49,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
   String _irrigationType = 'Canal / नहर';
   final List<String> _selectedCrops = ['Wheat / गेहूं', 'Rice (Paddy) / धान'];
 
-  // Trader Specific Controllers & State
-  final _mandiLicenseController = TextEditingController();
-  final _operatingMandiController = TextEditingController();
-  final List<String> _tradedCommodities = [
-    'Grains & Cereals / अनाज',
-    'Oilseeds / तिलहन',
+  // Retail Buyer Specific Controllers & State
+  final _cityController = TextEditingController();
+  final _pincodeController = TextEditingController();
+  String _deliveryPreference = 'Direct Home Delivery / घर पर डिलीवरी';
+  final List<String> _selectedRetailProduce = [
+    'Fresh Vegetables / सब्जियां',
+    'Fresh Fruits / फल',
   ];
 
   // Organization (FPO / Buyer) Controllers
@@ -94,14 +94,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
     'Potato / आलू',
   ];
 
-  final List<String> _availableCommodityOptions = [
-    'Grains & Cereals / अनाज',
-    'Oilseeds / तिलहन',
-    'Cotton & Fibers / कपास',
-    'Spices / मसाले',
-    'Pulses / दलहन',
-    'Fresh Produce / फल-सब्जियां',
-    'Cash Crops / नकदी फसलें',
+  final List<String> _availableRetailProduceOptions = [
+    'Fresh Vegetables / सब्जियां',
+    'Fresh Fruits / फल',
+    'Grains & Flour / अनाज व आटा',
+    'Pulses & Dal / दालें',
+    'Organic Produce / जैविक उत्पाद',
+    'Dairy & Honey / दूध व शहद',
+    'Cooking Oils / खाद्य तेल',
+    'Spices & Herbs / मसाले',
   ];
 
   @override
@@ -115,9 +116,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _aadhaarController.dispose();
     _panController.dispose();
     _addressController.dispose();
+    _cityController.dispose();
+    _pincodeController.dispose();
     _landHoldingController.dispose();
-    _mandiLicenseController.dispose();
-    _operatingMandiController.dispose();
     _orgNameController.dispose();
     _orgRegistrationNoController.dispose();
     _gstinController.dispose();
@@ -131,19 +132,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
       switch (role) {
         case 'farmer':
           _selectedUserType = UserType.farmer;
-          _isTraderSelected = false;
           break;
-        case 'trader':
-          _selectedUserType = UserType.buyer;
-          _isTraderSelected = true;
+        case 'retail':
+          _selectedUserType = UserType.retailBuyer;
           break;
         case 'fpo':
           _selectedUserType = UserType.fpo;
-          _isTraderSelected = false;
           break;
         case 'buyer':
-          _selectedUserType = UserType.retailBuyer;
-          _isTraderSelected = false;
+          _selectedUserType = UserType.buyer;
           break;
       }
     });
@@ -162,11 +159,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
     });
 
     try {
-      // Launch official DigiLocker WebView modal
-      await DigilockerWebviewModal.show(context);
+      // Launch official DigiLocker WebView modal with preselected role
+      final profileResult = await DigilockerWebviewModal.show(
+        context,
+        preselectedRole: _selectedUserType,
+        isSignUpFlow: true,
+      );
 
-      // Check if verified profile was stored in DigilockerService
-      final profile = DigilockerService.currentVerifiedProfile;
+      // Check if verified profile was returned or stored in DigilockerService
+      final profile = profileResult ?? DigilockerService.currentVerifiedProfile;
       if (profile != null) {
         setState(() {
           _digilockerProfile = profile;
@@ -192,7 +193,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         final fallbackProfile = DigilockerProfile(
           fullName: _firstNameController.text.trim().isNotEmpty
               ? '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'.trim()
-              : (_isTraderSelected ? 'Suresh Kumar (Trader)' : 'Ramesh Singh (Kisan)'),
+              : (_selectedRole == 'retail' ? 'Aarav Sharma (Retail)' : 'Ramesh Singh (Kisan)'),
           gender: 'Male',
           dob: '12/08/1984',
           maskedAadhaar: 'XXXX-XXXX-${phone.length >= 4 ? phone.substring(phone.length - 4) : "6743"}',
@@ -304,25 +305,57 @@ class _SignUpScreenState extends State<SignUpScreen> {
           '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'
               .trim();
 
+      String roleBadge;
+      switch (_selectedUserType) {
+        case UserType.retailBuyer:
+          roleBadge = 'Retail Buyer';
+          break;
+        case UserType.buyer:
+          roleBadge = 'Bulk Buyer';
+          break;
+        case UserType.fpo:
+          roleBadge = 'FPO';
+          break;
+        case UserType.farmer:
+        default:
+          roleBadge = 'Farmer';
+          break;
+      }
+
+      String defaultName;
+      if (fullName.isNotEmpty) {
+        defaultName = fullName;
+      } else if (_selectedUserType == UserType.retailBuyer) {
+        defaultName = 'Retail Buyer ($last10)';
+      } else if (_selectedUserType == UserType.buyer) {
+        defaultName = 'Bulk Buyer ($last10)';
+      } else if (_selectedUserType == UserType.fpo) {
+        defaultName = 'FPO ($last10)';
+      } else {
+        defaultName = 'Kisan ($last10)';
+      }
+
+      final locationParts = [
+        _addressController.text.trim(),
+        _cityController.text.trim(),
+        _pincodeController.text.trim(),
+      ]..removeWhere((s) => s.isEmpty);
+      final resolvedLocation = locationParts.isNotEmpty
+          ? locationParts.join(', ')
+          : 'Karnal, Haryana';
+
       // Create user document in Firestore with phone indexed for login
       final userData = {
         'id': userId,
         'firebaseUid': userId,
         'firstName': _firstNameController.text.trim(),
         'lastName': _lastNameController.text.trim(),
-        'name': fullName.isNotEmpty
-            ? fullName
-            : (_isTraderSelected ? 'Trader ($last10)' : 'Kisan ($last10)'),
+        'name': defaultName,
         'email': email,
         'phone': last10,
         'phoneWithCountryCode': '+91$last10',
         'userType': _selectedUserType.name,
-        'isTrader': _isTraderSelected,
-        'roleBadge': _isTraderSelected
-            ? 'Trader'
-            : (_selectedUserType == UserType.farmer
-                ? 'Farmer'
-                : _selectedUserType.name.toUpperCase()),
+        'roleBadge': roleBadge,
         'isActive': true,
         'isKycVerified': _isKycVerified ? 1 : 0,
         'isAadhaarVerified': _isKycVerified,
@@ -330,13 +363,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
         'kycStatus': _isKycVerified ? 'verified' : 'pending',
         'aadhaarNumber': _aadhaarController.text.trim(),
         'address': _addressController.text.trim(),
-        // Agricultural / Trading attributes
+        'city': _cityController.text.trim(),
+        'pincode': _pincodeController.text.trim(),
+        'location': resolvedLocation,
+        // Retail specific
+        'preferredProduce': _selectedRetailProduce,
+        'deliveryPreference': _deliveryPreference,
+        // Agricultural attributes
         'crops': _selectedCrops,
         'landHolding': _landHoldingController.text.trim(),
         'irrigationType': _irrigationType,
-        'mandiLicense': _mandiLicenseController.text.trim(),
-        'tradedCommodities': _tradedCommodities,
-        'operatingMandi': _operatingMandiController.text.trim(),
         // Organization attributes
         'organizationName': _orgNameController.text.trim(),
         'registrationNumber': _orgRegistrationNoController.text.trim(),
@@ -604,10 +640,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: _buildRoleCard(
-                  id: 'trader',
-                  title: 'Trader / व्यापारी',
-                  subtitle: 'Mandi trade, bulk lot procurement',
-                  icon: Icons.storefront,
+                  id: 'retail',
+                  title: 'Retail / खुदरा खरीदार',
+                  subtitle: 'Fresh farm produce, 7km group buying',
+                  icon: Icons.shopping_basket,
                   badge: 'DigiLocker e-KYC',
                 ),
               ),
@@ -629,7 +665,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               Expanded(
                 child: _buildRoleCard(
                   id: 'buyer',
-                  title: 'Bulk Buyer',
+                  title: 'Bulk Buyer / थोक खरीदार',
                   subtitle: 'Institutional supply & contracts',
                   icon: Icons.business,
                   badge: 'Corporate System',
@@ -790,7 +826,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  /// Official DigiLocker Aadhaar Gateway for Farmer & Trader
+  /// Official DigiLocker Aadhaar Gateway for Farmer & Retail Buyer
   Widget _buildDigiLockerVerificationSection() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -843,7 +879,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'As a ${_selectedRole == "farmer" ? "Farmer" : "Trader"}, verify your identity with DigiLocker. Your Aadhaar-linked mobile number will be automatically registered so you can sign in anytime using SMS OTP without memorizing passwords.',
+            'As a ${_selectedRole == "farmer" ? "Farmer (किसान)" : "Retail Buyer (खुदरा खरीदार)"}, verify your identity with DigiLocker. Your Aadhaar-linked mobile number will be automatically registered so you can sign in anytime using SMS OTP without memorizing passwords.',
             style: TextStyle(fontSize: 12, color: Colors.green.shade900, height: 1.3),
           ),
           const SizedBox(height: 16),
@@ -1052,9 +1088,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
           Text(
             _selectedRole == 'farmer'
                 ? 'Step 2: Crop & Farming Profile (फसल विवरण)'
-                : _selectedRole == 'trader'
-                    ? 'Step 2: Mandi Trading Details (मंडी विवरण)'
-                    : 'Step 2: Enterprise KYC & Operations',
+                : _selectedRole == 'retail'
+                    ? 'Step 2: Delivery & Food Preferences (डिलीवरी विवरण)'
+                    : _selectedRole == 'fpo'
+                        ? 'Step 2: FPO Co-operative Details (एफपीओ विवरण)'
+                        : 'Step 2: Enterprise Procurement Details (संस्थान विवरण)',
             style: GoogleFonts.outfit(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -1065,9 +1103,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
           Text(
             _selectedRole == 'farmer'
                 ? 'Specify what crops you cultivate for direct selling and smart contracts:'
-                : _selectedRole == 'trader'
-                    ? 'Specify your APMC Mandi operating credentials and traded commodities:'
-                    : 'Provide tax and operational details for institutional procurement:',
+                : _selectedRole == 'retail'
+                    ? 'Specify your delivery address and preferences for fresh produce & 7km group buying:'
+                    : _selectedRole == 'fpo'
+                        ? 'Provide FPO registration and aggregation details:'
+                        : 'Provide tax and operational details for institutional procurement:',
             style: TextStyle(fontSize: 12.5, color: AppTheme.grey),
           ),
           const SizedBox(height: 18),
@@ -1164,28 +1204,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 hint: 'e.g. Village Taraori, Karnal, Haryana',
               ),
             ),
-          ] else if (_selectedRole == 'trader') ...[
-            // Trader Mandi Details
-            TextFormField(
-              controller: _mandiLicenseController,
-              decoration: _buildInputDecoration(
-                'APMC Mandi License / Trader ID *',
-                Icons.badge,
-                hint: 'e.g. APMC-KARNAL-TR-2024',
-              ),
-            ),
-            const SizedBox(height: 14),
-            TextFormField(
-              controller: _operatingMandiController,
-              decoration: _buildInputDecoration(
-                'Operating Mandi / District *',
-                Icons.store,
-                hint: 'e.g. New Grain Market, Karnal',
-              ),
-            ),
-            const SizedBox(height: 18),
+          ] else if (_selectedRole == 'retail') ...[
+            // Retail Buyer Preferences & Delivery Address (No trade mandi license needed)
             Text(
-              'Traded Commodities / व्यापार की जाने वाली वस्तुएं *',
+              'Preferred Farm Produce / पसंदीदा ताजा उत्पाद *',
               style: GoogleFonts.outfit(
                 fontWeight: FontWeight.bold,
                 fontSize: 13.5,
@@ -1196,10 +1218,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: _availableCommodityOptions.map((com) {
-                final isSelected = _tradedCommodities.contains(com);
+              children: _availableRetailProduceOptions.map((item) {
+                final isSelected = _selectedRetailProduce.contains(item);
                 return FilterChip(
-                  label: Text(com),
+                  label: Text(item),
                   selected: isSelected,
                   selectedColor: AppTheme.primaryGreen.withValues(alpha: 0.18),
                   checkmarkColor: AppTheme.primaryGreen,
@@ -1211,16 +1233,82 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   onSelected: (selected) {
                     setState(() {
                       if (selected) {
-                        _tradedCommodities.add(com);
+                        _selectedRetailProduce.add(item);
                       } else {
-                        if (_tradedCommodities.length > 1) {
-                          _tradedCommodities.remove(com);
+                        if (_selectedRetailProduce.length > 1) {
+                          _selectedRetailProduce.remove(item);
                         }
                       }
                     });
                   },
                 );
               }).toList(),
+            ),
+            const SizedBox(height: 18),
+
+            // Delivery Address
+            TextFormField(
+              controller: _addressController,
+              decoration: _buildInputDecoration(
+                'Delivery Address (House / Flat, Street, Area) *',
+                Icons.home,
+                hint: 'e.g. Flat 302, Green Valley Apartments, Model Town',
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _cityController,
+                    decoration: _buildInputDecoration(
+                      'City / District *',
+                      Icons.location_city,
+                      hint: 'e.g. Karnal',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextFormField(
+                    controller: _pincodeController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(6),
+                    ],
+                    decoration: _buildInputDecoration(
+                      'PIN Code (पिन कोड) *',
+                      Icons.pin_drop,
+                      hint: '132001',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            DropdownButtonFormField<String>(
+              initialValue: _deliveryPreference,
+              decoration: _buildInputDecoration('Delivery Preference', Icons.local_shipping),
+              items: const [
+                DropdownMenuItem(
+                  value: 'Direct Home Delivery / घर पर डिलीवरी',
+                  child: Text('Direct Home Delivery / घर पर डिलीवरी', style: TextStyle(fontSize: 12.5)),
+                ),
+                DropdownMenuItem(
+                  value: '7km Group Buying Cluster / समूह खरीद क्लस्टर',
+                  child: Text('7km Group Buying Cluster (Discounts)', style: TextStyle(fontSize: 12.5)),
+                ),
+                DropdownMenuItem(
+                  value: 'Both / दोनों',
+                  child: Text('Flexible (Both Home & Group)', style: TextStyle(fontSize: 12.5)),
+                ),
+              ],
+              onChanged: (val) {
+                if (val != null) setState(() => _deliveryPreference = val);
+              },
             ),
           ] else ...[
             // FPO / Buyer Enterprise Fields
@@ -1256,7 +1344,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: _nextStep,
+                  onPressed: () {
+                    if (_selectedRole == 'farmer') {
+                      if (_selectedCrops.isEmpty) {
+                        _showErrorSnackBar('Please select at least one crop');
+                        return;
+                      }
+                      if (_addressController.text.trim().isEmpty) {
+                        _showErrorSnackBar('Please enter your farm location / village');
+                        return;
+                      }
+                    } else if (_selectedRole == 'retail') {
+                      if (_addressController.text.trim().isEmpty) {
+                        _showErrorSnackBar('Please enter your delivery address');
+                        return;
+                      }
+                      if (_cityController.text.trim().isEmpty) {
+                        _showErrorSnackBar('Please enter your city or district');
+                        return;
+                      }
+                      if (_pincodeController.text.trim().length != 6) {
+                        _showErrorSnackBar('Please enter a valid 6-digit delivery PIN code');
+                        return;
+                      }
+                    } else {
+                      if (_addressController.text.trim().isEmpty) {
+                        _showErrorSnackBar('Please enter your registered office address');
+                        return;
+                      }
+                    }
+                    _nextStep();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryGreen,
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -1329,7 +1447,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        _isTraderSelected ? 'TRADER' : _selectedUserType.name.toUpperCase(),
+                        _selectedUserType == UserType.retailBuyer
+                            ? 'RETAIL BUYER'
+                            : (_selectedUserType == UserType.buyer
+                                ? 'BULK BUYER'
+                                : _selectedUserType.name.toUpperCase()),
                         style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -1355,6 +1477,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   _buildSummaryRow('Aadhaar', _aadhaarController.text),
                 if (_selectedRole == 'farmer' && _selectedCrops.isNotEmpty)
                   _buildSummaryRow('Crops', _selectedCrops.take(3).join(', ')),
+                if (_selectedRole == 'retail') ...[
+                  if (_cityController.text.trim().isNotEmpty)
+                    _buildSummaryRow('City', _cityController.text.trim()),
+                  if (_pincodeController.text.trim().isNotEmpty)
+                    _buildSummaryRow('PIN Code', _pincodeController.text.trim()),
+                  if (_selectedRetailProduce.isNotEmpty)
+                    _buildSummaryRow('Preferences', _selectedRetailProduce.take(2).join(', ')),
+                ],
               ],
             ),
           ),

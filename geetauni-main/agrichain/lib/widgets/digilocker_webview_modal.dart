@@ -9,14 +9,28 @@ import '../providers/app_state.dart';
 import '../services/digilocker_service.dart';
 
 class DigilockerWebviewModal extends StatefulWidget {
-  const DigilockerWebviewModal({super.key});
+  final UserType? preselectedRole;
+  final bool isSignUpFlow;
 
-  static Future<void> show(BuildContext context) {
-    return showModalBottomSheet(
+  const DigilockerWebviewModal({
+    super.key,
+    this.preselectedRole,
+    this.isSignUpFlow = false,
+  });
+
+  static Future<DigilockerProfile?> show(
+    BuildContext context, {
+    UserType? preselectedRole,
+    bool isSignUpFlow = false,
+  }) {
+    return showModalBottomSheet<DigilockerProfile>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const DigilockerWebviewModal(),
+      builder: (_) => DigilockerWebviewModal(
+        preselectedRole: preselectedRole,
+        isSignUpFlow: isSignUpFlow,
+      ),
     );
   }
 
@@ -145,12 +159,34 @@ class _DigilockerWebviewModalState extends State<DigilockerWebviewModal> {
     }
   }
 
+  String _getRoleTitle(UserType role) {
+    switch (role) {
+      case UserType.farmer:
+        return 'Farmer (किसान)';
+      case UserType.retailBuyer:
+        return 'Retail Buyer (खुदरा खरीदार)';
+      case UserType.fpo:
+        return 'FPO Cooperative';
+      case UserType.buyer:
+        return 'Bulk Buyer (थोक खरीदार)';
+      default:
+        return role.name;
+    }
+  }
+
   void _completeLoginWithRole(UserType role) {
     if (_verifiedProfile == null) return;
+    DigilockerService.currentVerifiedProfile = _verifiedProfile;
+
+    if (widget.isSignUpFlow) {
+      Navigator.pop(context, _verifiedProfile);
+      return;
+    }
+
     final appState = Provider.of<AppState>(context, listen: false);
     appState.setDigilockerUserRole(role, _verifiedProfile!);
 
-    Navigator.pop(context);
+    Navigator.pop(context, _verifiedProfile);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: const Color(0xFF15803D),
@@ -644,38 +680,108 @@ class _DigilockerWebviewModalState extends State<DigilockerWebviewModal> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
-          Text(
-            'Select Your AgriChain Role to Enter:',
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF0F172A),
+          if (widget.preselectedRole != null) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDCFCE7),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.verified, color: Color(0xFF15803D), size: 28),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Identity Verified for ${_getRoleTitle(widget.preselectedRole!)}',
+                          style: GoogleFonts.outfit(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF166534),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Aadhaar e-KYC linked directly to your selected profile.',
+                          style: TextStyle(fontSize: 11.5, color: Colors.green.shade800),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: () => _completeLoginWithRole(widget.preselectedRole!),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF15803D),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 2,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      widget.isSignUpFlow
+                          ? 'Confirm & Continue Registration / आगे बढ़ें'
+                          : 'Proceed as ${_getRoleTitle(widget.preselectedRole!)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: Colors.white),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.arrow_forward, color: Colors.white, size: 18),
+                  ],
+                ),
+              ),
+            ),
+          ] else ...[
+            Text(
+              'Select Your AgriChain Role to Enter:',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF0F172A),
+              ),
+            ),
+            const SizedBox(height: 12),
 
-          _buildRoleChoiceCard(
-            title: '🌾 Farmer (Kisan Portal)',
-            subtitle: 'List crops, access MSP forecasting & direct buyer pooling',
-            role: UserType.farmer,
-          ),
-          _buildRoleChoiceCard(
-            title: '🏢 FPO Cooperative Manager',
-            subtitle: 'Manage warehouse inventory, silo lots & multi-farm contracts',
-            role: UserType.fpo,
-          ),
-          _buildRoleChoiceCard(
-            title: '🏭 Bulk Buyer / Processor',
-            subtitle: 'Procure multi-ton lots, road-routing & escrow agreements',
-            role: UserType.buyer,
-          ),
-          _buildRoleChoiceCard(
-            title: '🛒 Retail Consumer',
-            subtitle: 'Direct farm produce purchase, cluster pooling & escrow',
-            role: UserType.retailBuyer,
-          ),
+            _buildRoleChoiceCard(
+              title: '🌾 Farmer (Kisan Portal)',
+              subtitle: 'List crops, access MSP forecasting & direct buyer pooling',
+              role: UserType.farmer,
+            ),
+            _buildRoleChoiceCard(
+              title: '🏢 FPO Cooperative Manager',
+              subtitle: 'Manage warehouse inventory, silo lots & multi-farm contracts',
+              role: UserType.fpo,
+            ),
+            _buildRoleChoiceCard(
+              title: '🏭 Bulk Buyer / Processor',
+              subtitle: 'Procure multi-ton lots, road-routing & escrow agreements',
+              role: UserType.buyer,
+            ),
+            _buildRoleChoiceCard(
+              title: '🛒 Retail Consumer',
+              subtitle: 'Direct farm produce purchase, cluster pooling & escrow',
+              role: UserType.retailBuyer,
+            ),
+          ],
         ],
       ),
     );

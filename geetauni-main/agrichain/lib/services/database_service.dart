@@ -1598,14 +1598,23 @@ class DatabaseService {
           })
           .where((o) {
             if (buyerId != null && buyerId.isNotEmpty) {
+              if (buyerId == 'demo_buyer_001' || buyerId == 'buyer_institutional' || buyerId.startsWith('demo_')) {
+                final oBuyerId = (o['buyerId'] ?? '').toString();
+                return oBuyerId == buyerId || oBuyerId == 'demo_buyer_001' || oBuyerId == 'buyer_institutional' || oBuyerId.isEmpty;
+              }
               return o['buyerId'] == buyerId;
             }
             if (fpoId != null && fpoId.isNotEmpty) {
-              if (o['sellerId'] == fpoId || o['fpoId'] == fpoId) return true;
+              final sId = (o['sellerId'] ?? o['fpoId'] ?? '').toString();
+              if (fpoId == 'fpo_karnal_01' || fpoId == 'demo_fpo_001' || fpoId.startsWith('demo_')) {
+                if (sId == fpoId || sId == 'fpo_karnal_01' || sId == 'demo_fpo_001' || sId.isEmpty) return true;
+              } else if (sId == fpoId) {
+                return true;
+              }
               final allocs = o['fpoAllocations'] as List<dynamic>?;
-              if (allocs != null && allocs.any((a) => a['fpoId'] == fpoId)) return true;
+              if (allocs != null && allocs.any((a) => (a['fpoId'] ?? '').toString() == fpoId || (fpoId.startsWith('demo_') && (a['fpoId'] ?? '').toString().startsWith('fpo_')))) return true;
               final contribs = o['contributions'] as List<dynamic>?;
-              if (contribs != null && contribs.any((c) => c['fpoId'] == fpoId)) return true;
+              if (contribs != null && contribs.any((c) => (c['fpoId'] ?? '').toString() == fpoId || (fpoId.startsWith('demo_') && (c['fpoId'] ?? '').toString().startsWith('fpo_')))) return true;
               return false;
             }
             return false;
@@ -1849,8 +1858,8 @@ class DatabaseService {
           }).where((order) {
             if (farmerId.isEmpty) return false;
             final orderFarmerId = (order['farmerId'] ?? order['sellerId'] ?? '').toString();
-            if (farmerId == 'farmer_demo' || farmerId.startsWith('demo_')) {
-              return orderFarmerId == 'farmer_demo';
+            if (farmerId == 'farmer_demo' || farmerId == 'demo_farmer_001' || farmerId.startsWith('demo_')) {
+              return orderFarmerId == 'farmer_demo' || orderFarmerId == 'demo_farmer_001' || orderFarmerId.startsWith('demo_') || orderFarmerId.isEmpty;
             }
             return orderFarmerId == farmerId;
           }).toList();
@@ -1875,8 +1884,8 @@ class DatabaseService {
           }).where((order) {
             if (farmerId.isEmpty) return false;
             final orderFarmerId = (order['farmerId'] ?? order['sellerId'] ?? '').toString();
-            if (farmerId == 'farmer_demo' || farmerId.startsWith('demo_')) {
-              return orderFarmerId == 'farmer_demo';
+            if (farmerId == 'farmer_demo' || farmerId == 'demo_farmer_001' || farmerId.startsWith('demo_')) {
+              return orderFarmerId == 'farmer_demo' || orderFarmerId == 'demo_farmer_001' || orderFarmerId.startsWith('demo_') || orderFarmerId.isEmpty;
             }
             return orderFarmerId == farmerId;
           }).toList();
@@ -2215,6 +2224,9 @@ class DatabaseService {
           }).where((o) {
             if (buyerId == null || buyerId.isEmpty) return false;
             final orderBuyerId = (o['buyerId'] ?? o['userId'] ?? '').toString();
+            if (buyerId == 'demo_retailBuyer_001' || buyerId == 'retail_buyer_demo' || buyerId.startsWith('demo_')) {
+              return orderBuyerId == buyerId || orderBuyerId == 'demo_retailBuyer_001' || orderBuyerId.isEmpty;
+            }
             return orderBuyerId == buyerId;
           }).toList();
           list.sort((a, b) {

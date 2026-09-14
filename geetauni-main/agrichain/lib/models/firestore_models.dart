@@ -99,7 +99,8 @@ class FirestoreUser {
       userType: UserType.values.firstWhere(
         (e) {
           final str = (data['userType'] ?? '').toString().toLowerCase();
-          if (e == UserType.retailBuyer && (str == 'retailbuyer' || str == 'retail_buyer')) return true;
+          if (e == UserType.retailBuyer &&
+              (str == 'retailbuyer' || str == 'retail_buyer' || str == 'retail')) return true;
           if (e == UserType.buyer && (str == 'buyer' || str == 'bulk_buyer' || str == 'bulkbuyer')) return true;
           if (e == UserType.fpoMemberFarmer &&
               (str == 'fpomemberfarmer' ||
