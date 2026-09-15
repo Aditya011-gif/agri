@@ -150,7 +150,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Future<void> _initiateDigiLockerKyc() async {
     final phone = _phoneController.text.trim().replaceAll(RegExp(r'\D'), '');
     if (phone.length < 10) {
-      _showErrorSnackBar('Please enter a valid 10-digit mobile number linked with your Aadhaar');
+      _showErrorSnackBar(
+        'Please enter a valid 10-digit mobile number linked with your Aadhaar',
+      );
       return;
     }
 
@@ -178,8 +180,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
           final parts = profile.fullName.trim().split(' ');
           if (parts.isNotEmpty) {
             _firstNameController.text = parts.first;
-            _lastNameController.text =
-                parts.length > 1 ? parts.sublist(1).join(' ') : '';
+            _lastNameController.text = parts.length > 1
+                ? parts.sublist(1).join(' ')
+                : '';
           }
           if (profile.address != null && profile.address!.isNotEmpty) {
             _addressController.text = profile.address!;
@@ -187,22 +190,28 @@ class _SignUpScreenState extends State<SignUpScreen> {
           _aadhaarController.text = profile.maskedAadhaar;
         });
         _showSuccessSnackBar(
-            '✅ Aadhaar e-KYC Verified via DigiLocker! (आधार सत्यापित)');
+          '✅ Aadhaar e-KYC Verified via DigiLocker! (आधार सत्यापित)',
+        );
       } else {
         // Resilient developer/sandbox fallback if external browser was completed
         final fallbackProfile = DigilockerProfile(
           fullName: _firstNameController.text.trim().isNotEmpty
-              ? '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'.trim()
-              : (_selectedRole == 'retail' ? 'Aarav Sharma (Retail)' : 'Ramesh Singh (Kisan)'),
+              ? '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'
+                    .trim()
+              : (_selectedRole == 'retail'
+                    ? 'Aarav Sharma (Retail)'
+                    : 'Ramesh Singh (Kisan)'),
           gender: 'Male',
           dob: '12/08/1984',
-          maskedAadhaar: 'XXXX-XXXX-${phone.length >= 4 ? phone.substring(phone.length - 4) : "6743"}',
+          maskedAadhaar:
+              'XXXX-XXXX-${phone.length >= 4 ? phone.substring(phone.length - 4) : "6743"}',
           address: _addressController.text.isNotEmpty
               ? _addressController.text
               : 'Village Taraori, Tehsil Nilokheri, Karnal, Haryana',
           sessionId: 'DL_SESSION_${DateTime.now().millisecondsSinceEpoch}',
           verifiedAt: DateTime.now(),
-          certificateId: 'DL-UIDAI-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}',
+          certificateId:
+              'DL-UIDAI-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}',
         );
         DigilockerService.currentVerifiedProfile = fallbackProfile;
 
@@ -214,10 +223,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
           final parts = fallbackProfile.fullName.split(' ');
           if (_firstNameController.text.isEmpty) {
             _firstNameController.text = parts.first;
-            _lastNameController.text = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+            _lastNameController.text = parts.length > 1
+                ? parts.sublist(1).join(' ')
+                : '';
           }
           if (_addressController.text.isEmpty) {
-            _addressController.text = fallbackProfile.address ?? 'Karnal, Haryana';
+            _addressController.text =
+                fallbackProfile.address ?? 'Karnal, Haryana';
           }
           _aadhaarController.text = fallbackProfile.maskedAadhaar;
         });
@@ -256,18 +268,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Future<void> _handleSignUp() async {
     if (!_agreeToTerms || !_agreeToPrivacy) {
-      _showErrorSnackBar('Please accept the terms of service and privacy policy');
+      _showErrorSnackBar(
+        'Please accept the terms of service and privacy policy',
+      );
       return;
     }
 
     // Individual role must have verified DigiLocker
     if (_isIndividualRole && !_isKycVerified) {
-      _showErrorSnackBar('Please verify your identity with DigiLocker before signing up');
+      _showErrorSnackBar(
+        'Please verify your identity with DigiLocker before signing up',
+      );
       return;
     }
 
     final rawPhone = _phoneController.text.trim().replaceAll(RegExp(r'\D'), '');
-    final last10 = rawPhone.length > 10 ? rawPhone.substring(rawPhone.length - 10) : rawPhone;
+    final last10 = rawPhone.length > 10
+        ? rawPhone.substring(rawPhone.length - 10)
+        : rawPhone;
     if (last10.length != 10) {
       _showErrorSnackBar('Please enter a valid 10-digit mobile number');
       return;
@@ -302,7 +320,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
         );
         firebaseUser = cred.user;
       } catch (authErr) {
-        debugPrint('Firebase Auth notice: $authErr. Attempting sign-in binding...');
+        debugPrint(
+          'Firebase Auth notice: $authErr. Attempting sign-in binding...',
+        );
         try {
           final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
             email: email,
@@ -313,7 +333,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
 
       // Unique non-colliding user ID per account and role
-      final userId = firebaseUser?.uid ?? 'user_${last10}_${_selectedUserType.name}';
+      final userId =
+          firebaseUser?.uid ?? 'user_${last10}_${_selectedUserType.name}';
       final fullName =
           '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'
               .trim();
@@ -400,15 +421,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final created = await DatabaseService().createUser(userData);
       debugPrint('Firestore User Creation: $created');
 
-
-
       // Link real KYC Document
       if (_digilockerProfile != null || _isKycVerified) {
         await KycService().verifyWithDigilockerProfile(
           userId: userId,
-          profile: _digilockerProfile ??
+          profile:
+              _digilockerProfile ??
               DigilockerProfile(
-                fullName: fullName.isNotEmpty ? fullName : 'Aadhaar Verified Citizen',
+                fullName: fullName.isNotEmpty
+                    ? fullName
+                    : 'Aadhaar Verified Citizen',
                 maskedAadhaar: _aadhaarController.text.trim(),
                 sessionId: 'DL_REG_${DateTime.now().millisecondsSinceEpoch}',
                 verifiedAt: DateTime.now(),
@@ -432,7 +454,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                '🎉 Welcome to AgriChain, ${fullName.isNotEmpty ? fullName : "User"}! You can now log in anytime with OTP to +91 $last10.'),
+              '🎉 Welcome to AgriChain, ${fullName.isNotEmpty ? fullName : "User"}! You can now log in anytime with OTP to +91 $last10.',
+            ),
             backgroundColor: AppTheme.primaryGreen,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 4),
@@ -703,18 +726,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 if (_isIndividualRole) {
                   if (!_isKycVerified) {
                     _showErrorSnackBar(
-                        '⚠️ Please complete DigiLocker verification first to proceed (कृपया पहले डिजिलॉकर सत्यापन पूरा करें)');
+                      '⚠️ Please complete DigiLocker verification first to proceed (कृपया पहले डिजिलॉकर सत्यापन पूरा करें)',
+                    );
                     return;
                   }
                   if (_phoneController.text.trim().length < 10) {
-                    _showErrorSnackBar('Please enter a valid 10-digit mobile number');
+                    _showErrorSnackBar(
+                      'Please enter a valid 10-digit mobile number',
+                    );
                     return;
                   }
                 } else {
                   if (_orgNameController.text.trim().isEmpty ||
                       _firstNameController.text.trim().isEmpty ||
                       _phoneController.text.trim().isEmpty) {
-                    _showErrorSnackBar('Please fill in required organization details');
+                    _showErrorSnackBar(
+                      'Please fill in required organization details',
+                    );
                     return;
                   }
                 }
@@ -740,7 +768,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward, color: Colors.white, size: 18),
+                  const Icon(
+                    Icons.arrow_forward,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ],
               ),
             ),
@@ -784,7 +816,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   color: isSelected ? AppTheme.primaryGreen : AppTheme.grey,
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? AppTheme.primaryGreen.withValues(alpha: 0.15)
@@ -796,7 +831,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     style: TextStyle(
                       fontSize: 8.5,
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? AppTheme.primaryGreen : AppTheme.darkGrey,
+                      color: isSelected
+                          ? AppTheme.primaryGreen
+                          : AppTheme.darkGrey,
                     ),
                   ),
                 ),
@@ -810,7 +847,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? AppTheme.primaryGreen : AppTheme.darkGreen,
+                  color: isSelected
+                      ? AppTheme.primaryGreen
+                      : AppTheme.darkGreen,
                 ),
               ),
             ),
@@ -873,12 +912,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(Icons.verified, color: Color(0xFF166534), size: 16),
+                        const Icon(
+                          Icons.verified,
+                          color: Color(0xFF166534),
+                          size: 16,
+                        ),
                       ],
                     ),
                     Text(
                       'Government of India • Ministry of Electronics & IT',
-                      style: TextStyle(fontSize: 10.5, color: Colors.green.shade800),
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        color: Colors.green.shade800,
+                      ),
                     ),
                   ],
                 ),
@@ -888,7 +934,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
           const SizedBox(height: 12),
           Text(
             'As a ${_selectedRole == "farmer" ? "Farmer (किसान)" : "Retail Buyer (खुदरा खरीदार)"}, verify your identity with DigiLocker. Your Aadhaar-linked mobile number will be automatically registered so you can sign in anytime using SMS OTP without memorizing passwords.',
-            style: TextStyle(fontSize: 12, color: Colors.green.shade900, height: 1.3),
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.green.shade900,
+              height: 1.3,
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -901,10 +951,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
               LengthLimitingTextInputFormatter(10),
             ],
             decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.phone_android, color: AppTheme.primaryGreen),
+              prefixIcon: const Icon(
+                Icons.phone_android,
+                color: AppTheme.primaryGreen,
+              ),
               prefixText: '+91 ',
               labelText: 'Aadhaar-Linked Mobile Number (आधार मोबाइल नंबर) *',
-              labelStyle: const TextStyle(fontSize: 13, color: AppTheme.darkGreen),
+              labelStyle: const TextStyle(
+                fontSize: 13,
+                color: AppTheme.darkGreen,
+              ),
               hintText: 'Enter 10-digit mobile number',
               filled: true,
               fillColor: Colors.white,
@@ -918,7 +974,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
+                borderSide: const BorderSide(
+                  color: AppTheme.primaryGreen,
+                  width: 2,
+                ),
               ),
             ),
           ),
@@ -938,7 +997,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.check_circle, color: Color(0xFF15803D), size: 20),
+                      const Icon(
+                        Icons.check_circle,
+                        color: Color(0xFF15803D),
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Aadhaar e-KYC Verified (सत्यापित)',
@@ -953,23 +1016,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   const Divider(height: 16),
                   Text(
                     '• Full Name: ${_firstNameController.text} ${_lastNameController.text}',
-                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   Text(
                     '• Masked Aadhaar: ${_aadhaarController.text.isNotEmpty ? _aadhaarController.text : "XXXX-XXXX-6743"}',
-                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   Text(
                     '• Registered Login Phone: +91 ${_phoneController.text}',
                     style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryGreen),
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryGreen,
+                    ),
                   ),
                   if (_addressController.text.isNotEmpty)
                     Text(
                       '• Address: ${_addressController.text}',
-                      style: TextStyle(fontSize: 11.5, color: Colors.grey.shade700),
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: Colors.grey.shade700,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -991,7 +1064,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Icon(Icons.lock_open, color: Colors.white, size: 18),
+                    : const Icon(
+                        Icons.lock_open,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                 label: Text(
                   _isKycInProgress
                       ? 'Connecting to DigiLocker Gateway...'
@@ -1033,7 +1110,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
         TextFormField(
           controller: _orgNameController,
           decoration: _buildInputDecoration(
-            _selectedRole == 'fpo' ? 'FPO / Co-op Legal Name *' : 'Company / Enterprise Name *',
+            _selectedRole == 'fpo'
+                ? 'FPO / Co-op Legal Name *'
+                : 'Company / Enterprise Name *',
             Icons.business,
           ),
         ),
@@ -1051,15 +1130,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
             Expanded(
               child: TextFormField(
                 controller: _firstNameController,
-                decoration: _buildInputDecoration('Rep First Name *', Icons.person),
+                decoration: _buildInputDecoration(
+                  'Rep First Name *',
+                  Icons.person,
+                ),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: TextFormField(
                 controller: _lastNameController,
-                decoration:
-                    _buildInputDecoration('Rep Last Name *', Icons.person_outline),
+                decoration: _buildInputDecoration(
+                  'Rep Last Name *',
+                  Icons.person_outline,
+                ),
               ),
             ),
           ],
@@ -1068,7 +1152,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
         TextFormField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
-          decoration: _buildInputDecoration('Official Business Email *', Icons.email),
+          decoration: _buildInputDecoration(
+            'Official Business Email *',
+            Icons.email,
+          ),
         ),
         const SizedBox(height: 12),
         TextFormField(
@@ -1078,7 +1165,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
             FilteringTextInputFormatter.digitsOnly,
             LengthLimitingTextInputFormatter(10),
           ],
-          decoration: _buildInputDecoration('Official Contact Phone *', Icons.phone),
+          decoration: _buildInputDecoration(
+            'Official Contact Phone *',
+            Icons.phone,
+          ),
         ),
       ],
     );
@@ -1097,10 +1187,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
             _selectedRole == 'farmer'
                 ? 'Step 2: Crop & Farming Profile (फसल विवरण)'
                 : _selectedRole == 'retail'
-                    ? 'Step 2: Delivery & Food Preferences (डिलीवरी विवरण)'
-                    : _selectedRole == 'fpo'
-                        ? 'Step 2: FPO Co-operative Details (एफपीओ विवरण)'
-                        : 'Step 2: Enterprise Procurement Details (संस्थान विवरण)',
+                ? 'Step 2: Delivery & Food Preferences (डिलीवरी विवरण)'
+                : _selectedRole == 'fpo'
+                ? 'Step 2: FPO Co-operative Details (एफपीओ विवरण)'
+                : 'Step 2: Enterprise Procurement Details (संस्थान विवरण)',
             style: GoogleFonts.outfit(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -1112,10 +1202,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
             _selectedRole == 'farmer'
                 ? 'Specify what crops you cultivate for direct selling and smart contracts:'
                 : _selectedRole == 'retail'
-                    ? 'Specify your delivery address and preferences for fresh produce & 7km group buying:'
-                    : _selectedRole == 'fpo'
-                        ? 'Provide FPO registration and aggregation details:'
-                        : 'Provide tax and operational details for institutional procurement:',
+                ? 'Specify your delivery address and preferences for fresh produce & 7km group buying:'
+                : _selectedRole == 'fpo'
+                ? 'Provide FPO registration and aggregation details:'
+                : 'Provide tax and operational details for institutional procurement:',
             style: TextStyle(fontSize: 12.5, color: AppTheme.grey),
           ),
           const SizedBox(height: 18),
@@ -1143,8 +1233,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   checkmarkColor: AppTheme.primaryGreen,
                   labelStyle: TextStyle(
                     fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isSelected ? AppTheme.primaryGreen : AppTheme.darkGreen,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    color: isSelected
+                        ? AppTheme.primaryGreen
+                        : AppTheme.darkGreen,
                   ),
                   onSelected: (selected) {
                     setState(() {
@@ -1168,7 +1262,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: _landHoldingController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: _buildInputDecoration(
                       'Land Size (Acres) *',
                       Icons.landscape,
@@ -1180,19 +1276,39 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: _irrigationType,
-                    decoration: _buildInputDecoration('Irrigation Type', Icons.water_drop),
+                    decoration: _buildInputDecoration(
+                      'Irrigation Type',
+                      Icons.water_drop,
+                    ),
                     items: const [
                       DropdownMenuItem(
-                          value: 'Canal / नहर', child: Text('Canal / नहर', style: TextStyle(fontSize: 12.5))),
+                        value: 'Canal / नहर',
+                        child: Text(
+                          'Canal / नहर',
+                          style: TextStyle(fontSize: 12.5),
+                        ),
+                      ),
                       DropdownMenuItem(
-                          value: 'Tubewell / नलकूप',
-                          child: Text('Tubewell / नलकूप', style: TextStyle(fontSize: 12.5))),
+                        value: 'Tubewell / नलकूप',
+                        child: Text(
+                          'Tubewell / नलकूप',
+                          style: TextStyle(fontSize: 12.5),
+                        ),
+                      ),
                       DropdownMenuItem(
-                          value: 'Rainfed / वर्षा आधारित',
-                          child: Text('Rainfed / वर्षा', style: TextStyle(fontSize: 12.5))),
+                        value: 'Rainfed / वर्षा आधारित',
+                        child: Text(
+                          'Rainfed / वर्षा',
+                          style: TextStyle(fontSize: 12.5),
+                        ),
+                      ),
                       DropdownMenuItem(
-                          value: 'Drip / ड्रिप सिंचाई',
-                          child: Text('Drip / ड्रिप', style: TextStyle(fontSize: 12.5))),
+                        value: 'Drip / ड्रिप सिंचाई',
+                        child: Text(
+                          'Drip / ड्रिप',
+                          style: TextStyle(fontSize: 12.5),
+                        ),
+                      ),
                     ],
                     onChanged: (val) {
                       if (val != null) setState(() => _irrigationType = val);
@@ -1235,8 +1351,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   checkmarkColor: AppTheme.primaryGreen,
                   labelStyle: TextStyle(
                     fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isSelected ? AppTheme.primaryGreen : AppTheme.darkGreen,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    color: isSelected
+                        ? AppTheme.primaryGreen
+                        : AppTheme.darkGreen,
                   ),
                   onSelected: (selected) {
                     setState(() {
@@ -1299,19 +1419,31 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
             DropdownButtonFormField<String>(
               initialValue: _deliveryPreference,
-              decoration: _buildInputDecoration('Delivery Preference', Icons.local_shipping),
+              decoration: _buildInputDecoration(
+                'Delivery Preference',
+                Icons.local_shipping,
+              ),
               items: const [
                 DropdownMenuItem(
                   value: 'Direct Home Delivery / घर पर डिलीवरी',
-                  child: Text('Direct Home Delivery / घर पर डिलीवरी', style: TextStyle(fontSize: 12.5)),
+                  child: Text(
+                    'Direct Home Delivery / घर पर डिलीवरी',
+                    style: TextStyle(fontSize: 12.5),
+                  ),
                 ),
                 DropdownMenuItem(
                   value: '7km Group Buying Cluster / समूह खरीद क्लस्टर',
-                  child: Text('7km Group Buying Cluster (Discounts)', style: TextStyle(fontSize: 12.5)),
+                  child: Text(
+                    '7km Group Buying Cluster (Discounts)',
+                    style: TextStyle(fontSize: 12.5),
+                  ),
                 ),
                 DropdownMenuItem(
                   value: 'Both / दोनों',
-                  child: Text('Flexible (Both Home & Group)', style: TextStyle(fontSize: 12.5)),
+                  child: Text(
+                    'Flexible (Both Home & Group)',
+                    style: TextStyle(fontSize: 12.5),
+                  ),
                 ),
               ],
               onChanged: (val) {
@@ -1322,12 +1454,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
             // FPO / Buyer Enterprise Fields
             TextFormField(
               controller: _gstinController,
-              decoration: _buildInputDecoration('GSTIN Number (If applicable)', Icons.receipt_long),
+              decoration: _buildInputDecoration(
+                'GSTIN Number (If applicable)',
+                Icons.receipt_long,
+              ),
             ),
             const SizedBox(height: 14),
             TextFormField(
               controller: _addressController,
-              decoration: _buildInputDecoration('Registered Head Office Address *', Icons.location_city),
+              decoration: _buildInputDecoration(
+                'Registered Head Office Address *',
+                Icons.location_city,
+              ),
             ),
           ],
 
@@ -1359,25 +1497,35 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         return;
                       }
                       if (_addressController.text.trim().isEmpty) {
-                        _showErrorSnackBar('Please enter your farm location / village');
+                        _showErrorSnackBar(
+                          'Please enter your farm location / village',
+                        );
                         return;
                       }
                     } else if (_selectedRole == 'retail') {
                       if (_addressController.text.trim().isEmpty) {
-                        _showErrorSnackBar('Please enter your delivery address');
+                        _showErrorSnackBar(
+                          'Please enter your delivery address',
+                        );
                         return;
                       }
                       if (_cityController.text.trim().isEmpty) {
-                        _showErrorSnackBar('Please enter your city or district');
+                        _showErrorSnackBar(
+                          'Please enter your city or district',
+                        );
                         return;
                       }
                       if (_pincodeController.text.trim().length != 6) {
-                        _showErrorSnackBar('Please enter a valid 6-digit delivery PIN code');
+                        _showErrorSnackBar(
+                          'Please enter a valid 6-digit delivery PIN code',
+                        );
                         return;
                       }
                     } else {
                       if (_addressController.text.trim().isEmpty) {
-                        _showErrorSnackBar('Please enter your registered office address');
+                        _showErrorSnackBar(
+                          'Please enter your registered office address',
+                        );
                         return;
                       }
                     }
@@ -1392,7 +1540,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                   child: const Text(
                     'Continue / आगे बढ़ें',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -1449,7 +1600,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: AppTheme.primaryGreen.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(6),
@@ -1458,8 +1612,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         _selectedUserType == UserType.retailBuyer
                             ? 'RETAIL BUYER'
                             : (_selectedUserType == UserType.buyer
-                                ? 'BULK BUYER'
-                                : _selectedUserType.name.toUpperCase()),
+                                  ? 'BULK BUYER'
+                                  : _selectedUserType.name.toUpperCase()),
                         style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -1472,7 +1626,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const Divider(height: 16),
                 _buildSummaryRow(
                   'Name',
-                  '${_firstNameController.text} ${_lastNameController.text}'.trim().isNotEmpty
+                  '${_firstNameController.text} ${_lastNameController.text}'
+                          .trim()
+                          .isNotEmpty
                       ? '${_firstNameController.text} ${_lastNameController.text}'
                       : 'Citizen',
                 ),
@@ -1489,9 +1645,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   if (_cityController.text.trim().isNotEmpty)
                     _buildSummaryRow('City', _cityController.text.trim()),
                   if (_pincodeController.text.trim().isNotEmpty)
-                    _buildSummaryRow('PIN Code', _pincodeController.text.trim()),
+                    _buildSummaryRow(
+                      'PIN Code',
+                      _pincodeController.text.trim(),
+                    ),
                   if (_selectedRetailProduce.isNotEmpty)
-                    _buildSummaryRow('Preferences', _selectedRetailProduce.take(2).join(', ')),
+                    _buildSummaryRow(
+                      'Preferences',
+                      _selectedRetailProduce.take(2).join(', '),
+                    ),
                 ],
               ],
             ),
@@ -1518,7 +1680,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
             child: Column(
               children: [
-                if (_signatureDataUri != null && _signatureDataUri!.isNotEmpty) ...[
+                if (_signatureDataUri != null &&
+                    _signatureDataUri!.isNotEmpty) ...[
                   if (_isDigiLockerSignature) ...[
                     Container(
                       padding: const EdgeInsets.all(10),
@@ -1529,15 +1692,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.verified_user, color: Color(0xFF15803D), size: 24),
+                          Icon(
+                            Icons.verified_user,
+                            color: Color(0xFF15803D),
+                            size: 24,
+                          ),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Aadhaar e-Sign Verified via DigiLocker\nLegal under IT Act 2000 for Smart Contracts',
                               style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF15803D)),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF15803D),
+                              ),
                             ),
                           ),
                         ],
@@ -1555,10 +1723,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             final raw = _signatureDataUri!.contains(',')
                                 ? _signatureDataUri!.split(',').last
                                 : _signatureDataUri!;
-                            return Image.memory(base64Decode(raw.trim()),
-                                fit: BoxFit.contain);
+                            return Image.memory(
+                              base64Decode(raw.trim()),
+                              fit: BoxFit.contain,
+                            );
                           } catch (_) {
-                            return const Center(child: Icon(Icons.draw, size: 30));
+                            return const Center(
+                              child: Icon(Icons.draw, size: 30),
+                            );
                           }
                         }(),
                       ),
@@ -1571,7 +1743,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     label: const Text('Change Signature / पुनः हस्ताक्षर करें'),
                   ),
                 ] else ...[
-                  const Icon(Icons.gesture, size: 36, color: AppTheme.primaryGreen),
+                  const Icon(
+                    Icons.gesture,
+                    size: 36,
+                    color: AppTheme.primaryGreen,
+                  ),
                   const SizedBox(height: 6),
                   const Text(
                     'Legally binds your profile for Smart Contract PDF creation',
@@ -1580,7 +1756,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   const SizedBox(height: 10),
                   ElevatedButton.icon(
                     onPressed: _openSignaturePadDialog,
-                    icon: const Icon(Icons.fingerprint, color: Colors.white, size: 18),
+                    icon: const Icon(
+                      Icons.fingerprint,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                     label: const Text('Add Digital Signature / e-Sign'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryGreen,
@@ -1600,15 +1780,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
           TextFormField(
             controller: _passwordController,
             obscureText: _obscurePassword,
-            decoration: _buildInputDecoration(
-              'Optional Password (पासवर्ड) - Phone OTP is Primary',
-              Icons.lock_outline,
-            ).copyWith(
-              suffixIcon: IconButton(
-                icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-              ),
-            ),
+            decoration:
+                _buildInputDecoration(
+                  'Optional Password (पासवर्ड) - Phone OTP is Primary',
+                  Icons.lock_outline,
+                ).copyWith(
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                    ),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                ),
           ),
           const SizedBox(height: 14),
 
@@ -1616,8 +1802,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
           CheckboxListTile(
             value: _agreeToTerms,
             onChanged: (val) => setState(() => _agreeToTerms = val ?? false),
-            title: const Text('I agree to the AgriChain Terms of Service',
-                style: TextStyle(fontSize: 12.5)),
+            title: const Text(
+              'I agree to the AgriChain Terms of Service',
+              style: TextStyle(fontSize: 12.5),
+            ),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
             activeColor: AppTheme.primaryGreen,
@@ -1625,8 +1813,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
           CheckboxListTile(
             value: _agreeToPrivacy,
             onChanged: (val) => setState(() => _agreeToPrivacy = val ?? false),
-            title: const Text('I agree to the Government Privacy Policy',
-                style: TextStyle(fontSize: 12.5)),
+            title: const Text(
+              'I agree to the Government Privacy Policy',
+              style: TextStyle(fontSize: 12.5),
+            ),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
             activeColor: AppTheme.primaryGreen,
@@ -1699,13 +1889,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value, {bool highlight = false}) {
+  Widget _buildSummaryRow(
+    String label,
+    String value, {
+    bool highlight = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
           Text(
             value,
             style: TextStyle(
@@ -1719,7 +1916,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  InputDecoration _buildInputDecoration(String label, IconData icon, {String? hint}) {
+  InputDecoration _buildInputDecoration(
+    String label,
+    IconData icon, {
+    String? hint,
+  }) {
     return InputDecoration(
       prefixIcon: Icon(icon, color: AppTheme.primaryGreen, size: 20),
       labelText: label,
